@@ -1,32 +1,18 @@
-"use client";
+
+"use client"; // This directive is Next.js specific and generally not needed for standard React/Vite projects.
+              // However, if any client-side hooks (useState, useEffect) are used at the top level, it's fine.
+              // For this conversion, we'll remove it as it's a Next.js convention.
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
 import { ROLES_ARRAY, USER_ROLES, UserRole } from "@/types";
 import { DEPARTMENTS, Department } from "@/constants";
 import { AtomIcon, Eye, EyeOff, Loader2 } from "lucide-react";
+
+// Removed ShadCN UI imports (Button, Card, Input, Label, Select, useToast)
 
 const signupSchema = z.object({
   fullName: z.string().min(3, { message: "Full name must be at least 3 characters." }),
@@ -37,14 +23,14 @@ const signupSchema = z.object({
   department: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords do not match.",
-  path: ["confirmPassword"], // Path to field to display error message
+  path: ["confirmPassword"],
 });
 
 type SignupFormValues = z.infer<typeof signupSchema>;
 
 export function SignupForm() {
-  const router = useRouter();
-  const { toast } = useToast();
+  const navigate = useNavigate();
+  // const { toast } = useToast(); // Replaced with window.alert
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -62,14 +48,10 @@ export function SignupForm() {
 
   const onSubmit = async (data: SignupFormValues) => {
     setIsSubmitting(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API call
     setIsSubmitting(false);
 
-    toast({
-      title: "Account Created!",
-      description: `Welcome, ${data.fullName}! Your account as ${data.role} has been successfully created.`,
-    });
+    window.alert(`Account Created! Welcome, ${data.fullName}! Your account as ${data.role} has been successfully created.`);
     
     if (typeof window !== 'undefined') {
         localStorage.setItem('userRole', data.role);
@@ -77,146 +59,162 @@ export function SignupForm() {
 
     switch (data.role) {
       case USER_ROLES.ADMIN:
-        router.push("/dashboard/admin");
+        navigate("/dashboard/admin");
         break;
       case USER_ROLES.FACULTY:
-        router.push("/dashboard/faculty");
+        navigate("/dashboard/faculty");
         break;
       case USER_ROLES.STUDENT:
-        router.push("/dashboard/student");
+        navigate("/dashboard/student");
         break;
       case USER_ROLES.CR:
-        router.push("/dashboard/cr");
+        navigate("/dashboard/cr");
         break;
       default:
-        router.push("/dashboard/overview"); // Fallback
+        navigate("/dashboard/overview");
     }
   };
 
+  // Basic inline styles for demonstration, move to CSS file for a real app
+  const cardStyle: React.CSSProperties = {
+    width: '100%',
+    maxWidth: '500px', // max-w-lg
+    boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)', // shadow-xl
+    borderRadius: '0.75rem', // rounded-xl
+    backgroundColor: 'white',
+    padding: '1.5rem'
+  };
+
+  const headerStyle: React.CSSProperties = { textAlign: 'center', marginBottom: '1rem' };
+  const titleStyle: React.CSSProperties = { fontSize: '1.875rem', fontWeight: 'bold', marginBottom: '0.5rem' };
+  const descriptionStyle: React.CSSProperties = { color: '#6B7280', marginBottom: '1.5rem' };
+  const fieldStyle: React.CSSProperties = { marginBottom: '1rem', position: 'relative' };
+  const labelStyle: React.CSSProperties = { display: 'block', marginBottom: '0.25rem', fontWeight: '500' };
+  const passwordToggleStyle: React.CSSProperties = {
+    position: 'absolute',
+    right: '10px',
+    top: '35px', // Adjust based on input height and label
+    cursor: 'pointer',
+    background: 'none',
+    border: 'none',
+    padding: '0.25rem'
+  };
+
   return (
-    <Card className="w-full max-w-lg shadow-xl rounded-xl">
-      <CardHeader className="text-center space-y-2">
-        <div className="mx-auto mb-2">
-          <AtomIcon className="h-16 w-16 text-primary" />
+    <div style={cardStyle} className="custom-card">
+      <div style={headerStyle} className="custom-card-header">
+        <div style={{ margin: '0 auto 0.5rem auto' }}>
+          <AtomIcon style={{ height: '4rem', width: '4rem', color: '#007BFF' }} />
         </div>
-        <CardTitle className="text-3xl font-bold">Create an Account</CardTitle>
-        <CardDescription>Join Optimized Lab Management System to manage and book lab sessions efficiently.</CardDescription>
-      </CardHeader>
+        <h1 style={titleStyle} className="custom-card-title">Create an Account</h1>
+        <p style={descriptionStyle} className="custom-card-description">Join Optimized Lab Management System to manage and book lab sessions efficiently.</p>
+      </div>
       <form onSubmit={form.handleSubmit(onSubmit)}>
-        <CardContent className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="fullName">Full Name</Label>
-            <Input
+        <div className="custom-card-content">
+          <div style={fieldStyle}>
+            <label htmlFor="fullName" style={labelStyle} className="custom-label">Full Name</label>
+            <input
               id="fullName"
               placeholder="John Doe"
               {...form.register("fullName")}
-              aria-invalid={form.formState.errors.fullName ? "true" : "false"}
+              className="custom-input"
             />
-            {form.formState.errors.fullName && <p className="text-sm text-destructive">{form.formState.errors.fullName.message}</p>}
+            {form.formState.errors.fullName && <p className="error-message">{form.formState.errors.fullName.message}</p>}
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="email">Email</Label>
-            <Input
+          <div style={fieldStyle}>
+            <label htmlFor="email" style={labelStyle} className="custom-label">Email</label>
+            <input
               id="email"
               type="email"
               placeholder="you@example.com"
               {...form.register("email")}
-              aria-invalid={form.formState.errors.email ? "true" : "false"}
+              className="custom-input"
             />
-            {form.formState.errors.email && <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>}
+            {form.formState.errors.email && <p className="error-message">{form.formState.errors.email.message}</p>}
           </div>
 
-          <div className="space-y-1.5 relative">
-            <Label htmlFor="password">Password</Label>
-            <Input
+          <div style={fieldStyle}>
+            <label htmlFor="password" style={labelStyle} className="custom-label">Password</label>
+            <input
               id="password"
               type={showPassword ? "text" : "password"}
               placeholder="••••••••"
               {...form.register("password")}
-              aria-invalid={form.formState.errors.password ? "true" : "false"}
+              className="custom-input"
             />
-            <Button
+            <button
               type="button"
-              variant="ghost"
-              size="icon"
-              className="absolute right-1 top-7 h-7 w-7"
               onClick={() => setShowPassword(!showPassword)}
+              style={passwordToggleStyle}
+              aria-label={showPassword ? "Hide password" : "Show password"}
             >
-              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              <span className="sr-only">{showPassword ? "Hide password" : "Show password"}</span>
-            </Button>
-            {form.formState.errors.password && <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>}
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+            {form.formState.errors.password && <p className="error-message">{form.formState.errors.password.message}</p>}
           </div>
 
-          <div className="space-y-1.5 relative">
-            <Label htmlFor="confirmPassword">Confirm Password</Label>
-            <Input
+          <div style={fieldStyle}>
+            <label htmlFor="confirmPassword" style={labelStyle} className="custom-label">Confirm Password</label>
+            <input
               id="confirmPassword"
               type={showConfirmPassword ? "text" : "password"}
               placeholder="••••••••"
               {...form.register("confirmPassword")}
-              aria-invalid={form.formState.errors.confirmPassword ? "true" : "false"}
+              className="custom-input"
             />
-            <Button
+             <button
               type="button"
-              variant="ghost"
-              size="icon"
-              className="absolute right-1 top-7 h-7 w-7"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              style={passwordToggleStyle}
+              aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
             >
-              {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              <span className="sr-only">{showConfirmPassword ? "Hide confirm password" : "Show confirm password"}</span>
-            </Button>
-            {form.formState.errors.confirmPassword && <p className="text-sm text-destructive">{form.formState.errors.confirmPassword.message}</p>}
+              {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+            {form.formState.errors.confirmPassword && <p className="error-message">{form.formState.errors.confirmPassword.message}</p>}
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="role">Role</Label>
-            <Select
-              onValueChange={(value: UserRole) => form.setValue("role", value, { shouldValidate: true })}
+          <div style={fieldStyle}>
+            <label htmlFor="role" style={labelStyle} className="custom-label">Role</label>
+            <select
+              id="role"
+              {...form.register("role")}
               defaultValue={form.getValues("role")}
+              className="custom-select"
             >
-              <SelectTrigger id="role" aria-invalid={form.formState.errors.role ? "true" : "false"}>
-                <SelectValue placeholder="Select your role" />
-              </SelectTrigger>
-              <SelectContent>
-                {ROLES_ARRAY.map((role) => (
-                  <SelectItem key={role} value={role}>
-                    {role}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {form.formState.errors.role && <p className="text-sm text-destructive">{form.formState.errors.role.message}</p>}
+              {ROLES_ARRAY.map((role) => (
+                <option key={role} value={role}>
+                  {role}
+                </option>
+              ))}
+            </select>
+            {form.formState.errors.role && <p className="error-message">{form.formState.errors.role.message}</p>}
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="department">Department (Optional)</Label>
-            <Select
-              onValueChange={(value: Department) => form.setValue("department", value)}
+          <div style={fieldStyle}>
+            <label htmlFor="department" style={labelStyle} className="custom-label">Department (Optional)</label>
+            <select
+              id="department"
+              {...form.register("department")}
+              className="custom-select"
             >
-              <SelectTrigger id="department">
-                <SelectValue placeholder="Select your department" />
-              </SelectTrigger>
-              <SelectContent>
-                {DEPARTMENTS.map((dept) => (
-                  <SelectItem key={dept} value={dept}>
-                    {dept}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {form.formState.errors.department && <p className="text-sm text-destructive">{form.formState.errors.department.message}</p>}
+              <option value="">Select your department</option>
+              {DEPARTMENTS.map((dept) => (
+                <option key={dept} value={dept}>
+                  {dept}
+                </option>
+              ))}
+            </select>
+            {form.formState.errors.department && <p className="error-message">{form.formState.errors.department.message}</p>}
           </div>
-        </CardContent>
-        <CardFooter className="pt-4">
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        </div>
+        <div style={{ paddingTop: '1rem' }} className="custom-card-footer">
+          <button type="submit" className="custom-button custom-button-primary" style={{width: '100%'}} disabled={isSubmitting}>
+            {isSubmitting && <Loader2 style={{ marginRight: '0.5rem' }} className="animate-spin" size={16} />}
             Create Account
-          </Button>
-        </CardFooter>
+          </button>
+        </div>
       </form>
-    </Card>
+    </div>
   );
 }

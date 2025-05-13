@@ -1,5 +1,5 @@
-// availability-suggestions.ts
-'use server';
+
+// 'use server'; // Removed Next.js specific directive
 /**
  * @fileOverview Suggests alternative lab time slots based on AI analysis of lab schedules and booking patterns.
  *
@@ -25,6 +25,9 @@ const SuggestAlternativeSlotsOutputSchema = z.object({
 export type SuggestAlternativeSlotsOutput = z.infer<typeof SuggestAlternativeSlotsOutputSchema>;
 
 export async function suggestAlternativeSlots(input: SuggestAlternativeSlotsInput): Promise<SuggestAlternativeSlotsOutput> {
+  // In a non-Next.js context, this flow would typically be called via an HTTP request
+  // to a backend endpoint that hosts the Genkit flows.
+  // For direct invocation in a serverless function or similar environment, this can remain.
   return suggestAlternativeSlotsFlow(input);
 }
 

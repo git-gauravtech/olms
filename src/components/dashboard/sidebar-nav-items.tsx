@@ -1,18 +1,73 @@
-
-"use client";
-
 import * as React from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
+import { Link, useLocation } from "react-router-dom"; // Changed from next/link and next/navigation
 import type { NavItem, UserRole } from "@/types";
 import { COMMON_NAV_LINKS, NAV_LINKS } from "@/constants";
-import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import { useEffect, useState } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
+
+// Basic styling for nav items - move to a CSS file in a real app
+const navListStyle: React.CSSProperties = {
+  listStyle: "none",
+  padding: 0,
+  margin: 0,
+};
+
+const navItemStyle: React.CSSProperties = {
+  marginBottom: "0.5rem",
+};
+
+const navLinkStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  padding: "0.75rem 1rem",
+  borderRadius: "0.375rem",
+  textDecoration: "none",
+  color: "#333", // Default text color
+  transition: "background-color 0.2s, color 0.2s",
+};
+
+const activeNavLinkStyle: React.CSSProperties = {
+  ...navLinkStyle,
+  backgroundColor: "#007BFF", // Primary color for active
+  color: "white",
+  fontWeight: 500,
+};
+
+const hoverNavLinkStyle: React.CSSProperties = { // For non-active links
+  backgroundColor: "#e9ecef", // Light hover
+};
+
+const iconStyle: React.CSSProperties = {
+  marginRight: "0.75rem",
+  height: "1.25rem",
+  width: "1.25rem",
+};
+
+const skeletonItemStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  padding: '0.75rem 1rem',
+  marginBottom: '0.5rem',
+};
+
+const skeletonIconStyle: React.CSSProperties = {
+  height: '1.25rem',
+  width: '1.25rem',
+  marginRight: '0.75rem',
+  backgroundColor: '#e0e0e0',
+  borderRadius: '4px',
+};
+
+const skeletonTextStyle: React.CSSProperties = {
+  height: '1rem',
+  width: '80px',
+  backgroundColor: '#e0e0e0',
+  borderRadius: '4px',
+};
+
 
 export function SidebarNavItems() {
-  const pathname = usePathname();
+  const location = useLocation(); // Changed from usePathname
+  const pathname = location.pathname;
   const [currentRole, setCurrentRole] = useState<UserRole | null>(null);
   const [isLoadingRole, setIsLoadingRole] = useState(true);
 
@@ -26,21 +81,16 @@ export function SidebarNavItems() {
 
   if (isLoadingRole) {
     return (
-      <SidebarMenu>
-        {[...Array(4)].map((_, i) => ( // Changed from 5 to 4 for a more average skeleton
-          <SidebarMenuItem key={i}>
-            <SidebarMenuButton
-              variant="default"
-              className="w-full justify-start cursor-default"
-              disabled
-              tooltip="Loading..."
-            >
-              <Skeleton className="h-5 w-5 mr-2 rounded" />
-              <Skeleton className="h-4 w-20 rounded" />
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+      <ul style={navListStyle}>
+        {[...Array(4)].map((_, i) => (
+          <li key={i} style={navItemStyle}>
+            <div style={skeletonItemStyle}>
+              <div style={skeletonIconStyle} />
+              <div style={skeletonTextStyle} />
+            </div>
+          </li>
         ))}
-      </SidebarMenu>
+      </ul>
     );
   }
 
@@ -48,45 +98,36 @@ export function SidebarNavItems() {
     if (currentRole && NAV_LINKS[currentRole]) {
       return NAV_LINKS[currentRole];
     }
-    // Fallback if role is not set or not found in NAV_LINKS (e.g. after logout before redirect)
-    // Or if user somehow lands on dashboard without role.
-    // COMMON_NAV_LINKS should be minimal, or redirect to login if role is strictly required.
     return COMMON_NAV_LINKS; 
   };
 
   const navItems = getNavItems();
 
   if (!navItems || navItems.length === 0) {
-    // This case might occur if COMMON_NAV_LINKS is empty and role is null.
-    // Consider what to display or if a redirect should happen earlier.
     return null; 
   }
 
   return (
-    <SidebarMenu>
+    <ul style={navListStyle}>
       {navItems.map((item) => {
         const IconComponent = item.icon;
+        const isActive = pathname === item.href || (item.href !== '/dashboard/overview' && pathname.startsWith(item.href));
+        
         return (
-          <SidebarMenuItem key={item.href}>
-            <Link href={item.href} legacyBehavior passHref>
-              <SidebarMenuButton
-                variant="default"
-                className={cn(
-                  "w-full justify-start",
-                  pathname === item.href
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                    : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                )}
-                isActive={pathname === item.href}
-                tooltip={item.label}
-              >
-                {IconComponent && <IconComponent className="h-5 w-5 mr-2" />}
-                <span className="truncate">{item.label}</span>
-              </SidebarMenuButton>
+          <li key={item.href} style={navItemStyle}>
+            <Link 
+              to={item.href} 
+              style={isActive ? activeNavLinkStyle : navLinkStyle}
+              onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.backgroundColor = hoverNavLinkStyle.backgroundColor; }}
+              onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.backgroundColor = 'transparent'; }}
+              title={item.label} // Tooltip
+            >
+              {IconComponent && <IconComponent style={iconStyle} />}
+              <span style={{whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>{item.label}</span>
             </Link>
-          </SidebarMenuItem>
+          </li>
         );
       })}
-    </SidebarMenu>
+    </ul>
   );
 }

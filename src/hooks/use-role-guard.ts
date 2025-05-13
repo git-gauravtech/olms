@@ -1,11 +1,10 @@
 
-"use client";
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import type { UserRole } from '@/types'; // Ensure this path is correct
+import { useNavigate } from 'react-router-dom'; // Changed from next/navigation
+import type { UserRole } from '@/types'; 
 
 export function useRoleGuard(expectedRoleOrRoles: UserRole | UserRole[]): { isAuthorized: boolean; isLoading: boolean } {
-  const router = useRouter();
+  const navigate = useNavigate(); // Changed from useRouter
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -22,9 +21,7 @@ export function useRoleGuard(expectedRoleOrRoles: UserRole | UserRole[]): { isAu
       } else {
         if (mounted) {
           setIsAuthorized(false);
-          // Redirect to login if not authorized.
-          // Consider redirecting to a generic dashboard or an access denied page for better UX.
-          router.replace('/login');
+          navigate('/login', { replace: true }); // Changed from router.replace
         }
       }
       if (mounted) {
@@ -34,7 +31,7 @@ export function useRoleGuard(expectedRoleOrRoles: UserRole | UserRole[]): { isAu
     return () => {
       mounted = false;
     };
-  }, [router, expectedRoleOrRoles]);
+  }, [navigate, expectedRoleOrRoles]); // Added navigate to dependencies
 
   return { isAuthorized, isLoading };
 }

@@ -1,20 +1,10 @@
-// src/components/lab/lab-availability-grid.tsx
-"use client";
-
-import * as React from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { MOCK_LABS, MOCK_TIME_SLOTS, DAYS_OF_WEEK, MOCK_BOOKINGS } from "@/constants";
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import { MOCK_LABS, MOCK_TIME_SLOTS, DAYS_OF_WEEK, MOCK_BOOKINGS, MOCK_EQUIPMENT } from "@/constants";
 import type { Lab, TimeSlot, Booking, UserRole } from "@/types";
 import { USER_ROLES } from "@/types";
-import { cn } from "@/lib/utils";
 import { format, addDays, startOfWeek } from "date-fns";
-import { useToast } from "@/hooks/use-toast";
-import { Edit } from "lucide-react";
-
+import { Edit } from "lucide-react"; // Keep lucide icon
 
 interface SlotStatus {
   status: 'available' | 'booked' | 'pending' | 'past';
@@ -31,12 +21,49 @@ interface SelectedSlotDetails {
   currentUserRole: UserRole | null;
 }
 
+// Basic styles - move to a CSS file for a real app
+const gridContainerStyle: React.CSSProperties = { overflowX: 'auto', border: '1px solid #ccc', borderRadius: '8px', backgroundColor: 'white', padding: '0.5rem' };
+const gridStyle: React.CSSProperties = { display: 'grid', gap: '1px', backgroundColor: '#ccc' }; // Use background for grid lines
+const cellStyle: React.CSSProperties = { 
+    padding: '0.5rem', 
+    textAlign: 'center', 
+    minHeight: '60px',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    fontSize: '0.75rem',
+    cursor: 'pointer',
+    backgroundColor: 'white', // Default cell background
+    transition: 'filter 0.2s',
+};
+const headerCellStyle: React.CSSProperties = { ...cellStyle, fontWeight: 'bold', backgroundColor: '#f8f9fa', cursor: 'default' };
+const timeCellStyle: React.CSSProperties = { ...headerCellStyle, writingMode: 'vertical-rl', textOrientation: 'mixed', whiteSpace: 'nowrap', justifyContent: 'center', minWidth: '50px', padding: '0.25rem'};
+
+const getStatusBgColor = (status: SlotStatus['status']) => {
+  switch (status) {
+    case 'available': return '#d4edda'; // Light green (accent)
+    case 'booked': return '#f8d7da'; // Light red (destructive)
+    case 'pending': return '#fff3cd'; // Light yellow (secondary)
+    case 'past': return '#e9ecef'; // Light gray (muted)
+    default: return 'white';
+  }
+};
+
+// Dialog styles
+const dialogOverlayStyle: React.CSSProperties = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 };
+const dialogContentStyle: React.CSSProperties = { backgroundColor: 'white', padding: '20px', borderRadius: '8px', minWidth: '300px', maxWidth: '500px', boxShadow: '0 0 10px rgba(0,0,0,0.25)' };
+const dialogHeaderStyle: React.CSSProperties = { marginBottom: '1rem' };
+const dialogTitleStyle: React.CSSProperties = { fontSize: '1.25rem', fontWeight: 'bold' };
+const dialogDescStyle: React.CSSProperties = { fontSize: '0.875rem', color: '#555', marginBottom: '1rem' };
+const dialogFooterStyle: React.CSSProperties = { marginTop: '1.5rem', display: 'flex', justifyContent: 'space-between', gap: '0.5rem', flexWrap: 'wrap' };
+const dialogButtonStyle: React.CSSProperties = { padding: '0.5rem 1rem', borderRadius: '4px', border: '1px solid #ccc', cursor: 'pointer' };
+
+
 export function LabAvailabilityGrid() {
-  const router = useRouter();
-  const { toast } = useToast();
+  const navigate = useNavigate();
   const [selectedLab, setSelectedLab] = React.useState<Lab | null>(MOCK_LABS[0]);
-  const [weekStartDate, setWeekStartDate] = React.useState(startOfWeek(new Date(), { weekStartsOn: 1 /* Monday */ }));
-  
+  const [weekStartDate, setWeekStartDate] = React.useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [isSlotDetailDialogOpen, setIsSlotDetailDialogOpen] = React.useState(false);
   const [selectedSlotDetails, setSelectedSlotDetails] = React.useState<SelectedSlotDetails | null>(null);
   const [currentUserRole, setCurrentUserRole] = React.useState<UserRole | null>(null);
@@ -51,237 +78,149 @@ export function LabAvailabilityGrid() {
   const getSlotStatus = (dayIndex: number, timeSlot: TimeSlot): SlotStatus => {
     const currentDate = addDays(weekStartDate, dayIndex);
     const formattedDate = format(currentDate, "yyyy-MM-dd");
-    
     const [hours, minutes] = timeSlot.startTime.split(':').map(Number);
     const slotDateTime = new Date(currentDate);
     slotDateTime.setHours(hours, minutes, 0, 0);
-
     const now = new Date();
-     // Check if the entire day is before today (and not today)
-    if (currentDate < startOfWeek(now, { weekStartsOn: 1 }) && format(currentDate, "yyyy-MM-dd") < format(now, "yyyy-MM-dd")) {
-       return { status: 'past' };
-    }
-    // Check if the slot is on the current day but its start time has passed
-    if (format(currentDate, "yyyy-MM-dd") === format(now, "yyyy-MM-dd") && slotDateTime < now) {
-         return { status: 'past' };
-    }
-    // A more general check for past slots based on start time.
+
     if (slotDateTime < now && format(slotDateTime, 'yyyy-MM-dd') <= format(new Date(), 'yyyy-MM-dd')) {
-      return { status: 'past' };
+      if (format(currentDate,"yyyy-MM-dd") < format(now, "yyyy-MM-dd") || (format(currentDate,"yyyy-MM-dd") === format(now, "yyyy-MM-dd") && slotDateTime < now)) {
+        return { status: 'past' };
+      }
     }
     
     const booking = MOCK_BOOKINGS.find(
-      (b) =>
-        b.labId === selectedLab?.id &&
-        b.date === formattedDate &&
-        b.timeSlotId === timeSlot.id &&
-        b.status !== 'cancelled'
+      (b) => b.labId === selectedLab?.id && b.date === formattedDate && b.timeSlotId === timeSlot.id && b.status !== 'cancelled'
     );
-
-    if (booking) {
-      return { status: booking.status as 'booked' | 'pending', booking };
-    }
+    if (booking) return { status: booking.status as 'booked' | 'pending', booking };
     return { status: 'available' };
   };
 
   const handleSlotClick = (day: string, dayIndex: number, timeSlot: TimeSlot, statusInfo: SlotStatus) => {
-    if (!selectedLab) return;
+    if (!selectedLab || statusInfo.status === 'past') return;
     const slotDate = addDays(weekStartDate, dayIndex);
-    
     setSelectedSlotDetails({
       labName: selectedLab.name,
       slotDesc: `${timeSlot.displayTime} on ${format(slotDate, "EEE, MMM d")}`,
-      statusInfo,
-      date: slotDate,
-      timeSlot,
-      day,
-      currentUserRole: currentUserRole,
+      statusInfo, date: slotDate, timeSlot, day, currentUserRole,
     });
     setIsSlotDetailDialogOpen(true);
   };
-
+  
   const handleRequestReschedule = () => {
     if (!selectedSlotDetails) return;
-    toast({
-      title: "Reschedule Requested",
-      description: `A request to reschedule the slot for ${selectedSlotDetails.labName} on ${format(selectedSlotDetails.date, "PPP")} at ${selectedSlotDetails.timeSlot.displayTime} has been noted. Admin will review.`,
-      duration: 5000,
-    });
+    window.alert(`Reschedule requested for ${selectedSlotDetails.labName} on ${format(selectedSlotDetails.date, "PPP")} at ${selectedSlotDetails.timeSlot.displayTime}. Admin will review.`);
     setIsSlotDetailDialogOpen(false);
   };
 
-  const handlePreviousWeek = () => {
-    setWeekStartDate(addDays(weekStartDate, -7));
-  };
-
-  const handleNextWeek = () => {
-    setWeekStartDate(addDays(weekStartDate, 7));
-  };
-  
-  const handleTodayWeek = () => {
-    setWeekStartDate(startOfWeek(new Date(), { weekStartsOn: 1 }));
-  }
-
-  const getStatusColorClasses = (status: SlotStatus['status']) => {
-    // This function provides text color classes for the status in the dialog.
-    switch (status) {
-      case 'available': return "text-accent"; 
-      case 'booked': return "text-destructive";
-      case 'pending': return "text-secondary-foreground"; // Assuming secondary background, so foreground color for text.
-      case 'past': return "text-muted-foreground";
-      default: return "text-foreground";
-    }
-  };
+  const gridTemplateColumns = `minmax(80px, auto) repeat(${DAYS_OF_WEEK.length}, minmax(100px, 1fr))`;
 
   return (
-    <>
-      <Card className="w-full shadow-xl">
-        <CardHeader>
-          <CardTitle className="text-2xl">Lab Availability Viewer</CardTitle>
-          <CardDescription>
-            Select a lab to view its weekly schedule. Click on a slot for details or to book in the Optimized Lab Management System.
-            Labs are rows, time slots are columns.
-          </CardDescription>
-          <div className="pt-4 space-y-4">
-            <Select
-              value={selectedLab?.id}
-              onValueChange={(labId) => {
-                setSelectedLab(MOCK_LABS.find(lab => lab.id === labId) || null);
-              }}
-            >
-              <SelectTrigger className="w-full md:w-[280px]">
-                <SelectValue placeholder="Select a lab" />
-              </SelectTrigger>
-              <SelectContent>
-                {MOCK_LABS.map((lab) => (
-                  <SelectItem key={lab.id} value={lab.id}>
-                    {lab.name} (Capacity: {lab.capacity})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center space-x-2 flex-wrap gap-2">
-                <Button variant="outline" onClick={handlePreviousWeek}>Previous Week</Button>
-                <Button variant="outline" onClick={handleTodayWeek}>Today</Button>
-                <Button variant="outline" onClick={handleNextWeek}>Next Week</Button>
-              </div>
-              <p className="text-sm font-medium text-muted-foreground">
-                Week of: {format(weekStartDate, "MMM d, yyyy")}
-              </p>
+    <div className="custom-card">
+      <div className="custom-card-header">
+        <h2 className="custom-card-title" style={{fontSize: '1.5rem'}}>Lab Availability Viewer</h2>
+        <p className="custom-card-description">Select a lab to view its weekly schedule.</p>
+        <div style={{paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem'}}>
+          <select
+            value={selectedLab?.id || ""}
+            onChange={(e) => setSelectedLab(MOCK_LABS.find(lab => lab.id === e.target.value) || null)}
+            className="custom-select" style={{maxWidth: '300px'}}
+          >
+            <option value="">Select a lab</option>
+            {MOCK_LABS.map((lab) => (
+              <option key={lab.id} value={lab.id}>
+                {lab.name} (Capacity: {lab.capacity})
+              </option>
+            ))}
+          </select>
+          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem'}}>
+            <div style={{display: 'flex', gap: '0.5rem'}}>
+              <button onClick={() => setWeekStartDate(addDays(weekStartDate, -7))} className="custom-button custom-button-outline">Previous Week</button>
+              <button onClick={() => setWeekStartDate(startOfWeek(new Date(), { weekStartsOn: 1 }))} className="custom-button custom-button-outline">Today</button>
+              <button onClick={() => setWeekStartDate(addDays(weekStartDate, 7))} className="custom-button custom-button-outline">Next Week</button>
+            </div>
+            <p style={{fontSize: '0.875rem', fontWeight: 500}}>Week of: {format(weekStartDate, "MMM d, yyyy")}</p>
+          </div>
+        </div>
+      </div>
+      <div className="custom-card-content">
+        {selectedLab ? (
+          <div style={gridContainerStyle}>
+            <div style={{ ...gridStyle, gridTemplateColumns }}>
+              <div style={headerCellStyle}>Time</div>
+              {DAYS_OF_WEEK.map((day, dayIndex) => (
+                <div key={day} style={headerCellStyle}>
+                  {day}<br/>
+                  <span style={{fontSize: '0.75rem', fontWeight: 'normal'}}>{format(addDays(weekStartDate, dayIndex), "d MMM")}</span>
+                </div>
+              ))}
+              {MOCK_TIME_SLOTS.map((timeSlot) => (
+                <React.Fragment key={timeSlot.id}>
+                  <div style={timeCellStyle}>{timeSlot.displayTime.replace(' - ', '\n-\n')}</div>
+                  {DAYS_OF_WEEK.map((day, dayIndex) => {
+                    const slotData = getSlotStatus(dayIndex, timeSlot);
+                    return (
+                      <div
+                        key={`${day}-${timeSlot.id}`}
+                        style={{
+                          ...cellStyle,
+                          backgroundColor: getStatusBgColor(slotData.status),
+                          cursor: slotData.status === 'past' ? 'not-allowed' : 'pointer',
+                          opacity: slotData.status === 'past' ? 0.7 : 1,
+                        }}
+                        onClick={() => handleSlotClick(day, dayIndex, timeSlot, slotData)}
+                        onMouseEnter={(e) => { if(slotData.status !== 'past') e.currentTarget.style.filter = 'brightness(0.9)';}}
+                        onMouseLeave={(e) => e.currentTarget.style.filter = 'brightness(1)'}
+                      >
+                        <span style={{fontWeight: '500', textTransform: 'capitalize'}}>{slotData.status}</span>
+                        {slotData.booking && <span style={{fontSize: '0.7em', marginTop: '0.25rem',  overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical'}}>{slotData.booking.purpose}</span>}
+                      </div>
+                    );
+                  })}
+                </React.Fragment>
+              ))}
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
-          {selectedLab ? (
-            <div className="overflow-x-auto">
-              <div className="grid gap-1 border border-border bg-border rounded-lg p-1" style={{ gridTemplateColumns: `minmax(80px, auto) repeat(${DAYS_OF_WEEK.length}, minmax(100px, 1fr))`}}>
-                {/* Header Row: Days */}
-                <div className="p-2 font-semibold bg-card text-card-foreground rounded-tl-lg sticky left-0 z-20 flex items-center justify-center">Time</div>
-                {DAYS_OF_WEEK.map((day, dayIndex) => (
-                  <div key={day} className="p-2 font-semibold text-center bg-card text-card-foreground">
-                    {day}<br/>
-                    <span className="text-xs font-normal text-muted-foreground">{format(addDays(weekStartDate, dayIndex), "d MMM")}</span>
-                  </div>
-                ))}
+        ) : <p>Please select a lab.</p>}
+      </div>
 
-                {/* Data Rows: Time Slots vs Days */}
-                {MOCK_TIME_SLOTS.map((timeSlot) => (
-                  <React.Fragment key={timeSlot.id}>
-                    <div className="p-2 font-medium bg-card text-card-foreground sticky left-0 z-10 flex items-center justify-center text-center text-xs sm:text-sm break-words">
-                      {timeSlot.displayTime.replace(' - ', '\n-\n')}
-                    </div>
-                    {DAYS_OF_WEEK.map((day, dayIndex) => {
-                      const slotData = getSlotStatus(dayIndex, timeSlot);
-                      return (
-                        <Button
-                          key={`${day}-${timeSlot.id}`}
-                          className={cn(
-                            "h-full min-h-[60px] w-full rounded-md p-1.5 text-xs flex flex-col justify-center items-center whitespace-normal shadow-md transition-all hover:scale-105 focus:ring-2 focus:ring-ring focus:ring-offset-1",
-                            slotData.status === "available" && "bg-accent hover:bg-accent/90 text-accent-foreground",
-                            slotData.status === "booked" && "bg-destructive hover:bg-destructive/90 text-destructive-foreground",
-                            slotData.status === "pending" && "bg-secondary hover:bg-secondary/80 text-secondary-foreground",
-                            slotData.status === "past" && "bg-muted text-muted-foreground cursor-not-allowed opacity-75 hover:bg-muted/90"
-                          )}
-                          onClick={() => handleSlotClick(day, dayIndex, timeSlot, slotData)}
-                          disabled={slotData.status === 'past'}
-                        >
-                          <span className="font-semibold text-[10px] sm:text-xs capitalize">
-                            {slotData.status}
-                          </span>
-                          {slotData.booking && <span className="text-[9px] mt-0.5 line-clamp-2">{slotData.booking.purpose}</span>}
-                        </Button>
-                      );
-                    })}
-                  </React.Fragment>
-                ))}
-              </div>
+      {isSlotDetailDialogOpen && selectedSlotDetails && (
+        <div style={dialogOverlayStyle} onClick={() => setIsSlotDetailDialogOpen(false)}>
+          <div style={dialogContentStyle} onClick={(e) => e.stopPropagation()}>
+            <div style={dialogHeaderStyle}>
+              <h3 style={dialogTitleStyle}>{selectedSlotDetails.labName} - Slot Details</h3>
+              <p style={dialogDescStyle}>{selectedSlotDetails.day}, {selectedSlotDetails.slotDesc}</p>
             </div>
-          ) : (
-            <p className="text-muted-foreground text-center py-4">Please select a lab to see its availability.</p>
-          )}
-        </CardContent>
-      </Card>
-
-      {selectedSlotDetails && (
-        <Dialog open={isSlotDetailDialogOpen} onOpenChange={setIsSlotDetailDialogOpen}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="text-xl">{selectedSlotDetails.labName} - Slot Details</DialogTitle>
-              <DialogDescription>
-                {selectedSlotDetails.day}, {selectedSlotDetails.slotDesc}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-4 space-y-3">
-              <p>
-                Status:{" "}
-                <span className={cn("font-semibold capitalize", getStatusColorClasses(selectedSlotDetails.statusInfo.status))}>
-                  {selectedSlotDetails.statusInfo.status}
-                </span>
-              </p>
+            <div style={{marginBottom: '1rem'}}>
+              <p>Status: <span style={{fontWeight: 'bold', textTransform: 'capitalize', color: getStatusBgColor(selectedSlotDetails.statusInfo.status) === '#d4edda' ? 'green' : getStatusBgColor(selectedSlotDetails.statusInfo.status) === '#f8d7da' ? 'red' : getStatusBgColor(selectedSlotDetails.statusInfo.status) === '#fff3cd' ? 'orange' : 'gray' }}>{selectedSlotDetails.statusInfo.status}</span></p>
               {selectedSlotDetails.statusInfo.booking && (
                 <>
-                  <p><span className="font-medium">Purpose:</span> {selectedSlotDetails.statusInfo.booking.purpose}</p>
-                  <p><span className="font-medium">User/Batch:</span> {selectedSlotDetails.statusInfo.booking.batchIdentifier || selectedSlotDetails.statusInfo.booking.userId}</p>
+                  <p><strong>Purpose:</strong> {selectedSlotDetails.statusInfo.booking.purpose}</p>
+                  <p><strong>User/Batch:</strong> {selectedSlotDetails.statusInfo.booking.batchIdentifier || selectedSlotDetails.statusInfo.booking.userId}</p>
                   {selectedSlotDetails.statusInfo.booking.equipmentIds && selectedSlotDetails.statusInfo.booking.equipmentIds.length > 0 && (
-                     <p><span className="font-medium">Equipment:</span> {MOCK_EQUIPMENT.filter(e => selectedSlotDetails.statusInfo.booking?.equipmentIds.includes(e.id)).map(e => e.name).join(', ') || 'None specified'}</p>
+                     <p><strong>Equipment:</strong> {MOCK_EQUIPMENT.filter(e => selectedSlotDetails.statusInfo.booking?.equipmentIds.includes(e.id)).map(e => e.name).join(', ') || 'None'}</p>
                   )}
                 </>
               )}
-              {selectedSlotDetails.statusInfo.status === 'past' && (
-                <p className="text-sm text-muted-foreground">This time slot is in the past and cannot be booked.</p>
+              {selectedSlotDetails.statusInfo.status === 'past' && <p>This slot is in the past.</p>}
+            </div>
+            <div style={dialogFooterStyle}>
+              <button style={{...dialogButtonStyle, backgroundColor: '#6c757d', color: 'white'}} onClick={() => setIsSlotDetailDialogOpen(false)}>Close</button>
+              {selectedSlotDetails.statusInfo.status === 'available' && (
+                <button style={{...dialogButtonStyle, backgroundColor: '#007BFF', color: 'white'}} onClick={() => {
+                  navigate(`/dashboard/book-slot?labId=${selectedLab?.id}&date=${format(selectedSlotDetails.date, "yyyy-MM-dd")}&timeSlotId=${selectedSlotDetails.timeSlot.id}`);
+                  setIsSlotDetailDialogOpen(false);
+                }}>Book This Slot</button>
+              )}
+              {selectedSlotDetails.currentUserRole === USER_ROLES.FACULTY && selectedSlotDetails.statusInfo.status === 'booked' && (
+                <button style={{...dialogButtonStyle, backgroundColor: '#ffc107', color: 'black'}} onClick={handleRequestReschedule}>
+                  <Edit size={16} style={{marginRight: '0.5rem'}}/> Request Reschedule
+                </button>
               )}
             </div>
-            <DialogFooter className="sm:justify-between gap-2 flex-wrap">
-              <Button variant="outline" onClick={() => setIsSlotDetailDialogOpen(false)}>
-                Close
-              </Button>
-              <div className="flex gap-2 flex-wrap">
-                {selectedSlotDetails.statusInfo.status === 'available' && (
-                  <Button 
-                    variant="default" // Primary button for booking
-                    onClick={() => {
-                      router.push(`/dashboard/book-slot?labId=${selectedLab?.id}&date=${format(selectedSlotDetails.date, "yyyy-MM-dd")}&timeSlotId=${selectedSlotDetails.timeSlot.id}`);
-                      setIsSlotDetailDialogOpen(false);
-                    }}
-                  >
-                    Book This Slot
-                  </Button>
-                )}
-                {selectedSlotDetails.currentUserRole === USER_ROLES.FACULTY && 
-                 selectedSlotDetails.statusInfo.status === 'booked' && (
-                  <Button 
-                    variant="secondary" // Secondary for less common action
-                    onClick={handleRequestReschedule}
-                  >
-                    <Edit className="mr-2 h-4 w-4" /> Request Reschedule
-                  </Button>
-                )}
-              </div>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+          </div>
+        </div>
       )}
-    </>
+    </div>
   );
 }

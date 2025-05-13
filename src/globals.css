@@ -1,0 +1,169 @@
+/* Remove Tailwind CSS directives */
+/* @tailwind base; */
+/* @tailwind components; */
+/* @tailwind utilities; */
+
+/* Keep basic body styling or CSS resets */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #F8F9FA; /* Light gray background */
+  color: #212529; /* Dark text color */
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* 
+  The HSL variables from the original globals.css were for Tailwind's theming system.
+  They won't apply automatically without Tailwind.
+  If you need to replicate the theme, you'd define CSS variables like:
+  :root {
+    --primary-color: #007BFF;
+    --secondary-color: #F8F9FA;
+    --accent-color: #20C997;
+    --background-color: #F8F9FA;
+    --text-color: #212529;
+    --card-background: #FFFFFF;
+    --border-color: #dee2e6;
+  }
+  And then use them in your custom CSS:
+  .my-button {
+    background-color: var(--primary-color);
+    color: white;
+  }
+*/
+
+/* Basic styling for a card-like element to replace ShadCN Card */
+.custom-card {
+  background-color: white;
+  border: 1px solid #dee2e6; /* var(--border-color) */
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1rem;
+}
+
+.custom-card-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #dee2e6; /* var(--border-color) */
+}
+
+.custom-card-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.custom-card-description {
+  font-size: 0.875rem;
+  color: #6c757d; /* Muted text color */
+  margin-bottom: 1rem;
+}
+
+.custom-card-content {
+  padding: 1.5rem;
+}
+
+.custom-card-footer {
+  padding: 1.5rem;
+  border-top: 1px solid #dee2e6; /* var(--border-color) */
+}
+
+/* Basic button styling to replace ShadCN Button */
+.custom-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 0.375rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.custom-button-primary {
+  background-color: #007BFF; /* var(--primary-color) */
+  color: white;
+}
+.custom-button-primary:hover {
+  background-color: #0056b3;
+}
+
+.custom-button-secondary {
+  background-color: #6c757d;
+  color: white;
+}
+.custom-button-secondary:hover {
+  background-color: #545b62;
+}
+
+.custom-button-outline {
+  background-color: transparent;
+  border-color: #007BFF; /* var(--primary-color) */
+  color: #007BFF; /* var(--primary-color) */
+}
+.custom-button-outline:hover {
+  background-color: rgba(0, 123, 255, 0.1);
+}
+
+/* Basic input styling */
+.custom-input {
+  display: block;
+  width: calc(100% - 22px); /* Account for padding and border */
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #495057;
+  background-color: #fff;
+  background-clip: padding-box;
+  border: 1px solid #ced4da;
+  border-radius: 0.25rem;
+  transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+  margin-bottom: 0.5rem;
+}
+.custom-input:focus {
+  border-color: #80bdff;
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+
+.custom-label {
+  display: inline-block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+/* Basic Select styling */
+.custom-select {
+   display: block;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #495057;
+  background-color: #fff;
+  background-clip: padding-box;
+  border: 1px solid #ced4da;
+  border-radius: 0.25rem;
+  transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+  margin-bottom: 0.5rem;
+}
+.custom-select:focus {
+  border-color: #80bdff;
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+
+.error-message {
+  color: red;
+  font-size: 0.875em;
+  margin-top: 0.25rem;
+}

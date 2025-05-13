@@ -1,25 +1,44 @@
-"use client";
-
-import * as React from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import React from "react";
 import { suggestAlternativeSlots, SuggestAlternativeSlotsInput, SuggestAlternativeSlotsOutput } from "@/ai/flows/availability-suggestions";
-import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react"; // Assuming lucide-react is kept
+
+// Basic styling for the dialog - move to CSS for a real app
+const dialogOverlayStyle: React.CSSProperties = {
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  backgroundColor: 'rgba(0,0,0,0.5)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  zIndex: 100,
+};
+
+const dialogContentStyle: React.CSSProperties = {
+  backgroundColor: 'white',
+  padding: '20px',
+  borderRadius: '8px',
+  minWidth: '300px',
+  maxWidth: '425px', // sm:max-w-[425px]
+  boxShadow: '0 0 10px rgba(0,0,0,0.25)',
+};
+
+const dialogHeaderStyle: React.CSSProperties = { marginBottom: '1rem' };
+const dialogTitleStyle: React.CSSProperties = { fontSize: '1.25rem', fontWeight: 'bold' };
+const dialogDescStyle: React.CSSProperties = { fontSize: '0.875rem', color: '#555', marginBottom: '1rem' };
+const dialogFooterStyle: React.CSSProperties = { marginTop: '1.5rem', textAlign: 'right' as 'right' };
+const buttonStyle: React.CSSProperties = { padding: '0.5rem 1rem', borderRadius: '4px', border: '1px solid #ccc', cursor: 'pointer', marginLeft: '0.5rem' };
+const suggestionItemStyle: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', border: '1px solid #eee', borderRadius: '4px', marginBottom: '0.5rem' };
+
 
 interface AvailabilitySuggestionsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   labName: string;
-  preferredSlot: string; // e.g., "Monday 09:00-10:00"
-  onSlotSelect: (slot: string) => void; // Callback when a suggested slot is selected
+  preferredSlot: string;
+  onSlotSelect: (slot: string) => void;
 }
 
 export function AvailabilitySuggestionsDialog({
@@ -31,102 +50,87 @@ export function AvailabilitySuggestionsDialog({
 }: AvailabilitySuggestionsDialogProps) {
   const [isLoading, setIsLoading] = React.useState(false);
   const [suggestions, setSuggestions] = React.useState<SuggestAlternativeSlotsOutput | null>(null);
-  const { toast } = useToast();
 
   React.useEffect(() => {
     if (open) {
       fetchSuggestions();
     } else {
-      // Reset state when dialog is closed
       setSuggestions(null);
       setIsLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]); // Only re-run when `open` changes
+  }, [open]);
 
   const fetchSuggestions = async () => {
     setIsLoading(true);
-    setSuggestions(null); // Clear previous suggestions
+    setSuggestions(null);
     try {
-      // Mock booking patterns; in a real app, this would come from a database
-      const mockBookingPatterns = `
-        - ${labName} is heavily booked on Mondays and Wednesdays.
-        - Tuesdays and Thursdays have more availability in the afternoons.
-        - Fridays are generally light.
-        - Peak hours are 10:00 AM - 02:00 PM.
-      `;
-      
-      const input: SuggestAlternativeSlotsInput = {
-        labName,
-        preferredSlot,
-        bookingPatterns: mockBookingPatterns,
-      };
+      const mockBookingPatterns = `${labName} is popular. Consider off-peak hours.`;
+      const input: SuggestAlternativeSlotsInput = { labName, preferredSlot, bookingPatterns: mockBookingPatterns };
       const result = await suggestAlternativeSlots(input);
       setSuggestions(result);
     } catch (error) {
-      console.error("Error fetching availability suggestions:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Could not fetch alternative slot suggestions. Please try again later.",
-      });
-      onOpenChange(false); // Close dialog on error
+      console.error("Error fetching suggestions:", error);
+      window.alert("Could not fetch alternative slot suggestions.");
+      onOpenChange(false);
     } finally {
       setIsLoading(false);
     }
   };
 
+  if (!open) return null;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Alternative Slot Suggestions</DialogTitle>
-          <DialogDescription>
-            The slot <span className="font-semibold">{preferredSlot}</span> for <span className="font-semibold">{labName}</span> is unavailable. Here are some AI-powered suggestions:
-          </DialogDescription>
-        </DialogHeader>
-        <div className="py-4">
+    <div style={dialogOverlayStyle} onClick={() => onOpenChange(false)}>
+      <div style={dialogContentStyle} onClick={(e) => e.stopPropagation()}>
+        <div style={dialogHeaderStyle}>
+          <h3 style={dialogTitleStyle}>Alternative Slot Suggestions</h3>
+          <p style={dialogDescStyle}>
+            The slot <strong style={{fontWeight: 'bold'}}>{preferredSlot}</strong> for <strong style={{fontWeight: 'bold'}}>{labName}</strong> is unavailable. Here are some AI-powered suggestions:
+          </p>
+        </div>
+        <div style={{padding: '1rem 0'}}>
           {isLoading && (
-            <div className="flex items-center justify-center space-x-2">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+              <Loader2 style={{ height: '1.5rem', width: '1.5rem' }} className="animate-spin" />
               <p>Finding alternative slots...</p>
             </div>
           )}
           {!isLoading && suggestions && (
-            <div className="space-y-3">
-              <h4 className="font-medium">Suggested Slots:</h4>
+            <div>
+              <h4 style={{fontWeight: '500', marginBottom: '0.5rem'}}>Suggested Slots:</h4>
               {suggestions.suggestedSlots.length > 0 ? (
-                <ul className="space-y-2">
+                <ul style={{listStyle: 'none', padding: 0}}>
                   {suggestions.suggestedSlots.map((slot, index) => (
-                    <li key={index} className="flex justify-between items-center p-2 border rounded-md">
+                    <li key={index} style={suggestionItemStyle}>
                       <span>{slot}</span>
-                      <Button variant="outline" size="sm" onClick={() => {
+                      <button style={{...buttonStyle, backgroundColor: 'transparent', borderColor: '#007BFF', color: '#007BFF'}} onClick={() => {
                         onSlotSelect(slot);
                         onOpenChange(false);
                       }}>
                         Select
-                      </Button>
+                      </button>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-muted-foreground">No alternative slots could be found based on current patterns.</p>
+                <p style={{color: '#6c757d'}}>No alternative slots found.</p>
               )}
-              <p className="text-sm text-muted-foreground pt-2">
+              <p style={{fontSize: '0.875rem', color: '#6c757d', paddingTop: '0.5rem'}}>
                 <strong>Reasoning:</strong> {suggestions.reasoning}
               </p>
             </div>
           )}
-           {!isLoading && !suggestions && (
-            <p className="text-center text-muted-foreground">Could not load suggestions.</p>
+           {!isLoading && !suggestions && !open && ( // Added !open to ensure it doesn't flash
+            <p style={{textAlign: 'center', color: '#6c757d'}}>Could not load suggestions.</p>
           )}
         </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+        <div style={dialogFooterStyle}>
+          <button style={{...buttonStyle, backgroundColor: 'transparent'}} onClick={() => onOpenChange(false)}>
             Close
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
