@@ -23,6 +23,15 @@ export interface Lab {
   id: string;
   name: string;
   capacity: number;
+  roomNumber: string; // Added roomNumber
+}
+
+export interface Equipment {
+  id: string;
+  name: string;
+  type: string; // e.g., 'Microscope', 'Computer', 'Chemicals'
+  labId?: string; // Optional: if specific to a lab
+  status: 'available' | 'in-use' | 'maintenance';
 }
 
 export interface TimeSlot {
@@ -39,7 +48,10 @@ export interface Booking {
   timeSlotId: string;
   userId: string; // or role-specific identifier
   purpose: string;
-  status: 'booked' | 'available' | 'pending'; // Example statuses
+  equipmentIds: string[]; // Added equipmentIds
+  status: 'booked' | 'available' | 'pending' | 'cancelled'; // Example statuses, added 'cancelled'
+  batchIdentifier?: string; // For CR class bookings
+  requestedByRole?: UserRole; // To identify who made the booking if needed
 }
 
 export type Department = typeof DEPARTMENTS[number];

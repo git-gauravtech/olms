@@ -1,7 +1,8 @@
+// src/components/lab/booking-form.tsx
 "use client";
 
 import * as React from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
@@ -19,12 +20,13 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { CalendarIcon, Loader2 } from "lucide-react";
-import { MOCK_LABS, MOCK_TIME_SLOTS } from "@/constants";
-import type { Lab, TimeSlot } from "@/types";
+import { CalendarIcon, Loader2, Package } from "lucide-react";
+import { MOCK_LABS, MOCK_TIME_SLOTS, MOCK_EQUIPMENT, MOCK_BOOKINGS } from "@/constants";
+import type { Lab, TimeSlot, Equipment, Booking } from "@/types";
 import { AvailabilitySuggestionsDialog } from "./availability-suggestions-dialog";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 
@@ -33,22 +35,18 @@ const bookingFormSchema = z.object({
   date: z.date({ required_error: "Please select a date." }),
   timeSlotId: z.string({ required_error: "Please select a time slot." }),
   purpose: z.string().min(10, { message: "Purpose must be at least 10 characters." }).max(200, { message: "Purpose must not exceed 200 characters." }),
+  equipmentIds: z.array(z.string()).optional(), // Array of equipment IDs
 });
 
 type BookingFormValues = z.infer<typeof bookingFormSchema>;
 
-// Simulate a function to check slot availability
+// Simulate a function to check slot availability (remains simplified)
 const checkSlotAvailability = async (labId: string, date: Date, timeSlotId: string): Promise<boolean> => {
-  // Mock logic: For demonstration, assume "Physics Lab Alpha" on "09:00 AM - 10:00 AM" is always booked
-  const selectedLab = MOCK_LABS.find(lab => lab.id === labId);
-  const selectedTimeSlot = MOCK_TIME_SLOTS.find(slot => slot.id === timeSlotId);
-
-  if (selectedLab?.name === "Physics Lab Alpha" && selectedTimeSlot?.displayTime === "09:00 AM - 10:00 AM") {
-    // Simulate checking for a specific date if needed, for now, just this combo is unavailable
-    // This is a very basic mock. A real app would query a database.
-    return false; 
-  }
-  return true; // Slot is available
+  const formattedDate = format(date, "yyyy-MM-dd");
+  const existingBooking = MOCK_BOOKINGS.find(
+    b => b.labId === labId && b.date === formattedDate && b.timeSlotId === timeSlotId && b.status === 'booked'
+  );
+  return !existingBooking;
 };
 
 
@@ -57,13 +55,29 @@ export function BookingForm() {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [showSuggestionsDialog, setShowSuggestionsDialog] = React.useState(false);
   const [suggestionParams, setSuggestionParams] = React.useState<{ labName: string; preferredSlot: string }>({ labName: "", preferredSlot: "" });
+  const [availableEquipment, setAvailableEquipment] = React.useState<Equipment[]>(MOCK_EQUIPMENT);
   
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingFormSchema),
     defaultValues: {
       purpose: "",
+      equipmentIds: [],
     },
   });
+
+  const selectedLabId = form.watch("labId");
+
+  React.useEffect(() => {
+    if (selectedLabId) {
+      // Filter equipment based on selected lab or show general pool equipment
+      const labSpecificEquipment = MOCK_EQUIPMENT.filter(eq => eq.labId === selectedLabId && eq.status === 'available');
+      const generalPoolEquipment = MOCK_EQUIPMENT.filter(eq => !eq.labId && eq.status === 'available');
+      setAvailableEquipment([...labSpecificEquipment, ...generalPoolEquipment]);
+    } else {
+      setAvailableEquipment(MOCK_EQUIPMENT.filter(eq => eq.status === 'available'));
+    }
+    form.setValue("equipmentIds", []); // Reset selected equipment when lab changes
+  }, [selectedLabId, form]);
 
   async function onSubmit(data: BookingFormValues) {
     setIsSubmitting(true);
@@ -72,10 +86,24 @@ export function BookingForm() {
 
     if (isAvailable) {
       // Simulate successful booking
+      const newBooking: Booking = {
+        id: `b_${Date.now()}`,
+        labId: data.labId,
+        date: format(data.date, "yyyy-MM-dd"),
+        timeSlotId: data.timeSlotId,
+        userId: "currentUser", // Placeholder
+        purpose: data.purpose,
+        equipmentIds: data.equipmentIds || [],
+        status: 'pending', // Or 'booked' directly if no approval needed
+      };
+      // In a real app, you'd send this to an API and update MOCK_BOOKINGS or a state management store
+      console.log("New Booking Submitted:", newBooking); 
+      MOCK_BOOKINGS.push(newBooking); // For demo purposes, update mock data
+
       setTimeout(() => {
         toast({
           title: "Booking Submitted!",
-          description: `Lab slot booked for ${MOCK_LABS.find(l => l.id === data.labId)?.name} on ${format(data.date, "PPP")} at ${MOCK_TIME_SLOTS.find(ts => ts.id === data.timeSlotId)?.displayTime}.`,
+          description: `Lab slot for ${MOCK_LABS.find(l => l.id === data.labId)?.name} on ${format(data.date, "PPP")} at ${MOCK_TIME_SLOTS.find(ts => ts.id === data.timeSlotId)?.displayTime} is requested.`,
         });
         form.reset();
         setIsSubmitting(false);
@@ -94,19 +122,16 @@ export function BookingForm() {
   }
 
   const handleSuggestedSlotSelect = (slot: string) => {
-    // Here, you would parse the 'slot' string and update the form or handle new booking.
-    // For this example, we'll just toast the selection.
     toast({
       title: "Slot Selected from Suggestions",
-      description: `You selected: ${slot}. Please re-submit the form with new details if applicable.`,
+      description: `You selected: ${slot}. Please re-fill and submit the form with new details.`,
     });
-    // Potentially, auto-fill parts of the form based on 'slot' and re-validate.
-    // This example assumes 'slot' is a descriptive string like "Tuesday 02:00 PM - 03:00 PM"
+    // Ideally, parse 'slot' and pre-fill the form. For now, manual re-fill.
   };
 
   return (
     <>
-      <Card className="w-full max-w-2xl mx-auto shadow-xl">
+      <Card className="w-full max-w-2xl mx-auto shadow-xl my-8">
         <CardHeader>
           <CardTitle className="text-2xl">Book a Lab Slot</CardTitle>
           <CardDescription>Fill in the details below to schedule your lab session.</CardDescription>
@@ -129,7 +154,7 @@ export function BookingForm() {
                       <SelectContent>
                         {MOCK_LABS.map((lab: Lab) => (
                           <SelectItem key={lab.id} value={lab.id}>
-                            {lab.name} (Capacity: {lab.capacity})
+                            {lab.name} (Room: {lab.roomNumber}, Capacity: {lab.capacity})
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -165,7 +190,7 @@ export function BookingForm() {
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
-                          disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))} // Disable past dates
+                          disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
                           initialFocus
                         />
                       </PopoverContent>
@@ -208,7 +233,7 @@ export function BookingForm() {
                     <FormLabel>Purpose of Booking</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="e.g., Conducting experiments for CHM101, Group project meeting, Software development..."
+                        placeholder="e.g., Conducting experiments, Group project, Software development..."
                         className="resize-none"
                         {...field}
                       />
@@ -220,6 +245,65 @@ export function BookingForm() {
                   </FormItem>
                 )}
               />
+              
+              <FormField
+                control={form.control}
+                name="equipmentIds"
+                render={() => (
+                  <FormItem>
+                    <div className="mb-2">
+                      <FormLabel className="text-base flex items-center">
+                        <Package className="mr-2 h-5 w-5 text-primary" />
+                        Required Equipment (Optional)
+                      </FormLabel>
+                      <FormDescription>
+                        Select any specific equipment you need for this session. Availability depends on the selected lab.
+                      </FormDescription>
+                    </div>
+                    {availableEquipment.length > 0 ? (
+                      <div className="space-y-2 max-h-40 overflow-y-auto rounded-md border p-3">
+                      {availableEquipment.map((item) => (
+                        <FormField
+                          key={item.id}
+                          control={form.control}
+                          name="equipmentIds"
+                          render={({ field }) => {
+                            return (
+                              <FormItem
+                                key={item.id}
+                                className="flex flex-row items-start space-x-3 space-y-0"
+                              >
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value?.includes(item.id)}
+                                    onCheckedChange={(checked) => {
+                                      return checked
+                                        ? field.onChange([...(field.value || []), item.id])
+                                        : field.onChange(
+                                            (field.value || []).filter(
+                                              (value) => value !== item.id
+                                            )
+                                          );
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormLabel className="font-normal">
+                                  {item.name} ({item.type})
+                                </FormLabel>
+                              </FormItem>
+                            );
+                          }}
+                        />
+                      ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No specific equipment available for selection or based on the chosen lab.</p>
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
             </CardContent>
             <CardFooter>
               <Button type="submit" disabled={isSubmitting} className="w-full">
