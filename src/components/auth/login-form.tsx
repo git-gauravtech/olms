@@ -85,7 +85,7 @@ export function LoginForm() {
         <div className="mx-auto mb-4">
           <AtomIcon className="h-16 w-16 text-primary" />
         </div>
-        <CardTitle className="text-3xl font-bold">LabLink</CardTitle>
+        <CardTitle className="text-3xl font-bold">Optimized Lab Management System</CardTitle>
         <CardDescription>Sign in to access lab schedules and bookings</CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit(onSubmit)}>

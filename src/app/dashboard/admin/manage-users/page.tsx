@@ -34,7 +34,7 @@ export default function ManageUsersPage() {
             <CardTitle className="text-2xl font-semibold">Manage Users</CardTitle>
           </div>
           <CardDescription>
-            Admin tools for managing user accounts, roles, and permissions within LabLink.
+            Admin tools for managing user accounts, roles, and permissions within the Optimized Lab Management System.
           </CardDescription>
         </CardHeader>
         <CardContent>

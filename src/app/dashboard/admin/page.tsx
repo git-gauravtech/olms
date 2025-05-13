@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRoleGuard } from '@/hooks/use-role-guard';
 import { USER_ROLES } from '@/types';
 import { Skeleton } from "@/components/ui/skeleton";
-import { Settings2, Wrench, UserCog, CalendarDays, BrainCircuit, LayoutDashboard } from "lucide-react";
+import { Settings2, Wrench, UserCog, CalendarDays, BrainCircuit, LayoutDashboard, ClipboardList } from "lucide-react";
 
 export default function AdminDashboardPage() {
   const { isAuthorized, isLoading } = useRoleGuard(USER_ROLES.ADMIN);
@@ -17,6 +17,7 @@ export default function AdminDashboardPage() {
         <Skeleton className="h-12 w-1/2 mb-4" />
         <Skeleton className="h-20 w-full" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+          <Skeleton className="h-32 w-full" />
           <Skeleton className="h-32 w-full" />
           <Skeleton className="h-32 w-full" />
           <Skeleton className="h-32 w-full" />
@@ -40,7 +41,7 @@ export default function AdminDashboardPage() {
             <CardTitle className="text-3xl font-bold">Admin Dashboard</CardTitle>
           </div>
           <CardDescription className="text-lg">
-            Welcome, Admin! This is your central control panel for managing LabLink.
+            Welcome, Admin! This is your central control panel for managing the Optimized Lab Management System.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -78,6 +79,13 @@ export default function AdminDashboardPage() {
           icon={<CalendarDays className="h-10 w-10 text-primary mb-3" />}
           linkHref="/dashboard/admin/view-bookings"
           linkLabel="Go to Bookings Overview"
+        />
+         <FeatureCard
+          title="Faculty Requests"
+          description="Review and manage reschedule or special booking requests submitted by faculty members."
+          icon={<ClipboardList className="h-10 w-10 text-primary mb-3" />}
+          linkHref="/dashboard/admin/faculty-requests"
+          linkLabel="View Faculty Requests"
         />
         <FeatureCard
           title="Run Algorithms"
@@ -117,4 +125,3 @@ function FeatureCard({ title, description, icon, linkHref, linkLabel }: FeatureC
     </Card>
   );
 }
-

@@ -21,7 +21,7 @@ export default function ProfilePage() {
               </AvatarFallback>
             </Avatar>
             <div>
-              <CardTitle className="text-2xl">LabLink User</CardTitle>
+              <CardTitle className="text-2xl">Optimized Lab Management System User</CardTitle>
               <CardDescription>user@example.com</CardDescription>
             </div>
           </div>
@@ -29,7 +29,7 @@ export default function ProfilePage() {
         <CardContent className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="name">Full Name</Label>
-            <Input id="name" defaultValue="LabLink User" />
+            <Input id="name" defaultValue="Optimized Lab Management System User" />
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email Address</Label>

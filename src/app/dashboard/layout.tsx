@@ -38,7 +38,7 @@ export default function DashboardLayout({
         <SidebarHeader className="p-4 border-b border-border">
           <Link href="/dashboard/overview" className="flex items-center gap-2">
             <AtomIcon className="h-8 w-8 text-primary" />
-            <span className="text-xl font-semibold text-foreground group-data-[collapsible=icon]:hidden">LabLink</span>
+            <span className="text-xl font-semibold text-foreground group-data-[collapsible=icon]:hidden">Optimized Lab Management System</span>
           </Link>
         </SidebarHeader>
         <SidebarContent className="p-2">

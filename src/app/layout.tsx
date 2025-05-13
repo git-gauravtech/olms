@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'LabLink',
+  title: 'Optimized Lab Management System',
   description: 'Efficient Lab Scheduling and Management',
 };
 

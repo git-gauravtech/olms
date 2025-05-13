@@ -100,7 +100,7 @@ export function SignupForm() {
           <AtomIcon className="h-16 w-16 text-primary" />
         </div>
         <CardTitle className="text-3xl font-bold">Create an Account</CardTitle>
-        <CardDescription>Join LabLink to manage and book lab sessions efficiently.</CardDescription>
+        <CardDescription>Join Optimized Lab Management System to manage and book lab sessions efficiently.</CardDescription>
       </CardHeader>
       <form onSubmit={form.handleSubmit(onSubmit)}>
         <CardContent className="space-y-4">
