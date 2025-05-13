@@ -1,3 +1,5 @@
+import type { DEPARTMENTS } from "@/constants";
+
 export const USER_ROLES = {
   ADMIN: 'Admin',
   FACULTY: 'Faculty',
@@ -7,7 +9,8 @@ export const USER_ROLES = {
 
 export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
 
-export const ROLES_ARRAY: UserRole[] = Object.values(USER_ROLES);
+export const ROLES_ARRAY = Object.values(USER_ROLES) as UserRole[];
+
 
 export interface NavItem {
   label: string;
@@ -38,3 +41,5 @@ export interface Booking {
   purpose: string;
   status: 'booked' | 'available' | 'pending'; // Example statuses
 }
+
+export type Department = typeof DEPARTMENTS[number];

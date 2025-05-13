@@ -25,7 +25,8 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { ROLES_ARRAY, USER_ROLES, UserRole } from "@/types";
-import { AtomIcon } from "lucide-react"; // Or a more generic LabLink icon
+import { AtomIcon } from "lucide-react"; 
+import Link from "next/link";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -42,35 +43,29 @@ export function LoginForm() {
     register,
     handleSubmit,
     formState: { errors },
-    setValue, // For Select component
-    watch,    // For Select component
+    setValue, 
+    watch,    
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
   });
 
-  // Watch role for Select component, or use Controller
   const selectedRole = watch("role");
 
   const onSubmit = (data: LoginFormValues) => {
-    // Simulate login
     toast({
       title: "Login Successful",
       description: `Welcome, ${data.role}! Redirecting to your dashboard...`,
     });
 
-    // Store role in localStorage for dashboard to pick up (simple mock)
     if (typeof window !== 'undefined') {
       localStorage.setItem('userRole', data.role);
     }
     
-    // Redirect to a generic overview or role-specific page
-    // For this example, let's redirect to /dashboard/overview
-    // The sidebar in dashboard can then adapt based on localStorage role
     router.push("/dashboard/overview");
   };
 
   return (
-    <Card className="w-full max-w-md shadow-xl">
+    <Card className="w-full max-w-md shadow-xl rounded-xl">
       <CardHeader className="text-center">
         <div className="mx-auto mb-4">
           <AtomIcon className="h-16 w-16 text-primary" />
@@ -122,10 +117,16 @@ export function LoginForm() {
             {errors.role && <p className="text-sm text-destructive">{errors.role.message}</p>}
           </div>
         </CardContent>
-        <CardFooter>
+        <CardFooter className="flex flex-col items-center space-y-4">
           <Button type="submit" className="w-full">
             Login
           </Button>
+           <p className="text-sm text-muted-foreground">
+            Don&apos;t have an account?{" "}
+            <Link href="/signup" className="font-semibold text-primary hover:underline">
+              Sign up
+            </Link>
+          </p>
         </CardFooter>
       </form>
     </Card>

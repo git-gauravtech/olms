@@ -55,3 +55,14 @@ export const MOCK_TIME_SLOTS: TimeSlot[] = [
 
 // For Lab Availability Viewer
 export const DAYS_OF_WEEK = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+
+export const DEPARTMENTS = [
+  'CSE (Computer Science & Engineering)',
+  'IT (Information Technology)',
+  'ECE (Electronics & Communication Engineering)',
+  'MECH (Mechanical Engineering)',
+  'CIVIL (Civil Engineering)',
+  'EEE (Electrical & Electronics Engineering)',
+  'Other',
+] as const;
+export type Department = typeof DEPARTMENTS[number];
