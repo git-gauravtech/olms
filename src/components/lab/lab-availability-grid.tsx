@@ -1,3 +1,4 @@
+
 // src/components/lab/lab-availability-grid.tsx
 "use client";
 
@@ -8,9 +9,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { MOCK_LABS, MOCK_TIME_SLOTS, DAYS_OF_WEEK, MOCK_BOOKINGS } from "@/constants";
-import type { Lab, TimeSlot, Booking } from "@/types";
+import type { Lab, TimeSlot, Booking, UserRole } from "@/types";
+import { USER_ROLES } from "@/types";
 import { cn } from "@/lib/utils";
 import { format, addDays, startOfWeek } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
+import { Edit } from "lucide-react";
+
 
 interface SlotStatus {
   status: 'available' | 'booked' | 'pending' | 'past';
@@ -24,15 +29,25 @@ interface SelectedSlotDetails {
   date: Date;
   timeSlot: TimeSlot;
   day: string;
+  currentUserRole: UserRole | null;
 }
 
 export function LabAvailabilityGrid() {
   const router = useRouter();
+  const { toast } = useToast();
   const [selectedLab, setSelectedLab] = React.useState<Lab | null>(MOCK_LABS[0]);
   const [weekStartDate, setWeekStartDate] = React.useState(startOfWeek(new Date(), { weekStartsOn: 1 /* Monday */ }));
   
   const [isSlotDetailDialogOpen, setIsSlotDetailDialogOpen] = React.useState(false);
   const [selectedSlotDetails, setSelectedSlotDetails] = React.useState<SelectedSlotDetails | null>(null);
+  const [currentUserRole, setCurrentUserRole] = React.useState<UserRole | null>(null);
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const role = localStorage.getItem('userRole') as UserRole | null;
+      setCurrentUserRole(role);
+    }
+  }, []);
 
   const getSlotStatus = (dayIndex: number, timeSlot: TimeSlot): SlotStatus => {
     const currentDate = addDays(weekStartDate, dayIndex);
@@ -42,7 +57,6 @@ export function LabAvailabilityGrid() {
     const slotDateTime = new Date(currentDate);
     slotDateTime.setHours(hours, minutes, 0, 0);
 
-    // Check if the slot is in the past (more precise check considering current time for today)
     const now = new Date();
     if (currentDate < startOfWeek(now, { weekStartsOn: 1 }) && format(currentDate, "yyyy-MM-dd") < format(now, "yyyy-MM-dd")) {
        return { status: 'past' };
@@ -79,8 +93,21 @@ export function LabAvailabilityGrid() {
       date: slotDate,
       timeSlot,
       day,
+      currentUserRole: currentUserRole,
     });
     setIsSlotDetailDialogOpen(true);
+  };
+
+  const handleRequestReschedule = () => {
+    if (!selectedSlotDetails) return;
+    // In a real app, this would trigger a backend process or open a more detailed form.
+    // For now, we'll show a toast message.
+    toast({
+      title: "Reschedule Requested",
+      description: `A request to reschedule the slot for ${selectedSlotDetails.labName} on ${format(selectedSlotDetails.date, "PPP")} at ${selectedSlotDetails.timeSlot.displayTime} has been noted. Admin will review.`,
+      duration: 5000,
+    });
+    setIsSlotDetailDialogOpen(false);
   };
 
   const handlePreviousWeek = () => {
@@ -111,7 +138,7 @@ export function LabAvailabilityGrid() {
         <CardHeader>
           <CardTitle className="text-2xl">Lab Availability Viewer</CardTitle>
           <CardDescription>
-            Select a lab to view its weekly schedule. Click on a slot (seat) for details or to book.
+            Select a lab to view its weekly schedule. Click on a slot for details or to book.
             Labs are rows, time slots are columns.
           </CardDescription>
           <div className="pt-4 space-y-4">
@@ -132,8 +159,8 @@ export function LabAvailabilityGrid() {
                 ))}
               </SelectContent>
             </Select>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center space-x-2 flex-wrap gap-2">
                 <Button variant="outline" onClick={handlePreviousWeek}>Previous Week</Button>
                 <Button variant="outline" onClick={handleTodayWeek}>Today</Button>
                 <Button variant="outline" onClick={handleNextWeek}>Next Week</Button>
@@ -168,16 +195,16 @@ export function LabAvailabilityGrid() {
                       return (
                         <Button
                           key={`${day}-${timeSlot.id}`}
-                          variant="default" // Use default and override with cn
+                          variant="default" 
                           className={cn(
                             "h-full min-h-[60px] w-full rounded-md p-1.5 text-xs flex flex-col justify-center items-center whitespace-normal shadow-md transition-all hover:scale-105",
                             slotData.status === "available" && "bg-green-500 hover:bg-green-600 text-white",
-                            slotData.status === "booked" && "bg-red-500 hover:bg-red-600 text-white cursor-not-allowed",
-                            slotData.status === "pending" && "bg-yellow-400 hover:bg-yellow-500 text-black", // Yellow for pending/reserved
+                            slotData.status === "booked" && "bg-red-500 hover:bg-red-600 text-white", // Not disabling, allow click for details/reschedule
+                            slotData.status === "pending" && "bg-yellow-400 hover:bg-yellow-500 text-black",
                             slotData.status === "past" && "bg-gray-400 text-gray-800 cursor-not-allowed opacity-75 hover:bg-gray-400"
                           )}
                           onClick={() => handleSlotClick(day, dayIndex, timeSlot, slotData)}
-                          disabled={slotData.status === 'booked' || slotData.status === 'past'}
+                          disabled={slotData.status === 'past'} // Only disable past slots
                         >
                           <span className="font-semibold text-[10px] sm:text-xs capitalize">
                             {slotData.status}
@@ -225,23 +252,33 @@ export function LabAvailabilityGrid() {
                 <p className="text-sm text-muted-foreground">This time slot is in the past and cannot be booked.</p>
               )}
             </div>
-            <DialogFooter className="sm:justify-between">
+            <DialogFooter className="sm:justify-between gap-2 flex-wrap">
               <Button variant="outline" onClick={() => setIsSlotDetailDialogOpen(false)}>
                 Close
               </Button>
-              {selectedSlotDetails.statusInfo.status === 'available' && (
-                <Button 
-                  className="bg-accent hover:bg-accent/90 text-accent-foreground"
-                  onClick={() => {
-                    // Navigate to booking form, potentially pre-filling data
-                    // Example: router.push(`/dashboard/book-slot?labId=${selectedLab?.id}&date=${format(selectedSlotDetails.date, "yyyy-MM-dd")}&timeSlotId=${selectedSlotDetails.timeSlot.id}`);
-                    router.push('/dashboard/book-slot');
-                    setIsSlotDetailDialogOpen(false);
-                  }}
-                >
-                  Book This Slot
-                </Button>
-              )}
+              <div className="flex gap-2 flex-wrap">
+                {selectedSlotDetails.statusInfo.status === 'available' && (
+                  <Button 
+                    className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                    onClick={() => {
+                      router.push(`/dashboard/book-slot?labId=${selectedLab?.id}&date=${format(selectedSlotDetails.date, "yyyy-MM-dd")}&timeSlotId=${selectedSlotDetails.timeSlot.id}`);
+                      setIsSlotDetailDialogOpen(false);
+                    }}
+                  >
+                    Book This Slot
+                  </Button>
+                )}
+                {selectedSlotDetails.currentUserRole === USER_ROLES.FACULTY && 
+                 selectedSlotDetails.statusInfo.status === 'booked' && (
+                  <Button 
+                    variant="secondary"
+                    onClick={handleRequestReschedule}
+                    className="bg-orange-500 hover:bg-orange-600 text-white"
+                  >
+                    <Edit className="mr-2 h-4 w-4" /> Request Reschedule
+                  </Button>
+                )}
+              </div>
             </DialogFooter>
           </DialogContent>
         </Dialog>

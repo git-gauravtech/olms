@@ -1,3 +1,4 @@
+
 import type { NavItem, UserRole, Lab, TimeSlot, Booking, Equipment } from '@/types';
 import { USER_ROLES } from '@/types';
 import { LayoutDashboard, FlaskConical, CalendarPlus, Users, Settings2, CalendarCheck, Users2, UserCircle, LogOut, BookOpen, Home, Wrench, CalendarDays, BrainCircuit, UserCog, ClipboardList, UserPlus } from 'lucide-react';
@@ -21,30 +22,28 @@ export const NAV_LINKS: Record<UserRole, NavItem[]> = {
   [USER_ROLES.FACULTY]: [
     { href: '/dashboard/faculty', label: 'Faculty Dashboard', icon: LayoutDashboard },
     { href: '/dashboard/labs', label: 'Lab Availability', icon: FlaskConical },
-    { href: '/dashboard/book-slot', label: 'Book a Slot', icon: CalendarPlus }, // Individual booking
+    { href: '/dashboard/book-slot', label: 'Book a Slot', icon: CalendarPlus },
     { href: '/dashboard/faculty/my-bookings', label: 'My Bookings', icon: CalendarCheck },
   ],
   [USER_ROLES.STUDENT]: [
     { href: '/dashboard/student', label: 'Student Dashboard', icon: LayoutDashboard },
     { href: '/dashboard/labs', label: 'Lab Availability', icon: FlaskConical },
-    { href: '/dashboard/book-slot', label: 'Book a Slot', icon: CalendarPlus }, // Individual booking
+    { href: '/dashboard/book-slot', label: 'Book a Slot', icon: CalendarPlus },
     { href: '/dashboard/student/my-bookings', label: 'My Bookings', icon: CalendarCheck },
   ],
   [USER_ROLES.CR]: [
     { href: '/dashboard/cr', label: 'CR Dashboard', icon: LayoutDashboard },
     { href: '/dashboard/labs', label: 'Lab Availability', icon: FlaskConical },
-    { href: '/dashboard/book-slot', label: 'My Individual Booking', icon: CalendarPlus }, // Personal booking
-    { href: '/dashboard/student/my-bookings', label: 'My Bookings (View)', icon: CalendarCheck }, // CR's personal bookings (uses student page)
-    { href: '/dashboard/cr/request-class-booking', label: 'Request Class Slot', icon: UserPlus }, // New page for CR batch booking
-    { href: '/dashboard/cr/class-bookings', label: 'View Class Bookings', icon: Users2 }, // Existing page, for viewing class bookings
+    { href: '/dashboard/book-slot', label: 'My Individual Booking', icon: CalendarPlus }, 
+    { href: '/dashboard/student/my-bookings', label: 'My Bookings (Individual)', icon: CalendarCheck }, 
+    { href: '/dashboard/cr/request-class-booking', label: 'Request Class Slot', icon: UserPlus },
+    { href: '/dashboard/cr/class-bookings', label: 'View Class Bookings', icon: Users2 },
   ],
 };
 
-export const COMMON_NAV_LINKS: NavItem[] = [
-  { href: '/dashboard/overview', label: 'Overview', icon: Home },
-  // { href: '/dashboard/labs', label: 'Lab Availability', icon: BookOpen }, // Covered by role-specific links
-  // { href: '/dashboard/book-slot', label: 'Book a Slot', icon: CalendarPlus }, // Covered by role-specific links
-];
+// Common navigation links are now empty as per the refined requirement where each role's dashboard serves as their overview.
+// Profile and Logout are handled by UserNav dropdown.
+export const COMMON_NAV_LINKS: NavItem[] = [];
 
 
 export const MOCK_LABS: Lab[] = [
@@ -229,4 +228,5 @@ export const DEPARTMENTS = [
   'Other',
 ] as const;
 export type Department = typeof DEPARTMENTS[number];
+
 
