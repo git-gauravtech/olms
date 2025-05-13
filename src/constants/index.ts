@@ -1,7 +1,7 @@
 
-import type { NavItem, UserRole, Lab, TimeSlot, Booking, Equipment } from '@/types';
+import type { NavItem, UserRole, Lab, TimeSlot, Booking, Equipment, RescheduleRequest } from '@/types';
 import { USER_ROLES } from '@/types';
-import { LayoutDashboard, FlaskConical, CalendarPlus, Users, Settings2, CalendarCheck, Users2, UserCircle, LogOut, BookOpen, Home, Wrench, CalendarDays, BrainCircuit, UserCog, ClipboardList, UserPlus } from 'lucide-react';
+import { LayoutDashboard, FlaskConical, CalendarPlus, Settings2, CalendarCheck, UserPlus, Wrench, CalendarDays, BrainCircuit, UserCog, ClipboardList, FileCheck } from 'lucide-react';
 import { addDays, subDays, format, startOfWeek } from 'date-fns';
 
 const today = new Date();
@@ -17,6 +17,7 @@ export const NAV_LINKS: Record<UserRole, NavItem[]> = {
     { href: '/dashboard/admin/manage-equipment', label: 'Manage Equipment', icon: Wrench },
     { href: '/dashboard/admin/manage-users', label: 'Manage Users', icon: UserCog },
     { href: '/dashboard/admin/view-bookings', label: 'View All Bookings', icon: CalendarDays },
+    { href: '/dashboard/admin/faculty-requests', label: 'Faculty Requests', icon: ClipboardList },
     { href: '/dashboard/admin/run-algorithms', label: 'Run Algorithms', icon: BrainCircuit },
   ],
   [USER_ROLES.FACULTY]: [
@@ -24,6 +25,7 @@ export const NAV_LINKS: Record<UserRole, NavItem[]> = {
     { href: '/dashboard/labs', label: 'Lab Availability', icon: FlaskConical },
     { href: '/dashboard/book-slot', label: 'Book a Slot', icon: CalendarPlus },
     { href: '/dashboard/faculty/my-bookings', label: 'My Bookings', icon: CalendarCheck },
+    { href: '/dashboard/faculty/cr-requests', label: 'CR Booking Requests', icon: FileCheck },
   ],
   [USER_ROLES.STUDENT]: [
     { href: '/dashboard/student', label: 'Student Dashboard', icon: LayoutDashboard },
@@ -119,10 +121,10 @@ export const MOCK_BOOKINGS: Booking[] = [
     labId: 'computer_lab_gamma',
     date: format(addDays(today, 2), "yyyy-MM-dd"),
     timeSlotId: 'ts_1100_1200',
-    userId: 'cr_user', // Matched CR_USER_ID in class-bookings page
+    userId: 'cr_user_1', // Matched CR_USER_ID in class-bookings page
     purpose: 'AI Project Group Work',
     equipmentIds: ['eq_pc_high_01'],
-    status: 'booked',
+    status: 'pending', // CR requests start as pending
     batchIdentifier: 'CSE Year 2 - Section A',
     requestedByRole: USER_ROLES.CR,
   },
@@ -164,10 +166,10 @@ export const MOCK_BOOKINGS: Booking[] = [
     labId: 'robotics_lab_zeta',
     date: format(nextMonday, "yyyy-MM-dd"),
     timeSlotId: 'ts_1600_1700',
-    userId: 'cr_user',
+    userId: 'cr_user_2',
     purpose: 'Robotics Club Workshop',
     equipmentIds: ['eq_robot_arm_01'],
-    status: 'booked',
+    status: 'pending', // CR requests start as pending
     batchIdentifier: 'Robotics Club Members',
     requestedByRole: USER_ROLES.CR,
   },
@@ -224,4 +226,31 @@ export const DEPARTMENTS = [
   'Other',
 ] as const;
 export type Department = typeof DEPARTMENTS[number];
+
+
+export const MOCK_RESCHEDULE_REQUESTS: RescheduleRequest[] = [
+  {
+    id: 'rr_1',
+    requestingUserId: 'faculty1',
+    requestingUserRole: USER_ROLES.FACULTY,
+    originalBookingId: 'b1', // Points to student1's booking
+    conflictingLabId: 'physics_lab_alpha',
+    conflictingDate: format(today, "yyyy-MM-dd"),
+    conflictingTimeSlotId: 'ts_0900_1000',
+    reason: 'Urgent need for this slot for a critical experiment setup that cannot be delayed.',
+    status: 'pending',
+    requestedAt: subDays(today,1).toISOString(),
+  },
+  {
+    id: 'rr_2',
+    requestingUserId: 'faculty2',
+    requestingUserRole: USER_ROLES.FACULTY,
+    conflictingLabId: 'computer_lab_gamma',
+    conflictingDate: format(addDays(today, 2), "yyyy-MM-dd"),
+    conflictingTimeSlotId: 'ts_1100_1200', // Slot booked by CR
+    reason: 'Need to conduct an emergency makeup class for final year students.',
+    status: 'pending',
+    requestedAt: new Date().toISOString(),
+  }
+];
 

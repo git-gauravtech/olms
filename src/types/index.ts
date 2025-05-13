@@ -49,9 +49,22 @@ export interface Booking {
   userId: string; // or role-specific identifier
   purpose: string;
   equipmentIds: string[]; // Added equipmentIds
-  status: 'booked' | 'available' | 'pending' | 'cancelled'; // Example statuses, added 'cancelled'
+  status: 'booked' | 'available' | 'pending' | 'cancelled' | 'rejected'; // Example statuses, added 'cancelled', 'rejected'
   batchIdentifier?: string; // For CR class bookings
   requestedByRole?: UserRole; // To identify who made the booking if needed
 }
 
 export type Department = typeof DEPARTMENTS[number];
+
+export interface RescheduleRequest {
+  id: string;
+  requestingUserId: string; // facultyId
+  requestingUserRole: UserRole;
+  originalBookingId?: string; // If they are requesting to reschedule an existing booking
+  conflictingLabId: string;
+  conflictingDate: string; // YYYY-MM-DD
+  conflictingTimeSlotId: string;
+  reason: string; // faculty provides this
+  status: 'pending' | 'reviewed' | 'resolved' | 'rejected';
+  requestedAt: string; // ISO date string
+}
