@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRoleGuard } from '@/hooks/use-role-guard';
 import { USER_ROLES } from '@/types';
 import { Skeleton } from "@/components/ui/skeleton";
-import { LayoutDashboard, FlaskConical, CalendarPlus, CalendarCheck } from "lucide-react";
+import { LayoutDashboard, CalendarCheck } from "lucide-react";
 
 export default function StudentDashboardPage() {
   const { isAuthorized, isLoading } = useRoleGuard([USER_ROLES.STUDENT, USER_ROLES.CR]);
@@ -16,9 +16,7 @@ export default function StudentDashboardPage() {
       <div className="container mx-auto py-10 space-y-6">
         <Skeleton className="h-12 w-1/2 mb-4" />
         <Skeleton className="h-20 w-full" />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-32 w-full" />
+        <div className="grid grid-cols-1 md:grid-cols-1 gap-6 mt-6">
           <Skeleton className="h-32 w-full" />
         </div>
       </div>
@@ -38,34 +36,20 @@ export default function StudentDashboardPage() {
             <CardTitle className="text-3xl font-bold">Student Dashboard</CardTitle>
           </div>
           <CardDescription className="text-lg">
-            Welcome, Student! View lab availability and manage your personal lab bookings.
+            Welcome, Student! Here you can view your lab booking schedule.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">
-            Here you can find information about available lab slots, book sessions for your individual projects or study, and keep track of your scheduled labs.
+            Access your personal lab booking history and upcoming sessions.
           </p>
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <FeatureCard
-          title="Book a Lab Slot"
-          description="Schedule lab time for your individual academic needs, projects, or experiments."
-          icon={<CalendarPlus className="h-10 w-10 text-primary mb-3" />}
-          linkHref="/dashboard/book-slot"
-          linkLabel="Book a Slot"
-        />
-        <FeatureCard
-          title="View Lab Availability"
-          description="Explore the weekly schedule for all labs to find open slots that fit your timetable."
-          icon={<FlaskConical className="h-10 w-10 text-primary mb-3" />}
-          linkHref="/dashboard/labs"
-          linkLabel="Check Availability"
-        />
+      <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
         <FeatureCard
           title="My Bookings"
-          description="Access a read-only view of your upcoming and past lab sessions. Details include lab name, room, and timing."
+          description="Access a view of your upcoming and past lab sessions. Details include lab name, room, and timing."
           icon={<CalendarCheck className="h-10 w-10 text-primary mb-3" />}
           linkHref="/dashboard/student/my-bookings"
           linkLabel="View My Bookings"
@@ -96,7 +80,7 @@ interface FeatureCardProps {
 
 function FeatureCard({ title, description, icon, linkHref, linkLabel }: FeatureCardProps) {
   return (
-    <Card className="shadow-md hover:shadow-xl transition-shadow flex flex-col">
+    <Card className="shadow-md hover:shadow-xl transition-shadow flex flex-col max-w-lg mx-auto w-full">
       <CardHeader className="items-center text-center">
         {icon}
         <CardTitle className="text-xl">{title}</CardTitle>
@@ -112,3 +96,4 @@ function FeatureCard({ title, description, icon, linkHref, linkLabel }: FeatureC
     </Card>
   );
 }
+

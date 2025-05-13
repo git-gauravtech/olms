@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRoleGuard } from '@/hooks/use-role-guard';
 import { USER_ROLES } from '@/types';
 import { Skeleton } from "@/components/ui/skeleton";
-import { LayoutDashboard, FlaskConical, CalendarPlus, CalendarCheck, UserPlus, Users2 } from "lucide-react";
+import { LayoutDashboard, FlaskConical, CalendarCheck, UserPlus, Users2 } from "lucide-react";
 
 export default function CRDashboardPage() {
   const { isAuthorized, isLoading } = useRoleGuard(USER_ROLES.CR);
@@ -16,8 +16,7 @@ export default function CRDashboardPage() {
       <div className="container mx-auto py-10 space-y-6">
         <Skeleton className="h-12 w-1/2 mb-4" />
         <Skeleton className="h-20 w-full" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-          <Skeleton className="h-32 w-full" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
           <Skeleton className="h-32 w-full" />
           <Skeleton className="h-32 w-full" />
           <Skeleton className="h-32 w-full" />
@@ -45,12 +44,19 @@ export default function CRDashboardPage() {
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">
-            This dashboard provides tools for both class-wide lab scheduling and your personal lab bookings.
+            This dashboard provides tools for class-wide lab scheduling and viewing your personal lab bookings.
           </p>
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <FeatureCard
+          title="My Individual Bookings"
+          description="View your personal lab booking history and upcoming individual sessions."
+          icon={<CalendarCheck className="h-10 w-10 text-primary mb-3" />}
+          linkHref="/dashboard/student/my-bookings" 
+          linkLabel="View My Individual Bookings"
+        />
         <FeatureCard
           title="Request Class Lab Slot"
           description="Submit requests for lab sessions for your entire batch, specifying time, lab type, and equipment needs."
@@ -64,20 +70,6 @@ export default function CRDashboardPage() {
           icon={<Users2 className="h-10 w-10 text-primary mb-3" />}
           linkHref="/dashboard/cr/class-bookings"
           linkLabel="View Class Schedule"
-        />
-        <FeatureCard
-          title="Book Individual Slot"
-          description="Schedule lab time for your personal academic projects or study, separate from class bookings."
-          icon={<CalendarPlus className="h-10 w-10 text-primary mb-3" />}
-          linkHref="/dashboard/book-slot"
-          linkLabel="Book My Slot"
-        />
-        <FeatureCard
-          title="My Individual Bookings"
-          description="View your personal lab booking history and upcoming individual sessions."
-          icon={<CalendarCheck className="h-10 w-10 text-primary mb-3" />}
-          linkHref="/dashboard/student/my-bookings" 
-          linkLabel="View My Individual Bookings"
         />
         <FeatureCard
           title="Lab Availability"
@@ -128,3 +120,4 @@ function FeatureCard({ title, description, icon, linkHref, linkLabel }: FeatureC
     </Card>
   );
 }
+
