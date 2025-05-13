@@ -143,10 +143,10 @@ export default function StudentMyBookingsPage() {
         <CardHeader>
           <div className="flex items-center space-x-3">
             <CalendarClock className="h-8 w-8 text-primary" />
-            <CardTitle className="text-2xl font-semibold">My Lab Bookings</CardTitle>
+            <CardTitle className="text-2xl font-semibold">My Lab Schedule</CardTitle>
           </div>
           <CardDescription>
-            Track your scheduled lab slots and review your booking history.
+            View your upcoming and past lab sessions.
           </CardDescription>
         </CardHeader>
       </Card>
@@ -154,7 +154,7 @@ export default function StudentMyBookingsPage() {
       {myBookings.length === 0 ? (
         <Card>
           <CardContent className="pt-6">
-            <p className="text-center text-muted-foreground">You have no bookings yet. Visit the "Book a Slot" page to schedule a lab session.</p>
+            <p className="text-center text-muted-foreground">You have no scheduled lab sessions. Visit "Book a Slot" if applicable, or check with your CR/Faculty for class schedules.</p>
           </CardContent>
         </Card>
       ) : (

@@ -27,12 +27,12 @@ export const NAV_LINKS: Record<UserRole, NavItem[]> = {
   ],
   [USER_ROLES.STUDENT]: [
     { href: '/dashboard/student', label: 'Student Dashboard', icon: LayoutDashboard },
-    { href: '/dashboard/student/my-bookings', label: 'My Bookings', icon: CalendarCheck },
+    { href: '/dashboard/student/my-bookings', label: 'View Schedule', icon: CalendarCheck },
   ],
   [USER_ROLES.CR]: [
     { href: '/dashboard/cr', label: 'CR Dashboard', icon: LayoutDashboard },
     { href: '/dashboard/labs', label: 'Lab Availability', icon: FlaskConical },
-    { href: '/dashboard/student/my-bookings', label: 'My Individual Bookings', icon: CalendarCheck }, 
+    { href: '/dashboard/student/my-bookings', label: 'My Individual Schedule', icon: CalendarCheck }, 
     { href: '/dashboard/cr/request-class-booking', label: 'Request Class Slot', icon: UserPlus },
     { href: '/dashboard/cr/class-bookings', label: 'View Class Bookings', icon: Users2 },
   ],
@@ -225,6 +225,4 @@ export const DEPARTMENTS = [
   'Other',
 ] as const;
 export type Department = typeof DEPARTMENTS[number];
-
-
 

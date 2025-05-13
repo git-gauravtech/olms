@@ -51,11 +51,11 @@ export default function CRDashboardPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <FeatureCard
-          title="My Individual Bookings"
+          title="My Individual Schedule"
           description="View your personal lab booking history and upcoming individual sessions."
           icon={<CalendarCheck className="h-10 w-10 text-primary mb-3" />}
           linkHref="/dashboard/student/my-bookings" 
-          linkLabel="View My Individual Bookings"
+          linkLabel="View My Individual Schedule"
         />
         <FeatureCard
           title="Request Class Lab Slot"

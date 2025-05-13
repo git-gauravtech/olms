@@ -48,11 +48,11 @@ export default function StudentDashboardPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
         <FeatureCard
-          title="My Bookings"
+          title="View Schedule"
           description="Access a view of your upcoming and past lab sessions. Details include lab name, room, and timing."
           icon={<CalendarCheck className="h-10 w-10 text-primary mb-3" />}
           linkHref="/dashboard/student/my-bookings"
-          linkLabel="View My Bookings"
+          linkLabel="View Schedule"
         />
       </div>
       
