@@ -2,7 +2,7 @@
 // src/app/dashboard/cr/class-bookings/page.tsx
 "use client";
 
-import * as _React from "react"; // Renamed to avoid conflict with React namespace for useState etc.
+import * as React from "react"; 
 import {
   Card,
   CardContent,
@@ -16,7 +16,7 @@ import { UsersRound, FlaskConical, MapPin, ListChecks, ClockIcon, AlertTriangle,
 import type { Booking, Lab, TimeSlot, Equipment } from "@/types";
 import { MOCK_BOOKINGS, MOCK_LABS, MOCK_TIME_SLOTS, MOCK_EQUIPMENT } from "@/constants";
 import { USER_ROLES } from "@/types";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { useRoleGuard } from '@/hooks/use-role-guard';
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -25,14 +25,20 @@ const CURRENT_CR_USER_ID = "cr_user"; // Replace with actual CR user ID
 
 export default function CRClassBookingsPage() {
   const { isAuthorized, isLoading } = useRoleGuard(USER_ROLES.CR);
-  const [classBookings, setClassBookings] = _React.useState<Booking[]>([]);
+  const [classBookings, setClassBookings] = React.useState<Booking[]>([]);
 
-  _React.useEffect(() => {
+  React.useEffect(() => {
     if (isAuthorized) {
     // Filter bookings that are specifically for classes (e.g., have a batchIdentifier or requestedByRole is CR)
     const filtered = MOCK_BOOKINGS.filter(
       b => b.requestedByRole === USER_ROLES.CR && b.batchIdentifier
-    ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    ).sort((a, b) => {
+        try {
+            return new Date(b.date).getTime() - new Date(a.date).getTime();
+        } catch (e) {
+            return 0; // Or handle error appropriately
+        }
+    });
     setClassBookings(filtered);
     }
   }, [isAuthorized]);
@@ -50,6 +56,28 @@ export default function CRClassBookingsPage() {
       default: return 'outline';
     }
   };
+  
+  const formatDateSafe = (dateString: string, dateFormat: string = "EEEE, MMM d, yyyy") => {
+    try {
+      return format(new Date(`${dateString}T00:00:00`), dateFormat);
+    } catch (error) {
+      console.error("Invalid date format for booking:", dateString, error);
+      return "Invalid Date";
+    }
+  };
+
+  const isBookingPast = (bookingDate: string, endTime?: string) => {
+    if (!endTime) return false;
+    try {
+      const bookingDateTimeString = `${bookingDate}T${endTime}`;
+      const bookingDateTime = parseISO(bookingDateTimeString); // Use parseISO for reliability
+      return bookingDateTime < new Date();
+    } catch (error) {
+      console.error("Error parsing booking date/time for past check:", bookingDate, endTime, error);
+      return false; // Default to not past if date is invalid
+    }
+  };
+
 
   if (isLoading) {
      return (
@@ -94,7 +122,8 @@ export default function CRClassBookingsPage() {
             const lab = getLabDetails(booking.labId);
             const timeSlot = getTimeSlotDetails(booking.timeSlotId);
             const equipment = getEquipmentDetails(booking.equipmentIds);
-            const isPastBooking = new Date(`${booking.date}T${timeSlot?.endTime || '23:59'}`) < new Date() && booking.status !== 'cancelled';
+            const isPastBooking = timeSlot ? isBookingPast(booking.date, timeSlot.endTime) && booking.status !== 'cancelled' : false;
+
 
             return (
               <Card key={booking.id} className={`shadow-md hover:shadow-lg transition-shadow ${isPastBooking ? 'opacity-70' : ''}`}>
@@ -114,7 +143,7 @@ export default function CRClassBookingsPage() {
                 <CardContent className="space-y-2 text-sm">
                   <div className="flex items-center">
                     <ClockIcon className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span>{format(new Date(booking.date), "EEEE, MMM d, yyyy")}</span>
+                    <span>{formatDateSafe(booking.date)}</span>
                   </div>
                   <div className="flex items-center">
                     <CalendarClock className="h-4 w-4 mr-2 text-muted-foreground" />
@@ -149,3 +178,4 @@ export default function CRClassBookingsPage() {
     </div>
   );
 }
+

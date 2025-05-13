@@ -17,7 +17,7 @@ import { CalendarClock, FlaskConical, MapPin, ListChecks, User, AlertTriangle, C
 import type { Booking, Lab, TimeSlot, Equipment } from "@/types";
 import { MOCK_BOOKINGS, MOCK_LABS, MOCK_TIME_SLOTS, MOCK_EQUIPMENT } from "@/constants";
 import { USER_ROLES } from "@/types"; // Added USER_ROLES
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useRoleGuard } from '@/hooks/use-role-guard';
 import { Skeleton } from "@/components/ui/skeleton";
@@ -37,9 +37,15 @@ export default function StudentMyBookingsPage() {
       // Filter bookings for the current student/CR (personal bookings)
       // For CRs, this page shows their *individual* bookings, not class bookings.
       const filtered = MOCK_BOOKINGS.filter(b => b.userId === CURRENT_USER_ID && 
-                                                 (b.requestedByRole === USER_ROLES.STUDENT || b.requestedByRole === USER_ROLES.CR && !b.batchIdentifier)
+                                                 (b.requestedByRole === USER_ROLES.STUDENT || (b.requestedByRole === USER_ROLES.CR && !b.batchIdentifier))
                                             )
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // Sort by date, newest first
+        .sort((a, b) => {
+            try {
+                return new Date(b.date).getTime() - new Date(a.date).getTime(); // Sort by date, newest first
+            } catch(e) {
+                return 0; // Or handle error appropriately
+            }
+        });
       setMyBookings(filtered);
     }
   }, [isAuthorized]);
@@ -52,15 +58,23 @@ export default function StudentMyBookingsPage() {
   const handleCancelBooking = (bookingId: string) => {
     // Simulate API call
     const bookingToCancel = MOCK_BOOKINGS.find(b => b.id === bookingId);
-    if (bookingToCancel) {
-      // Check if booking is in the future
-      const bookingDateTime = new Date(`${bookingToCancel.date}T${getTimeSlotDetails(bookingToCancel.timeSlotId)?.startTime || '00:00'}`);
-      if (bookingDateTime < new Date()) {
-        toast({
-          variant: "destructive",
-          title: "Cannot Cancel",
-          description: "Past bookings cannot be cancelled.",
-        });
+    const timeSlot = bookingToCancel ? getTimeSlotDetails(bookingToCancel.timeSlotId) : null;
+
+    if (bookingToCancel && timeSlot) {
+      try {
+        // Check if booking is in the future
+        const bookingDateTime = parseISO(`${bookingToCancel.date}T${timeSlot.startTime}`);
+        if (bookingDateTime < new Date()) {
+          toast({
+            variant: "destructive",
+            title: "Cannot Cancel",
+            description: "Past bookings cannot be cancelled.",
+          });
+          return;
+        }
+      } catch (error) {
+        console.error("Error parsing booking date for cancellation check:", error);
+        toast({ variant: "destructive", title: "Error", description: "Could not verify booking time." });
         return;
       }
       
@@ -70,6 +84,8 @@ export default function StudentMyBookingsPage() {
         title: "Booking Cancelled",
         description: `Your booking for ${getLabDetails(bookingToCancel.labId)?.name} has been cancelled.`,
       });
+    } else {
+        toast({ variant: "destructive", title: "Error", description: "Booking or time slot details not found."});
     }
   };
   
@@ -81,6 +97,28 @@ export default function StudentMyBookingsPage() {
       default: return 'outline';
     }
   };
+
+  const formatDateSafe = (dateString: string, dateFormat: string = "EEEE, MMM d, yyyy") => {
+    try {
+      return format(new Date(`${dateString}T00:00:00`), dateFormat);
+    } catch (error) {
+      console.error("Invalid date format for booking:", dateString, error);
+      return "Invalid Date";
+    }
+  };
+
+  const isBookingPast = (bookingDate: string, endTime?: string) => {
+    if (!endTime) return false;
+    try {
+      const bookingDateTimeString = `${bookingDate}T${endTime}`;
+      const bookingDateTime = parseISO(bookingDateTimeString);
+      return bookingDateTime < new Date();
+    } catch (error) {
+      console.error("Error parsing booking date/time for past check:", bookingDate, endTime, error);
+      return false; 
+    }
+  };
+
 
   if (isLoading) {
     return (
@@ -125,7 +163,7 @@ export default function StudentMyBookingsPage() {
             const lab = getLabDetails(booking.labId);
             const timeSlot = getTimeSlotDetails(booking.timeSlotId);
             const equipment = getEquipmentDetails(booking.equipmentIds);
-            const isPastBooking = new Date(`${booking.date}T${timeSlot?.endTime || '23:59'}`) < new Date() && booking.status !== 'cancelled';
+            const isPastBooking = timeSlot ? isBookingPast(booking.date, timeSlot.endTime) && booking.status !== 'cancelled' : false;
 
             return (
               <Card key={booking.id} className={`shadow-md hover:shadow-lg transition-shadow ${isPastBooking ? 'opacity-70' : ''}`}>
@@ -145,7 +183,7 @@ export default function StudentMyBookingsPage() {
                 <CardContent className="space-y-3 text-sm">
                   <div className="flex items-center">
                     <ClockIcon className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span>{format(new Date(booking.date), "EEEE, MMM d, yyyy")}</span>
+                    <span>{formatDateSafe(booking.date)}</span>
                   </div>
                   <div className="flex items-center">
                     <CalendarClock className="h-4 w-4 mr-2 text-muted-foreground" />
@@ -187,3 +225,4 @@ export default function StudentMyBookingsPage() {
     </div>
   );
 }
+

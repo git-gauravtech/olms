@@ -2,7 +2,7 @@
 // src/app/dashboard/faculty/my-bookings/page.tsx
 "use client";
 
-import * as _React from "react"; // Renamed to avoid conflict with React namespace
+import * as React from "react"; 
 import {
   Card,
   CardContent,
@@ -17,7 +17,7 @@ import { CalendarCheck2, FlaskConical, MapPin, ListChecks, ClockIcon } from "luc
 import type { Booking, Lab, TimeSlot, Equipment } from "@/types";
 import { MOCK_BOOKINGS, MOCK_LABS, MOCK_TIME_SLOTS, MOCK_EQUIPMENT } from "@/constants";
 import { USER_ROLES } from "@/types";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useRoleGuard } from '@/hooks/use-role-guard';
 import { Skeleton } from "@/components/ui/skeleton";
@@ -27,14 +27,20 @@ const CURRENT_FACULTY_ID = "faculty1"; // Replace with actual user ID from auth 
 
 export default function FacultyMyBookingsPage() {
   const { isAuthorized, isLoading } = useRoleGuard(USER_ROLES.FACULTY);
-  const [myBookings, setMyBookings] = _React.useState<Booking[]>([]);
+  const [myBookings, setMyBookings] = React.useState<Booking[]>([]);
   const { toast } = useToast();
 
-  _React.useEffect(() => {
+  React.useEffect(() => {
     if (isAuthorized) {
       // Filter bookings for the current faculty member and sort by date
       const filtered = MOCK_BOOKINGS.filter(b => b.userId === CURRENT_FACULTY_ID && b.requestedByRole === USER_ROLES.FACULTY)
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        .sort((a, b) => {
+            try {
+                return new Date(b.date).getTime() - new Date(a.date).getTime();
+            } catch (e) {
+                return 0;
+            }
+        });
       setMyBookings(filtered);
     }
   }, [isAuthorized]);
@@ -47,14 +53,22 @@ export default function FacultyMyBookingsPage() {
   const handleCancelBooking = (bookingId: string) => {
     // Simulate API call
     const bookingToCancel = MOCK_BOOKINGS.find(b => b.id === bookingId);
-    if (bookingToCancel) {
-      const bookingDateTime = new Date(`${bookingToCancel.date}T${getTimeSlotDetails(bookingToCancel.timeSlotId)?.startTime || '00:00'}`);
-      if (bookingDateTime < new Date()) {
-        toast({
-          variant: "destructive",
-          title: "Cannot Cancel",
-          description: "Past bookings cannot be cancelled.",
-        });
+    const timeSlot = bookingToCancel ? getTimeSlotDetails(bookingToCancel.timeSlotId) : null;
+
+    if (bookingToCancel && timeSlot) {
+      try {
+        const bookingDateTime = parseISO(`${bookingToCancel.date}T${timeSlot.startTime}`);
+        if (bookingDateTime < new Date()) {
+          toast({
+            variant: "destructive",
+            title: "Cannot Cancel",
+            description: "Past bookings cannot be cancelled.",
+          });
+          return;
+        }
+      } catch (error) {
+        console.error("Error parsing booking date for cancellation check:", error);
+        toast({ variant: "destructive", title: "Error", description: "Could not verify booking time." });
         return;
       }
       
@@ -64,6 +78,8 @@ export default function FacultyMyBookingsPage() {
         title: "Booking Cancelled",
         description: `Your booking for ${getLabDetails(bookingToCancel.labId)?.name} has been cancelled.`,
       });
+    } else {
+        toast({ variant: "destructive", title: "Error", description: "Booking or time slot details not found."});
     }
   };
 
@@ -73,6 +89,27 @@ export default function FacultyMyBookingsPage() {
       case 'pending': return 'secondary';
       case 'cancelled': return 'destructive';
       default: return 'outline';
+    }
+  };
+  
+  const formatDateSafe = (dateString: string, dateFormat: string = "EEEE, MMM d, yyyy") => {
+    try {
+      return format(new Date(`${dateString}T00:00:00`), dateFormat);
+    } catch (error) {
+      console.error("Invalid date format for booking:", dateString, error);
+      return "Invalid Date";
+    }
+  };
+
+  const isBookingPast = (bookingDate: string, endTime?: string) => {
+    if (!endTime) return false;
+    try {
+      const bookingDateTimeString = `${bookingDate}T${endTime}`;
+      const bookingDateTime = parseISO(bookingDateTimeString);
+      return bookingDateTime < new Date();
+    } catch (error) {
+      console.error("Error parsing booking date/time for past check:", bookingDate, endTime, error);
+      return false;
     }
   };
 
@@ -119,7 +156,7 @@ export default function FacultyMyBookingsPage() {
             const lab = getLabDetails(booking.labId);
             const timeSlot = getTimeSlotDetails(booking.timeSlotId);
             const equipment = getEquipmentDetails(booking.equipmentIds);
-            const isPastBooking = new Date(`${booking.date}T${timeSlot?.endTime || '23:59'}`) < new Date() && booking.status !== 'cancelled';
+            const isPastBooking = timeSlot ? isBookingPast(booking.date, timeSlot.endTime) && booking.status !== 'cancelled' : false;
 
             return (
               <Card key={booking.id} className={`shadow-md hover:shadow-lg transition-shadow ${isPastBooking ? 'opacity-70' : ''}`}>
@@ -139,7 +176,7 @@ export default function FacultyMyBookingsPage() {
                 <CardContent className="space-y-3 text-sm">
                   <div className="flex items-center">
                     <ClockIcon className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span>{format(new Date(booking.date), "EEEE, MMM d, yyyy")}</span>
+                    <span>{formatDateSafe(booking.date)}</span>
                   </div>
                   <div className="flex items-center">
                     <CalendarCheck2 className="h-4 w-4 mr-2 text-muted-foreground" />
@@ -181,3 +218,4 @@ export default function FacultyMyBookingsPage() {
     </div>
   );
 }
+

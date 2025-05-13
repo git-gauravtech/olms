@@ -81,6 +81,19 @@ export default function ViewBookingsPage() {
     }
   };
 
+  const formatDateSafe = (dateString: string) => {
+    try {
+      // Assuming dateString is "yyyy-MM-dd". If it might be an ISO string with time, parseISO might be better.
+      // For "yyyy-MM-dd", new Date() is usually fine but can be tricky with timezones if not careful.
+      // Adding a time part to ensure it's parsed as local date.
+      return format(new Date(`${dateString}T00:00:00`), "PP");
+    } catch (error) {
+      console.error("Invalid date format for booking:", dateString, error);
+      return "Invalid Date";
+    }
+  };
+
+
   if (isLoading) {
     return (
       <div className="container mx-auto py-10 space-y-6">
@@ -127,7 +140,7 @@ export default function ViewBookingsPage() {
               {bookings.map((booking) => (
                 <TableRow key={booking.id} className={conflictingBookingIds.includes(booking.id) && booking.status !== 'cancelled' ? "bg-red-100 dark:bg-red-900/30" : ""}>
                   <TableCell className="font-medium">{getLabName(booking.labId)}</TableCell>
-                  <TableCell>{format(new Date(booking.date), "PP")}</TableCell> {/* Ensure date is a Date object or parse it */}
+                  <TableCell>{formatDateSafe(booking.date)}</TableCell>
                   <TableCell>{getTimeSlotDisplay(booking.timeSlotId)}</TableCell>
                   <TableCell>{booking.batchIdentifier || booking.userId}</TableCell>
                   <TableCell>{booking.purpose}</TableCell>
@@ -152,3 +165,4 @@ export default function ViewBookingsPage() {
     </div>
   );
 }
+
