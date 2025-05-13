@@ -1,3 +1,4 @@
+
 // src/app/dashboard/admin/manage-labs/page.tsx
 "use client";
 
@@ -34,6 +35,10 @@ import { useToast } from "@/hooks/use-toast";
 import { Settings, PlusCircle, Edit, Trash2, Loader2 } from "lucide-react";
 import type { Lab } from "@/types";
 import { MOCK_LABS } from "@/constants"; // Using mock labs for now
+import { useRoleGuard } from '@/hooks/use-role-guard';
+import { USER_ROLES } from '@/types';
+import { Skeleton } from "@/components/ui/skeleton";
+
 
 const LabFormSchema = {
   name: (value: string) => value.trim().length > 0 ? null : "Name is required.",
@@ -44,6 +49,8 @@ const LabFormSchema = {
 type LabFormErrors = Record<keyof typeof LabFormSchema, string | null>;
 
 export default function ManageLabsPage() {
+  const { isAuthorized, isLoading } = useRoleGuard(USER_ROLES.ADMIN);
+
   const [labs, setLabs] = React.useState<Lab[]>(MOCK_LABS);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [currentLab, setCurrentLab] = React.useState<Partial<Lab> | null>(null);
@@ -128,6 +135,19 @@ export default function ManageLabsPage() {
       setIsDialogOpen(false);
     }, 1000);
   };
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-10 space-y-6">
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
+
+  if (!isAuthorized) {
+    return null;
+  }
   
   return (
     <div className="container mx-auto py-10 space-y-6">

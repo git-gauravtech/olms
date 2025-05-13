@@ -1,3 +1,4 @@
+
 // src/app/dashboard/admin/view-bookings/page.tsx
 "use client";
 
@@ -22,8 +23,13 @@ import { CalendarDays, AlertTriangle } from "lucide-react";
 import type { Booking, Lab, TimeSlot, Equipment } from "@/types";
 import { MOCK_BOOKINGS, MOCK_LABS, MOCK_TIME_SLOTS, MOCK_EQUIPMENT } from "@/constants";
 import { format, parseISO } from "date-fns"; // if dates are stored as ISO strings
+import { useRoleGuard } from '@/hooks/use-role-guard';
+import { USER_ROLES } from '@/types';
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ViewBookingsPage() {
+  const { isAuthorized, isLoading } = useRoleGuard(USER_ROLES.ADMIN);
+
   const [bookings, setBookings] = React.useState<Booking[]>(MOCK_BOOKINGS);
   const [labs] = React.useState<Lab[]>(MOCK_LABS);
   const [timeSlots] = React.useState<TimeSlot[]>(MOCK_TIME_SLOTS);
@@ -74,6 +80,19 @@ export default function ViewBookingsPage() {
       default: return 'outline';
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-10 space-y-6">
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
+
+  if (!isAuthorized) {
+    return null;
+  }
 
   return (
     <div className="container mx-auto py-10">

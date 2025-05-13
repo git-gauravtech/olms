@@ -1,8 +1,30 @@
 
+"use client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { UserCog } from "lucide-react";
+import { useRoleGuard } from '@/hooks/use-role-guard';
+import { USER_ROLES } from '@/types';
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ManageUsersPage() {
+  const { isAuthorized, isLoading } = useRoleGuard(USER_ROLES.ADMIN);
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-10 space-y-4">
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-8 w-1/4 mt-4" />
+        <Skeleton className="h-6 w-3/4" />
+        <Skeleton className="h-6 w-3/4" />
+        <Skeleton className="h-6 w-1/2" />
+      </div>
+    );
+  }
+
+  if (!isAuthorized) {
+    return null;
+  }
+
   return (
     <div className="container mx-auto py-10">
       <Card className="shadow-lg">

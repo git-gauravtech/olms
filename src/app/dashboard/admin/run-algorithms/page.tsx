@@ -1,3 +1,4 @@
+
 // src/app/dashboard/admin/run-algorithms/page.tsx
 "use client";
 
@@ -6,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { BrainCircuit, Palette, Backpack, Zap, Route, Loader2 } from "lucide-react";
+import { useRoleGuard } from '@/hooks/use-role-guard';
+import { USER_ROLES } from '@/types';
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface AlgorithmSectionProps {
   title: string;
@@ -37,6 +41,8 @@ function AlgorithmSection({ title, description, buttonLabel, icon, onRun, isLoad
 }
 
 export default function RunAlgorithmsPage() {
+  const { isAuthorized, isLoading } = useRoleGuard(USER_ROLES.ADMIN);
+
   const { toast } = useToast();
   const [isLoadingScheduling, setIsLoadingScheduling] = React.useState(false);
   const [isLoadingResourceAllocation, setIsLoadingResourceAllocation] = React.useState(false);
@@ -56,6 +62,24 @@ export default function RunAlgorithmsPage() {
       description: `${details} executed successfully. Results (mock) are now available.`,
     });
   };
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-10 space-y-8">
+        <Skeleton className="h-24 w-full mb-6" />
+        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
+          <Skeleton className="h-48 w-full" />
+          <Skeleton className="h-48 w-full" />
+          <Skeleton className="h-48 w-full" />
+          <Skeleton className="h-48 w-full" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthorized) {
+    return null;
+  }
 
   return (
     <div className="container mx-auto py-10 space-y-8">

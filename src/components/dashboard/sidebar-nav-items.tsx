@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -26,7 +27,7 @@ export function SidebarNavItems() {
   if (isLoadingRole) {
     return (
       <SidebarMenu>
-        {[...Array(5)].map((_, i) => (
+        {[...Array(4)].map((_, i) => ( // Changed from 5 to 4 for a more average skeleton
           <SidebarMenuItem key={i}>
             <SidebarMenuButton
               variant="default"
@@ -47,14 +48,18 @@ export function SidebarNavItems() {
     if (currentRole && NAV_LINKS[currentRole]) {
       return NAV_LINKS[currentRole];
     }
-    // Fallback if role is not set or not found in NAV_LINKS
+    // Fallback if role is not set or not found in NAV_LINKS (e.g. after logout before redirect)
+    // Or if user somehow lands on dashboard without role.
+    // COMMON_NAV_LINKS should be minimal, or redirect to login if role is strictly required.
     return COMMON_NAV_LINKS; 
   };
 
   const navItems = getNavItems();
 
   if (!navItems || navItems.length === 0) {
-    return null;
+    // This case might occur if COMMON_NAV_LINKS is empty and role is null.
+    // Consider what to display or if a redirect should happen earlier.
+    return null; 
   }
 
   return (

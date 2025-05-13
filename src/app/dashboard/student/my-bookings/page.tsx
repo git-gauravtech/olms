@@ -1,3 +1,4 @@
+
 // src/app/dashboard/student/my-bookings/page.tsx
 "use client";
 
@@ -15,22 +16,33 @@ import { Button } from "@/components/ui/button";
 import { CalendarClock, FlaskConical, MapPin, ListChecks, User, AlertTriangle, ClockIcon } from "lucide-react";
 import type { Booking, Lab, TimeSlot, Equipment } from "@/types";
 import { MOCK_BOOKINGS, MOCK_LABS, MOCK_TIME_SLOTS, MOCK_EQUIPMENT } from "@/constants";
+import { USER_ROLES } from "@/types"; // Added USER_ROLES
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { useRoleGuard } from '@/hooks/use-role-guard';
+import { Skeleton } from "@/components/ui/skeleton";
+
 
 // Assume current user ID for filtering bookings
 const CURRENT_USER_ID = "student1"; // Replace with actual user ID from auth context in a real app
 
 export default function StudentMyBookingsPage() {
+  // Students and CRs can view their personal bookings here.
+  const { isAuthorized, isLoading } = useRoleGuard([USER_ROLES.STUDENT, USER_ROLES.CR]);
   const [myBookings, setMyBookings] = React.useState<Booking[]>([]);
   const { toast } = useToast();
 
   React.useEffect(() => {
-    // Filter bookings for the current student and sort by date
-    const filtered = MOCK_BOOKINGS.filter(b => b.userId === CURRENT_USER_ID)
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // Sort by date, newest first
-    setMyBookings(filtered);
-  }, []);
+    if (isAuthorized) {
+      // Filter bookings for the current student/CR (personal bookings)
+      // For CRs, this page shows their *individual* bookings, not class bookings.
+      const filtered = MOCK_BOOKINGS.filter(b => b.userId === CURRENT_USER_ID && 
+                                                 (b.requestedByRole === USER_ROLES.STUDENT || b.requestedByRole === USER_ROLES.CR && !b.batchIdentifier)
+                                            )
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // Sort by date, newest first
+      setMyBookings(filtered);
+    }
+  }, [isAuthorized]);
 
   const getLabDetails = (labId: string): Lab | undefined => MOCK_LABS.find(l => l.id === labId);
   const getTimeSlotDetails = (timeSlotId: string): TimeSlot | undefined => MOCK_TIME_SLOTS.find(ts => ts.id === timeSlotId);
@@ -69,6 +81,23 @@ export default function StudentMyBookingsPage() {
       default: return 'outline';
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-10 space-y-8">
+        <Skeleton className="h-24 w-full mb-6" />
+        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
+          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-64 w-full" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthorized) {
+    return null;
+  }
 
   return (
     <div className="container mx-auto py-10 space-y-8">

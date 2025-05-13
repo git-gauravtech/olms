@@ -1,3 +1,4 @@
+
 // src/app/dashboard/cr/request-class-booking/page.tsx
 "use client";
 
@@ -30,6 +31,8 @@ import type { Lab, TimeSlot, Equipment, Booking, UserRole } from "@/types";
 import { USER_ROLES } from "@/types";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { AvailabilitySuggestionsDialog } from "@/components/lab/availability-suggestions-dialog";
+import { useRoleGuard } from '@/hooks/use-role-guard';
+import { Skeleton } from "@/components/ui/skeleton";
 
 
 const crBookingFormSchema = z.object({
@@ -55,8 +58,9 @@ const checkSlotAvailability = async (labId: string, date: Date, timeSlotId: stri
 };
 
 export default function RequestClassBookingPage() {
+  const { isAuthorized, isLoading } = useRoleGuard(USER_ROLES.CR);
   const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = _React.useState(false);
+  const [isSubmittingForm, setIsSubmittingForm] = _React.useState(false); // Renamed to avoid conflict with isLoading from hook
   const [showSuggestionsDialog, setShowSuggestionsDialog] = _React.useState(false);
   const [suggestionParams, setSuggestionParams] = _React.useState<{ labName: string; preferredSlot: string }>({ labName: "", preferredSlot: "" });
   const [availableEquipment, setAvailableEquipment] = _React.useState<Equipment[]>(MOCK_EQUIPMENT.filter(eq => eq.status === 'available'));
@@ -84,7 +88,7 @@ export default function RequestClassBookingPage() {
   }, [selectedLabId, form]);
 
   async function onSubmit(data: CrBookingFormValues) {
-    setIsSubmitting(true);
+    setIsSubmittingForm(true);
     
     const isAvailable = await checkSlotAvailability(data.labId, data.date, data.timeSlotId);
 
@@ -111,7 +115,7 @@ export default function RequestClassBookingPage() {
           description: `Request for ${data.batchIdentifier} in ${MOCK_LABS.find(l => l.id === data.labId)?.name} submitted.`,
         });
         form.reset();
-        setIsSubmitting(false);
+        setIsSubmittingForm(false);
       }, 1000);
     } else {
       const selectedLab = MOCK_LABS.find(l => l.id === data.labId);
@@ -121,7 +125,7 @@ export default function RequestClassBookingPage() {
         preferredSlot: `${format(data.date, "EEE, MMM d")} ${selectedTimeSlot?.displayTime || "Selected Time"}`,
       });
       setShowSuggestionsDialog(true);
-      setIsSubmitting(false);
+      setIsSubmittingForm(false);
     }
   }
 
@@ -131,6 +135,18 @@ export default function RequestClassBookingPage() {
       description: `You selected: ${slot}. Please re-fill and submit the form.`,
     });
   };
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-10">
+        <Skeleton className="h-96 w-full max-w-3xl mx-auto" />
+      </div>
+    );
+  }
+
+  if (!isAuthorized) {
+    return null;
+  }
 
   return (
     <>
@@ -332,8 +348,8 @@ export default function RequestClassBookingPage() {
 
             </CardContent>
             <CardFooter>
-              <Button type="submit" disabled={isSubmitting} className="w-full">
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <Button type="submit" disabled={isSubmittingForm} className="w-full">
+                {isSubmittingForm && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Submit Class Booking Request
               </Button>
             </CardFooter>

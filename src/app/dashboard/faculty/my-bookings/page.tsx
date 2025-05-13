@@ -1,3 +1,4 @@
+
 // src/app/dashboard/faculty/my-bookings/page.tsx
 "use client";
 
@@ -18,20 +19,25 @@ import { MOCK_BOOKINGS, MOCK_LABS, MOCK_TIME_SLOTS, MOCK_EQUIPMENT } from "@/con
 import { USER_ROLES } from "@/types";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { useRoleGuard } from '@/hooks/use-role-guard';
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Assume current faculty user ID for filtering bookings
 const CURRENT_FACULTY_ID = "faculty1"; // Replace with actual user ID from auth context
 
 export default function FacultyMyBookingsPage() {
+  const { isAuthorized, isLoading } = useRoleGuard(USER_ROLES.FACULTY);
   const [myBookings, setMyBookings] = _React.useState<Booking[]>([]);
   const { toast } = useToast();
 
   _React.useEffect(() => {
-    // Filter bookings for the current faculty member and sort by date
-    const filtered = MOCK_BOOKINGS.filter(b => b.userId === CURRENT_FACULTY_ID && b.requestedByRole === USER_ROLES.FACULTY)
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    setMyBookings(filtered);
-  }, []);
+    if (isAuthorized) {
+      // Filter bookings for the current faculty member and sort by date
+      const filtered = MOCK_BOOKINGS.filter(b => b.userId === CURRENT_FACULTY_ID && b.requestedByRole === USER_ROLES.FACULTY)
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      setMyBookings(filtered);
+    }
+  }, [isAuthorized]);
 
   const getLabDetails = (labId: string): Lab | undefined => MOCK_LABS.find(l => l.id === labId);
   const getTimeSlotDetails = (timeSlotId: string): TimeSlot | undefined => MOCK_TIME_SLOTS.find(ts => ts.id === timeSlotId);
@@ -69,6 +75,23 @@ export default function FacultyMyBookingsPage() {
       default: return 'outline';
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-10 space-y-8">
+        <Skeleton className="h-24 w-full mb-6" />
+        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
+          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-64 w-full" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthorized) {
+    return null;
+  }
 
   return (
     <div className="container mx-auto py-10 space-y-8">

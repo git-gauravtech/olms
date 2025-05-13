@@ -1,3 +1,4 @@
+
 // src/app/dashboard/cr/class-bookings/page.tsx
 "use client";
 
@@ -16,20 +17,25 @@ import type { Booking, Lab, TimeSlot, Equipment } from "@/types";
 import { MOCK_BOOKINGS, MOCK_LABS, MOCK_TIME_SLOTS, MOCK_EQUIPMENT } from "@/constants";
 import { USER_ROLES } from "@/types";
 import { format } from "date-fns";
+import { useRoleGuard } from '@/hooks/use-role-guard';
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Assume CR user ID to potentially filter or highlight bookings made by this CR
 const CURRENT_CR_USER_ID = "cr_user"; // Replace with actual CR user ID
 
 export default function CRClassBookingsPage() {
+  const { isAuthorized, isLoading } = useRoleGuard(USER_ROLES.CR);
   const [classBookings, setClassBookings] = _React.useState<Booking[]>([]);
 
   _React.useEffect(() => {
+    if (isAuthorized) {
     // Filter bookings that are specifically for classes (e.g., have a batchIdentifier or requestedByRole is CR)
     const filtered = MOCK_BOOKINGS.filter(
       b => b.requestedByRole === USER_ROLES.CR && b.batchIdentifier
     ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     setClassBookings(filtered);
-  }, []);
+    }
+  }, [isAuthorized]);
 
   const getLabDetails = (labId: string): Lab | undefined => MOCK_LABS.find(l => l.id === labId);
   const getTimeSlotDetails = (timeSlotId: string): TimeSlot | undefined => MOCK_TIME_SLOTS.find(ts => ts.id === timeSlotId);
@@ -44,6 +50,23 @@ export default function CRClassBookingsPage() {
       default: return 'outline';
     }
   };
+
+  if (isLoading) {
+     return (
+      <div className="container mx-auto py-10 space-y-8">
+        <Skeleton className="h-24 w-full mb-6" />
+        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
+          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-64 w-full" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthorized) {
+    return null;
+  }
 
   return (
     <div className="container mx-auto py-10 space-y-8">

@@ -1,3 +1,4 @@
+
 // src/app/dashboard/admin/manage-equipment/page.tsx
 "use client";
 
@@ -35,6 +36,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Wrench, PlusCircle, Edit, Trash2, Loader2 } from "lucide-react";
 import type { Equipment, Lab } from "@/types";
 import { MOCK_EQUIPMENT, MOCK_LABS } from "@/constants"; // Using mock data
+import { useRoleGuard } from '@/hooks/use-role-guard';
+import { USER_ROLES } from '@/types';
+import { Skeleton } from "@/components/ui/skeleton";
 
 const EquipmentFormSchema = {
   name: (value: string) => value.trim().length > 0 ? null : "Name is required.",
@@ -45,6 +49,8 @@ type EquipmentFormErrors = Record<keyof typeof EquipmentFormSchema, string | nul
 
 
 export default function ManageEquipmentPage() {
+  const { isAuthorized, isLoading } = useRoleGuard(USER_ROLES.ADMIN);
+
   const [equipmentList, setEquipmentList] = React.useState<Equipment[]>(MOCK_EQUIPMENT);
   const [labs] = React.useState<Lab[]>(MOCK_LABS); // For lab selection dropdown
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
@@ -131,6 +137,19 @@ export default function ManageEquipmentPage() {
     if (!labId) return "General Pool";
     return labs.find(lab => lab.id === labId)?.name || "Unknown Lab";
   };
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-10 space-y-6">
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
+
+  if (!isAuthorized) {
+    return null;
+  }
 
   return (
     <div className="container mx-auto py-10 space-y-6">
