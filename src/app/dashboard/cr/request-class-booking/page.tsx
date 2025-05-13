@@ -1,7 +1,7 @@
 // src/app/dashboard/cr/request-class-booking/page.tsx
 "use client";
 
-import *_React from "react"; // Renamed to avoid conflict with React namespace for useState etc.
+import * as _React from "react"; // Renamed to avoid conflict with React namespace for useState etc.
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";

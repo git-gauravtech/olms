@@ -1,7 +1,7 @@
 // src/app/dashboard/faculty/my-bookings/page.tsx
 "use client";
 
-import *_React from "react"; // Renamed to avoid conflict with React namespace
+import * as _React from "react"; // Renamed to avoid conflict with React namespace
 import {
   Card,
   CardContent,

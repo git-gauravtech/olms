@@ -1,7 +1,7 @@
 // src/app/dashboard/cr/class-bookings/page.tsx
 "use client";
 
-import *_React from "react"; // Renamed to avoid conflict with React namespace for useState etc.
+import * as _React from "react"; // Renamed to avoid conflict with React namespace for useState etc.
 import {
   Card,
   CardContent,
@@ -11,7 +11,7 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { UsersRound, FlaskConical, MapPin, ListChecks, ClockIcon, AlertTriangle } from "lucide-react";
+import { UsersRound, FlaskConical, MapPin, ListChecks, ClockIcon, AlertTriangle, CalendarClock } from "lucide-react";
 import type { Booking, Lab, TimeSlot, Equipment } from "@/types";
 import { MOCK_BOOKINGS, MOCK_LABS, MOCK_TIME_SLOTS, MOCK_EQUIPMENT } from "@/constants";
 import { USER_ROLES } from "@/types";

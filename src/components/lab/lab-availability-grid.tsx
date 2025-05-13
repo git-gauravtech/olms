@@ -1,7 +1,7 @@
 // src/components/lab/lab-availability-grid.tsx
 "use client";
 
-import *_React from "react"; // Renamed to avoid conflict
+import * as _React from "react"; // Renamed to avoid conflict
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -188,3 +188,4 @@ export function LabAvailabilityGrid() {
     </Card>
   );
 }
+
