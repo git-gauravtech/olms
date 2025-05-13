@@ -1,3 +1,13 @@
+'use client'; // Required for redirect
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+
 export default function Home() {
-  return <></>;
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace('/login');
+  }, [router]);
+
+  return null; // Or a loading spinner
 }
