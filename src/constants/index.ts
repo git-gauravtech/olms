@@ -1,6 +1,6 @@
 import type { NavItem, UserRole, Lab, TimeSlot } from '@/types';
 import { USER_ROLES } from '@/types';
-import { LayoutDashboard, FlaskConical, CalendarPlus, Users, Settings2, CalendarCheck, Users2, UserCircle, LogOut, 실험실, BookOpen, Home } from 'lucide-react';
+import { LayoutDashboard, FlaskConical, CalendarPlus, Users, Settings2, CalendarCheck, Users2, UserCircle, LogOut, BookOpen, Home } from 'lucide-react';
 
 export const NAV_LINKS: Record<UserRole, NavItem[]> = {
   [USER_ROLES.ADMIN]: [
