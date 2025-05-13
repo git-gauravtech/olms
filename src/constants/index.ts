@@ -32,9 +32,8 @@ export const NAV_LINKS: Record<UserRole, NavItem[]> = {
   [USER_ROLES.CR]: [
     { href: '/dashboard/cr', label: 'CR Dashboard', icon: LayoutDashboard },
     { href: '/dashboard/labs', label: 'Lab Availability', icon: FlaskConical },
-    { href: '/dashboard/student/my-bookings', label: 'My Individual Schedule', icon: CalendarCheck }, 
+    { href: '/dashboard/student/my-bookings', label: 'View My Schedule', icon: CalendarCheck }, 
     { href: '/dashboard/cr/request-class-booking', label: 'Request Class Slot', icon: UserPlus },
-    { href: '/dashboard/cr/class-bookings', label: 'View Class Bookings', icon: Users2 },
   ],
 };
 
