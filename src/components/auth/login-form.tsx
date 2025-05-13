@@ -61,7 +61,22 @@ export function LoginForm() {
       localStorage.setItem('userRole', data.role);
     }
     
-    router.push("/dashboard/overview");
+    switch (data.role) {
+      case USER_ROLES.ADMIN:
+        router.push("/dashboard/admin");
+        break;
+      case USER_ROLES.FACULTY:
+        router.push("/dashboard/faculty");
+        break;
+      case USER_ROLES.STUDENT:
+        router.push("/dashboard/student");
+        break;
+      case USER_ROLES.CR:
+        router.push("/dashboard/cr");
+        break;
+      default:
+        router.push("/dashboard/overview"); // Fallback
+    }
   };
 
   return (

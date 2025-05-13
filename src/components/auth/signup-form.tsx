@@ -71,12 +71,26 @@ export function SignupForm() {
       description: `Welcome, ${data.fullName}! Your account as ${data.role} has been successfully created.`,
     });
     
-    // Store role in localStorage for dashboard to pick up (simple mock)
     if (typeof window !== 'undefined') {
         localStorage.setItem('userRole', data.role);
     }
-    // Redirect to login or dashboard
-    router.push("/dashboard/overview");
+
+    switch (data.role) {
+      case USER_ROLES.ADMIN:
+        router.push("/dashboard/admin");
+        break;
+      case USER_ROLES.FACULTY:
+        router.push("/dashboard/faculty");
+        break;
+      case USER_ROLES.STUDENT:
+        router.push("/dashboard/student");
+        break;
+      case USER_ROLES.CR:
+        router.push("/dashboard/cr");
+        break;
+      default:
+        router.push("/dashboard/overview"); // Fallback
+    }
   };
 
   return (

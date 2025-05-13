@@ -8,23 +8,47 @@ import type { NavItem, UserRole } from "@/types";
 import { COMMON_NAV_LINKS, NAV_LINKS } from "@/constants";
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import { useEffect, useState } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function SidebarNavItems() {
   const pathname = usePathname();
   const [currentRole, setCurrentRole] = useState<UserRole | null>(null);
+  const [isLoadingRole, setIsLoadingRole] = useState(true);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedRole = localStorage.getItem('userRole') as UserRole | null;
       setCurrentRole(storedRole);
+      setIsLoadingRole(false);
     }
   }, []);
+
+  if (isLoadingRole) {
+    return (
+      <SidebarMenu>
+        {[...Array(5)].map((_, i) => (
+          <SidebarMenuItem key={i}>
+            <SidebarMenuButton
+              variant="default"
+              className="w-full justify-start cursor-default"
+              disabled
+              tooltip="Loading..."
+            >
+              <Skeleton className="h-5 w-5 mr-2 rounded" />
+              <Skeleton className="h-4 w-20 rounded" />
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        ))}
+      </SidebarMenu>
+    );
+  }
 
   const getNavItems = (): NavItem[] => {
     if (currentRole && NAV_LINKS[currentRole]) {
       return NAV_LINKS[currentRole];
     }
-    return COMMON_NAV_LINKS; // Fallback or default links
+    // Fallback if role is not set or not found in NAV_LINKS
+    return COMMON_NAV_LINKS; 
   };
 
   const navItems = getNavItems();
