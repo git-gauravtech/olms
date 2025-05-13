@@ -210,7 +210,7 @@ export const MOCK_BOOKINGS: Booking[] = [
 
 
 // For Lab Availability Viewer
-export const DAYS_OF_WEEK = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+export const DAYS_OF_WEEK = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sun'];
 
 export const DEPARTMENTS = [
   'CSE (Computer Science & Engineering)',
@@ -253,4 +253,5 @@ export const MOCK_RESCHEDULE_REQUESTS: RescheduleRequest[] = [
     requestedAt: new Date().toISOString(),
   }
 ];
+
 
