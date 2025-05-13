@@ -1,4 +1,3 @@
-
 // src/components/lab/lab-availability-grid.tsx
 "use client";
 
@@ -58,13 +57,16 @@ export function LabAvailabilityGrid() {
     slotDateTime.setHours(hours, minutes, 0, 0);
 
     const now = new Date();
+     // Check if the entire day is before today (and not today)
     if (currentDate < startOfWeek(now, { weekStartsOn: 1 }) && format(currentDate, "yyyy-MM-dd") < format(now, "yyyy-MM-dd")) {
        return { status: 'past' };
     }
+    // Check if the slot is on the current day but its start time has passed
     if (format(currentDate, "yyyy-MM-dd") === format(now, "yyyy-MM-dd") && slotDateTime < now) {
          return { status: 'past' };
     }
-     if (slotDateTime < now && format(slotDateTime, 'yyyy-MM-dd') < format(new Date(), 'yyyy-MM-dd')) {
+    // A more general check for past slots based on start time.
+    if (slotDateTime < now && format(slotDateTime, 'yyyy-MM-dd') <= format(new Date(), 'yyyy-MM-dd')) {
       return { status: 'past' };
     }
     
@@ -100,8 +102,6 @@ export function LabAvailabilityGrid() {
 
   const handleRequestReschedule = () => {
     if (!selectedSlotDetails) return;
-    // In a real app, this would trigger a backend process or open a more detailed form.
-    // For now, we'll show a toast message.
     toast({
       title: "Reschedule Requested",
       description: `A request to reschedule the slot for ${selectedSlotDetails.labName} on ${format(selectedSlotDetails.date, "PPP")} at ${selectedSlotDetails.timeSlot.displayTime} has been noted. Admin will review.`,
@@ -123,10 +123,11 @@ export function LabAvailabilityGrid() {
   }
 
   const getStatusColorClasses = (status: SlotStatus['status']) => {
+    // This function provides text color classes for the status in the dialog.
     switch (status) {
-      case 'available': return "text-green-700 dark:text-green-300";
-      case 'booked': return "text-red-700 dark:text-red-300";
-      case 'pending': return "text-yellow-700 dark:text-yellow-400";
+      case 'available': return "text-accent"; 
+      case 'booked': return "text-destructive";
+      case 'pending': return "text-secondary-foreground"; // Assuming secondary background, so foreground color for text.
       case 'past': return "text-muted-foreground";
       default: return "text-foreground";
     }
@@ -138,7 +139,7 @@ export function LabAvailabilityGrid() {
         <CardHeader>
           <CardTitle className="text-2xl">Lab Availability Viewer</CardTitle>
           <CardDescription>
-            Select a lab to view its weekly schedule. Click on a slot for details or to book.
+            Select a lab to view its weekly schedule. Click on a slot for details or to book in the Optimized Lab Management System.
             Labs are rows, time slots are columns.
           </CardDescription>
           <div className="pt-4 space-y-4">
@@ -175,7 +176,7 @@ export function LabAvailabilityGrid() {
           {selectedLab ? (
             <div className="overflow-x-auto">
               <div className="grid gap-1 border border-border bg-border rounded-lg p-1" style={{ gridTemplateColumns: `minmax(80px, auto) repeat(${DAYS_OF_WEEK.length}, minmax(100px, 1fr))`}}>
-                {/* Header Row: Time Slots */}
+                {/* Header Row: Days */}
                 <div className="p-2 font-semibold bg-card text-card-foreground rounded-tl-lg sticky left-0 z-20 flex items-center justify-center">Time</div>
                 {DAYS_OF_WEEK.map((day, dayIndex) => (
                   <div key={day} className="p-2 font-semibold text-center bg-card text-card-foreground">
@@ -195,16 +196,15 @@ export function LabAvailabilityGrid() {
                       return (
                         <Button
                           key={`${day}-${timeSlot.id}`}
-                          variant="default" 
                           className={cn(
-                            "h-full min-h-[60px] w-full rounded-md p-1.5 text-xs flex flex-col justify-center items-center whitespace-normal shadow-md transition-all hover:scale-105",
-                            slotData.status === "available" && "bg-green-500 hover:bg-green-600 text-white",
-                            slotData.status === "booked" && "bg-red-500 hover:bg-red-600 text-white", // Not disabling, allow click for details/reschedule
-                            slotData.status === "pending" && "bg-yellow-400 hover:bg-yellow-500 text-black",
-                            slotData.status === "past" && "bg-gray-400 text-gray-800 cursor-not-allowed opacity-75 hover:bg-gray-400"
+                            "h-full min-h-[60px] w-full rounded-md p-1.5 text-xs flex flex-col justify-center items-center whitespace-normal shadow-md transition-all hover:scale-105 focus:ring-2 focus:ring-ring focus:ring-offset-1",
+                            slotData.status === "available" && "bg-accent hover:bg-accent/90 text-accent-foreground",
+                            slotData.status === "booked" && "bg-destructive hover:bg-destructive/90 text-destructive-foreground",
+                            slotData.status === "pending" && "bg-secondary hover:bg-secondary/80 text-secondary-foreground",
+                            slotData.status === "past" && "bg-muted text-muted-foreground cursor-not-allowed opacity-75 hover:bg-muted/90"
                           )}
                           onClick={() => handleSlotClick(day, dayIndex, timeSlot, slotData)}
-                          disabled={slotData.status === 'past'} // Only disable past slots
+                          disabled={slotData.status === 'past'}
                         >
                           <span className="font-semibold text-[10px] sm:text-xs capitalize">
                             {slotData.status}
@@ -244,7 +244,7 @@ export function LabAvailabilityGrid() {
                   <p><span className="font-medium">Purpose:</span> {selectedSlotDetails.statusInfo.booking.purpose}</p>
                   <p><span className="font-medium">User/Batch:</span> {selectedSlotDetails.statusInfo.booking.batchIdentifier || selectedSlotDetails.statusInfo.booking.userId}</p>
                   {selectedSlotDetails.statusInfo.booking.equipmentIds && selectedSlotDetails.statusInfo.booking.equipmentIds.length > 0 && (
-                     <p><span className="font-medium">Equipment:</span> {selectedSlotDetails.statusInfo.booking.equipmentIds.join(', ')}</p>
+                     <p><span className="font-medium">Equipment:</span> {MOCK_EQUIPMENT.filter(e => selectedSlotDetails.statusInfo.booking?.equipmentIds.includes(e.id)).map(e => e.name).join(', ') || 'None specified'}</p>
                   )}
                 </>
               )}
@@ -259,7 +259,7 @@ export function LabAvailabilityGrid() {
               <div className="flex gap-2 flex-wrap">
                 {selectedSlotDetails.statusInfo.status === 'available' && (
                   <Button 
-                    className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                    variant="default" // Primary button for booking
                     onClick={() => {
                       router.push(`/dashboard/book-slot?labId=${selectedLab?.id}&date=${format(selectedSlotDetails.date, "yyyy-MM-dd")}&timeSlotId=${selectedSlotDetails.timeSlot.id}`);
                       setIsSlotDetailDialogOpen(false);
@@ -271,9 +271,8 @@ export function LabAvailabilityGrid() {
                 {selectedSlotDetails.currentUserRole === USER_ROLES.FACULTY && 
                  selectedSlotDetails.statusInfo.status === 'booked' && (
                   <Button 
-                    variant="secondary"
+                    variant="secondary" // Secondary for less common action
                     onClick={handleRequestReschedule}
-                    className="bg-orange-500 hover:bg-orange-600 text-white"
                   >
                     <Edit className="mr-2 h-4 w-4" /> Request Reschedule
                   </Button>

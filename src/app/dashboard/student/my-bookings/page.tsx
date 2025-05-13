@@ -1,4 +1,3 @@
-
 // src/app/dashboard/student/my-bookings/page.tsx
 "use client";
 
@@ -13,10 +12,10 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CalendarClock, FlaskConical, MapPin, ListChecks, User, AlertTriangle, ClockIcon } from "lucide-react";
+import { CalendarClock, FlaskConical, MapPin, ListChecks, ClockIcon } from "lucide-react";
 import type { Booking, Lab, TimeSlot, Equipment } from "@/types";
 import { MOCK_BOOKINGS, MOCK_LABS, MOCK_TIME_SLOTS, MOCK_EQUIPMENT } from "@/constants";
-import { USER_ROLES } from "@/types"; // Added USER_ROLES
+import { USER_ROLES } from "@/types"; 
 import { format, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useRoleGuard } from '@/hooks/use-role-guard';
@@ -52,8 +51,8 @@ export default function StudentMyBookingsPage() {
 
   const getLabDetails = (labId: string): Lab | undefined => MOCK_LABS.find(l => l.id === labId);
   const getTimeSlotDetails = (timeSlotId: string): TimeSlot | undefined => MOCK_TIME_SLOTS.find(ts => ts.id === timeSlotId);
-  const getEquipmentDetails = (equipmentIds: string[]): Equipment[] => 
-    equipmentIds.map(id => MOCK_EQUIPMENT.find(eq => eq.id === id)).filter(Boolean) as Equipment[];
+  const getEquipmentDetails = (equipmentIds?: string[]): Equipment[] => 
+    (equipmentIds || []).map(id => MOCK_EQUIPMENT.find(eq => eq.id === id)).filter(Boolean) as Equipment[];
 
   const handleCancelBooking = (bookingId: string) => {
     // Simulate API call
@@ -78,7 +77,10 @@ export default function StudentMyBookingsPage() {
         return;
       }
       
-      bookingToCancel.status = 'cancelled'; // Update status in mock data
+      const bookingIndex = MOCK_BOOKINGS.findIndex(b => b.id === bookingId);
+      if (bookingIndex !== -1) {
+          MOCK_BOOKINGS[bookingIndex].status = 'cancelled';
+      }
       setMyBookings(prev => prev.map(b => b.id === bookingId ? {...b, status: 'cancelled'} : b));
       toast({
         title: "Booking Cancelled",
@@ -89,11 +91,12 @@ export default function StudentMyBookingsPage() {
     }
   };
   
-  const getStatusBadgeVariant = (status: Booking['status']) => {
+  const getStatusBadgeVariant = (status: Booking['status']): "default" | "secondary" | "destructive" | "outline" => {
     switch (status) {
       case 'booked': return 'default';
       case 'pending': return 'secondary';
       case 'cancelled': return 'destructive';
+      case 'rejected': return 'destructive';
       default: return 'outline';
     }
   };
@@ -146,7 +149,7 @@ export default function StudentMyBookingsPage() {
             <CardTitle className="text-2xl font-semibold">My Lab Schedule</CardTitle>
           </div>
           <CardDescription>
-            View your upcoming and past lab sessions.
+            View your upcoming and past lab sessions in the Optimized Lab Management System.
           </CardDescription>
         </CardHeader>
       </Card>
@@ -166,7 +169,7 @@ export default function StudentMyBookingsPage() {
             const isPastBooking = timeSlot ? isBookingPast(booking.date, timeSlot.endTime) && booking.status !== 'cancelled' : false;
 
             return (
-              <Card key={booking.id} className={`shadow-md hover:shadow-lg transition-shadow ${isPastBooking ? 'opacity-70' : ''}`}>
+              <Card key={booking.id} className={`shadow-md hover:shadow-lg transition-shadow duration-300 ${isPastBooking ? 'opacity-70' : ''}`}>
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>
@@ -175,8 +178,8 @@ export default function StudentMyBookingsPage() {
                         <MapPin className="h-4 w-4 mr-1 text-muted-foreground" /> Room: {lab?.roomNumber || "N/A"}
                       </CardDescription>
                     </div>
-                    <Badge variant={getStatusBadgeVariant(booking.status)} className="whitespace-nowrap">
-                      {isPastBooking && booking.status === 'booked' ? 'Completed' : booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                    <Badge variant={getStatusBadgeVariant(booking.status)} className="whitespace-nowrap capitalize">
+                      {isPastBooking && booking.status === 'booked' ? 'Completed' : booking.status}
                     </Badge>
                   </div>
                 </CardHeader>
@@ -206,14 +209,9 @@ export default function StudentMyBookingsPage() {
                   )}
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                  {booking.status === 'booked' && !isPastBooking && (
+                  {(booking.status === 'booked' || booking.status === 'pending') && !isPastBooking && (
                      <Button variant="outline" size="sm" onClick={() => handleCancelBooking(booking.id)}>
                        Cancel Booking
-                     </Button>
-                  )}
-                   {booking.status === 'pending' && !isPastBooking && (
-                     <Button variant="outline" size="sm" disabled>
-                       Pending Approval
                      </Button>
                   )}
                 </CardFooter>
@@ -225,4 +223,3 @@ export default function StudentMyBookingsPage() {
     </div>
   );
 }
-

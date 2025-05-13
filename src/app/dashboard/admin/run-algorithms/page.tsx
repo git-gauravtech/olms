@@ -1,4 +1,3 @@
-
 // src/app/dashboard/admin/run-algorithms/page.tsx
 "use client";
 
@@ -22,7 +21,7 @@ interface AlgorithmSectionProps {
 
 function AlgorithmSection({ title, description, buttonLabel, icon, onRun, isLoading }: AlgorithmSectionProps) {
   return (
-    <Card className="shadow-md">
+    <Card className="shadow-md hover:shadow-xl transition-shadow duration-300">
       <CardHeader>
         <div className="flex items-center space-x-2">
           {icon}
@@ -90,7 +89,7 @@ export default function RunAlgorithmsPage() {
             <CardTitle className="text-2xl font-semibold">Run Diagnostic & Optimization Algorithms</CardTitle>
           </div>
           <CardDescription>
-            Execute specialized algorithms to analyze schedules, allocate resources, and optimize lab usage. These are simulated operations.
+            Execute specialized algorithms to analyze schedules, allocate resources, and optimize lab usage within the Optimized Lab Management System. These are simulated operations.
           </CardDescription>
         </CardHeader>
       </Card>

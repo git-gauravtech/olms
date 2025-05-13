@@ -20,7 +20,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ClipboardList, CheckCircle, XCircle, AlertTriangle, Info } from "lucide-react";
-import type { RescheduleRequest, Lab, TimeSlot } from "@/types";
+import type { RescheduleRequest } from "@/types";
 import { MOCK_RESCHEDULE_REQUESTS, MOCK_LABS, MOCK_TIME_SLOTS } from "@/constants";
 import { format, parseISO } from "date-fns";
 import { useRoleGuard } from '@/hooks/use-role-guard';
@@ -66,11 +66,11 @@ export default function FacultyRequestsPage() {
     });
   };
 
-  const getStatusBadgeVariant = (status: RescheduleRequest['status']) => {
+  const getStatusBadgeVariant = (status: RescheduleRequest['status']): "secondary" | "default" | "destructive" | "outline" | "accent" => {
     switch (status) {
       case 'pending': return 'secondary';
-      case 'reviewed': return 'default';
-      case 'resolved': return 'default'; // Potentially green, but default works for now
+      case 'reviewed': return 'default'; // Blue
+      case 'resolved': return 'accent'; // Teal (for success-like)
       case 'rejected': return 'destructive';
       default: return 'outline';
     }
@@ -99,7 +99,7 @@ export default function FacultyRequestsPage() {
             <CardTitle className="text-2xl font-semibold">Faculty Reschedule Requests</CardTitle>
           </div>
           <CardDescription>
-            Review and manage reschedule requests submitted by faculty members for lab slots.
+            Review and manage reschedule requests submitted by faculty members for the Optimized Lab Management System.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -145,7 +145,7 @@ export default function FacultyRequestsPage() {
                       </>
                     )}
                     {request.status === 'reviewed' && (
-                      <Button variant="default" size="sm" onClick={() => handleUpdateRequestStatus(request.id, 'resolved')} title="Mark as Resolved">
+                      <Button variant="accent" size="sm" onClick={() => handleUpdateRequestStatus(request.id, 'resolved')} title="Mark as Resolved">
                          <CheckCircle className="mr-1 h-4 w-4" /> Resolve
                       </Button>
                     )}

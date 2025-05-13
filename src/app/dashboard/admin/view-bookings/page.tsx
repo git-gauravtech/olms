@@ -1,4 +1,3 @@
-
 // src/app/dashboard/admin/view-bookings/page.tsx
 "use client";
 
@@ -37,7 +36,7 @@ export default function ViewBookingsPage() {
 
   const getLabName = (labId: string) => labs.find(l => l.id === labId)?.name || "Unknown Lab";
   const getTimeSlotDisplay = (timeSlotId: string) => timeSlots.find(ts => ts.id === timeSlotId)?.displayTime || "Unknown Time";
-  const getEquipmentNames = (equipmentIds: string[]) => {
+  const getEquipmentNames = (equipmentIds?: string[]) => {
     if (!equipmentIds || equipmentIds.length === 0) return "None";
     return equipmentIds.map(id => equipment.find(eq => eq.id === id)?.name || "Unknown Equipment").join(", ");
   };
@@ -72,11 +71,12 @@ export default function ViewBookingsPage() {
     setConflictingBookingIds(findConflicts(bookings));
   }, [bookings]);
 
-  const getStatusBadgeVariant = (status: Booking['status']) => {
+  const getStatusBadgeVariant = (status: Booking['status']) : "default" | "secondary" | "destructive" | "outline" => {
     switch (status) {
-      case 'booked': return 'default'; // primary
+      case 'booked': return 'default'; // primary (Blue)
       case 'pending': return 'secondary'; // gray
-      case 'cancelled': return 'destructive';
+      case 'cancelled': return 'destructive'; // red
+      case 'rejected': return 'destructive'; // red
       default: return 'outline';
     }
   };
@@ -116,7 +116,7 @@ export default function ViewBookingsPage() {
             <CardTitle className="text-2xl font-semibold">View All Bookings</CardTitle>
           </div>
           <CardDescription>
-            Administrative overview of all lab bookings. Conflicts are highlighted.
+            Administrative overview of all lab bookings in the Optimized Lab Management System. Conflicts are highlighted.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -138,7 +138,7 @@ export default function ViewBookingsPage() {
             </TableHeader>
             <TableBody>
               {bookings.map((booking) => (
-                <TableRow key={booking.id} className={conflictingBookingIds.includes(booking.id) && booking.status !== 'cancelled' ? "bg-red-100 dark:bg-red-900/30" : ""}>
+                <TableRow key={booking.id} className={conflictingBookingIds.includes(booking.id) && booking.status !== 'cancelled' ? "bg-destructive/10" : ""}>
                   <TableCell className="font-medium">{getLabName(booking.labId)}</TableCell>
                   <TableCell>{formatDateSafe(booking.date)}</TableCell>
                   <TableCell>{getTimeSlotDisplay(booking.timeSlotId)}</TableCell>
@@ -146,8 +146,8 @@ export default function ViewBookingsPage() {
                   <TableCell>{booking.purpose}</TableCell>
                   <TableCell className="max-w-xs truncate">{getEquipmentNames(booking.equipmentIds)}</TableCell>
                   <TableCell>
-                    <Badge variant={getStatusBadgeVariant(booking.status)}>
-                      {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                    <Badge variant={getStatusBadgeVariant(booking.status)} className="capitalize">
+                      {booking.status}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-center">
@@ -165,4 +165,3 @@ export default function ViewBookingsPage() {
     </div>
   );
 }
-

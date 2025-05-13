@@ -1,4 +1,3 @@
-
 // src/app/dashboard/admin/manage-labs/page.tsx
 "use client";
 
@@ -163,7 +162,7 @@ export default function ManageLabsPage() {
             </Button>
           </div>
           <CardDescription>
-            Oversee and manage all laboratory resources, including names, capacities, and room numbers.
+            Oversee and manage all laboratory resources for the Optimized Lab Management System.
           </CardDescription>
         </CardHeader>
         <CardContent>

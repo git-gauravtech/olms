@@ -1,4 +1,3 @@
-
 // src/app/dashboard/admin/manage-equipment/page.tsx
 "use client";
 
@@ -39,6 +38,7 @@ import { MOCK_EQUIPMENT, MOCK_LABS } from "@/constants"; // Using mock data
 import { useRoleGuard } from '@/hooks/use-role-guard';
 import { USER_ROLES } from '@/types';
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge"; // Imported Badge
 
 const EquipmentFormSchema = {
   name: (value: string) => value.trim().length > 0 ? null : "Name is required.",
@@ -138,6 +138,15 @@ export default function ManageEquipmentPage() {
     return labs.find(lab => lab.id === labId)?.name || "Unknown Lab";
   };
 
+  const getStatusBadgeVariant = (status: Equipment['status']): "accent" | "secondary" | "destructive" => {
+    switch (status) {
+      case 'available': return 'accent'; // Teal for available
+      case 'in-use': return 'secondary'; // Gray for in-use
+      case 'maintenance': return 'destructive'; // Red for maintenance
+      default: return 'secondary'; // Default fallback
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="container mx-auto py-10 space-y-6">
@@ -165,7 +174,7 @@ export default function ManageEquipmentPage() {
             </Button>
           </div>
           <CardDescription>
-            Oversee laboratory equipment, including inventory, status, and lab assignments.
+            Oversee laboratory equipment, including inventory, status, and lab assignments for the Optimized Lab Management System.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -188,13 +197,9 @@ export default function ManageEquipmentPage() {
                   <TableCell className="font-medium">{eq.name}</TableCell>
                   <TableCell>{eq.type}</TableCell>
                   <TableCell>
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                      eq.status === 'available' ? 'bg-green-100 text-green-700' :
-                      eq.status === 'in-use' ? 'bg-yellow-100 text-yellow-700' :
-                      'bg-red-100 text-red-700'
-                    }`}>
+                    <Badge variant={getStatusBadgeVariant(eq.status)} className="capitalize">
                       {eq.status.charAt(0).toUpperCase() + eq.status.slice(1)}
-                    </span>
+                    </Badge>
                   </TableCell>
                   <TableCell>{getLabName(eq.labId)}</TableCell>
                   <TableCell className="text-center space-x-2">

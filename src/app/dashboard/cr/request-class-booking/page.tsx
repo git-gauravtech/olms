@@ -1,8 +1,7 @@
-
 // src/app/dashboard/cr/request-class-booking/page.tsx
 "use client";
 
-import * as _React from "react"; // Renamed to avoid conflict with React namespace for useState etc.
+import * as React from "react"; 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -25,9 +24,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { CalendarIcon, Loader2, Users, Package, BookCopy } from "lucide-react";
+import { CalendarIcon, Loader2, Users, Package } from "lucide-react";
 import { MOCK_LABS, MOCK_TIME_SLOTS, MOCK_EQUIPMENT, MOCK_BOOKINGS, DEPARTMENTS } from "@/constants";
-import type { Lab, TimeSlot, Equipment, Booking, UserRole } from "@/types";
+import type { Lab, TimeSlot, Equipment, Booking } from "@/types";
 import { USER_ROLES } from "@/types";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { AvailabilitySuggestionsDialog } from "@/components/lab/availability-suggestions-dialog";
@@ -60,10 +59,10 @@ const checkSlotAvailability = async (labId: string, date: Date, timeSlotId: stri
 export default function RequestClassBookingPage() {
   const { isAuthorized, isLoading } = useRoleGuard(USER_ROLES.CR);
   const { toast } = useToast();
-  const [isSubmittingForm, setIsSubmittingForm] = _React.useState(false); // Renamed to avoid conflict with isLoading from hook
-  const [showSuggestionsDialog, setShowSuggestionsDialog] = _React.useState(false);
-  const [suggestionParams, setSuggestionParams] = _React.useState<{ labName: string; preferredSlot: string }>({ labName: "", preferredSlot: "" });
-  const [availableEquipment, setAvailableEquipment] = _React.useState<Equipment[]>(MOCK_EQUIPMENT.filter(eq => eq.status === 'available'));
+  const [isSubmittingForm, setIsSubmittingForm] = React.useState(false);
+  const [showSuggestionsDialog, setShowSuggestionsDialog] = React.useState(false);
+  const [suggestionParams, setSuggestionParams] = React.useState<{ labName: string; preferredSlot: string }>({ labName: "", preferredSlot: "" });
+  const [availableEquipment, setAvailableEquipment] = React.useState<Equipment[]>(MOCK_EQUIPMENT.filter(eq => eq.status === 'available'));
   
   const form = useForm<CrBookingFormValues>({
     resolver: zodResolver(crBookingFormSchema),
@@ -76,7 +75,7 @@ export default function RequestClassBookingPage() {
 
   const selectedLabId = form.watch("labId");
 
-  _React.useEffect(() => {
+  React.useEffect(() => {
     if (selectedLabId) {
       const labSpecificEquipment = MOCK_EQUIPMENT.filter(eq => eq.labId === selectedLabId && eq.status === 'available');
       const generalPoolEquipment = MOCK_EQUIPMENT.filter(eq => !eq.labId && eq.status === 'available');
@@ -98,21 +97,21 @@ export default function RequestClassBookingPage() {
         labId: data.labId,
         date: format(data.date, "yyyy-MM-dd"),
         timeSlotId: data.timeSlotId,
-        userId: "cr_user", // Placeholder for CR user ID
+        userId: "cr_user", // Placeholder for CR user ID from auth context
         purpose: data.purpose,
         equipmentIds: data.equipmentIds || [],
-        status: 'pending', // Class bookings might need approval
+        status: 'pending', // Class bookings might need approval by Faculty/Admin
         batchIdentifier: data.batchIdentifier,
         requestedByRole: USER_ROLES.CR,
       };
       
-      MOCK_BOOKINGS.push(newBooking); // For demo
+      MOCK_BOOKINGS.push(newBooking); 
       console.log("New Class Booking Request:", newBooking);
 
       setTimeout(() => {
         toast({
           title: "Class Booking Requested!",
-          description: `Request for ${data.batchIdentifier} in ${MOCK_LABS.find(l => l.id === data.labId)?.name} submitted.`,
+          description: `Request for ${data.batchIdentifier} in ${MOCK_LABS.find(l => l.id === data.labId)?.name} submitted. Status: Pending Approval.`,
         });
         form.reset();
         setIsSubmittingForm(false);
@@ -132,7 +131,7 @@ export default function RequestClassBookingPage() {
   const handleSuggestedSlotSelect = (slot: string) => {
     toast({
       title: "Slot Selected from Suggestions",
-      description: `You selected: ${slot}. Please re-fill and submit the form.`,
+      description: `You selected: ${slot}. Please re-fill and submit the form with new details.`,
     });
   };
 
@@ -156,7 +155,7 @@ export default function RequestClassBookingPage() {
             <Users className="h-8 w-8 text-primary" />
             <CardTitle className="text-2xl">Request Lab Slot for Class</CardTitle>
           </div>
-          <CardDescription>Fill in the details to request a lab session for your class/batch.</CardDescription>
+          <CardDescription>Fill in the details to request a lab session for your class/batch in the Optimized Lab Management System.</CardDescription>
         </CardHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -326,9 +325,12 @@ export default function RequestClassBookingPage() {
                               <FormControl>
                                 <Checkbox
                                   checked={field.value?.includes(item.id)}
-                                  onCheckedChange={(checked) => checked
-                                    ? field.onChange([...(field.value || []), item.id])
-                                    : field.onChange((field.value || []).filter(value => value !== item.id))
+                                  onCheckedChange={(checked) => {
+                                    const currentValues = field.value || [];
+                                    return checked
+                                      ? field.onChange([...currentValues, item.id])
+                                      : field.onChange(currentValues.filter(value => value !== item.id));
+                                    }
                                   }
                                 />
                               </FormControl>
@@ -339,7 +341,7 @@ export default function RequestClassBookingPage() {
                       ))}
                       </div>
                     ) : (
-                      <p className="text-sm text-muted-foreground">No specific equipment available.</p>
+                      <p className="text-sm text-muted-foreground">No specific equipment available for the selected lab or in the general pool.</p>
                     )}
                     <FormMessage />
                   </FormItem>

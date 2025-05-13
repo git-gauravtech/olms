@@ -24,9 +24,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { CalendarIcon, Loader2, Package } from "lucide-react";
+import { CalendarIcon, Loader2, Package, FlaskConical } from "lucide-react";
 import { MOCK_LABS, MOCK_TIME_SLOTS, MOCK_EQUIPMENT, MOCK_BOOKINGS } from "@/constants";
-import type { Lab, TimeSlot, Equipment, Booking } from "@/types";
+import type { Lab, TimeSlot, Equipment, Booking, UserRole } from "@/types";
+import { USER_ROLES } from "@/types";
 import { AvailabilitySuggestionsDialog } from "./availability-suggestions-dialog";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 
@@ -44,7 +45,7 @@ type BookingFormValues = z.infer<typeof bookingFormSchema>;
 const checkSlotAvailability = async (labId: string, date: Date, timeSlotId: string): Promise<boolean> => {
   const formattedDate = format(date, "yyyy-MM-dd");
   const existingBooking = MOCK_BOOKINGS.find(
-    b => b.labId === labId && b.date === formattedDate && b.timeSlotId === timeSlotId && b.status === 'booked'
+    b => b.labId === labId && b.date === formattedDate && b.timeSlotId === timeSlotId && (b.status === 'booked' || b.status === 'pending')
   );
   return !existingBooking;
 };
@@ -55,8 +56,16 @@ export function BookingForm() {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [showSuggestionsDialog, setShowSuggestionsDialog] = React.useState(false);
   const [suggestionParams, setSuggestionParams] = React.useState<{ labName: string; preferredSlot: string }>({ labName: "", preferredSlot: "" });
-  const [availableEquipment, setAvailableEquipment] = React.useState<Equipment[]>(MOCK_EQUIPMENT);
+  const [availableEquipment, setAvailableEquipment] = React.useState<Equipment[]>(MOCK_EQUIPMENT.filter(eq => eq.status === 'available'));
+  const [currentUserRole, setCurrentUserRole] = React.useState<UserRole | null>(null);
   
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const role = localStorage.getItem('userRole') as UserRole | null;
+      setCurrentUserRole(role);
+    }
+  }, []);
+
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingFormSchema),
     defaultValues: {
@@ -91,19 +100,19 @@ export function BookingForm() {
         labId: data.labId,
         date: format(data.date, "yyyy-MM-dd"),
         timeSlotId: data.timeSlotId,
-        userId: "currentUser", // Placeholder
+        userId: "currentUser", // Placeholder, replace with actual user ID from auth context
         purpose: data.purpose,
         equipmentIds: data.equipmentIds || [],
-        status: 'pending', // Or 'booked' directly if no approval needed
+        status: currentUserRole === USER_ROLES.FACULTY ? 'booked' : 'pending', // Faculty bookings are auto-approved, others pending
+        requestedByRole: currentUserRole || USER_ROLES.STUDENT, // Default to student if role not found
       };
-      // In a real app, you'd send this to an API and update MOCK_BOOKINGS or a state management store
-      console.log("New Booking Submitted:", newBooking); 
-      MOCK_BOOKINGS.push(newBooking); // For demo purposes, update mock data
+      
+      MOCK_BOOKINGS.push(newBooking); 
 
       setTimeout(() => {
         toast({
-          title: "Booking Submitted!",
-          description: `Lab slot for ${MOCK_LABS.find(l => l.id === data.labId)?.name} on ${format(data.date, "PPP")} at ${MOCK_TIME_SLOTS.find(ts => ts.id === data.timeSlotId)?.displayTime} is requested.`,
+          title: `Booking ${newBooking.status === 'booked' ? 'Confirmed' : 'Requested'}!`,
+          description: `Lab slot for ${MOCK_LABS.find(l => l.id === data.labId)?.name} on ${format(data.date, "PPP")} at ${MOCK_TIME_SLOTS.find(ts => ts.id === data.timeSlotId)?.displayTime} is ${newBooking.status === 'booked' ? 'confirmed' : 'requested'}.`,
         });
         form.reset();
         setIsSubmitting(false);
@@ -133,8 +142,11 @@ export function BookingForm() {
     <>
       <Card className="w-full max-w-2xl mx-auto shadow-xl my-8">
         <CardHeader>
-          <CardTitle className="text-2xl">Book a Lab Slot</CardTitle>
-          <CardDescription>Fill in the details below to schedule your lab session.</CardDescription>
+          <div className="flex items-center space-x-3">
+            <FlaskConical className="h-8 w-8 text-primary" />
+             <CardTitle className="text-2xl">Book a Lab Slot</CardTitle>
+          </div>
+          <CardDescription>Fill in the details below to schedule your lab session in the Optimized Lab Management System.</CardDescription>
         </CardHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -164,6 +176,7 @@ export function BookingForm() {
                 )}
               />
 
+            <div className="grid md:grid-cols-2 gap-6">
               <FormField
                 control={form.control}
                 name="date"
@@ -224,6 +237,7 @@ export function BookingForm() {
                   </FormItem>
                 )}
               />
+            </div>
 
               <FormField
                 control={form.control}
@@ -257,7 +271,7 @@ export function BookingForm() {
                         Required Equipment (Optional)
                       </FormLabel>
                       <FormDescription>
-                        Select any specific equipment you need for this session. Availability depends on the selected lab.
+                        Select any specific equipment you need for this session. Availability depends on the selected lab and general pool.
                       </FormDescription>
                     </div>
                     {availableEquipment.length > 0 ? (
@@ -277,10 +291,11 @@ export function BookingForm() {
                                   <Checkbox
                                     checked={field.value?.includes(item.id)}
                                     onCheckedChange={(checked) => {
+                                      const currentValues = field.value || [];
                                       return checked
-                                        ? field.onChange([...(field.value || []), item.id])
+                                        ? field.onChange([...currentValues, item.id])
                                         : field.onChange(
-                                            (field.value || []).filter(
+                                            currentValues.filter(
                                               (value) => value !== item.id
                                             )
                                           );
@@ -308,7 +323,7 @@ export function BookingForm() {
             <CardFooter>
               <Button type="submit" disabled={isSubmitting} className="w-full">
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Submit Booking
+                Submit Booking Request
               </Button>
             </CardFooter>
           </form>

@@ -17,10 +17,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FileCheck, CheckCircle, XCircle, Loader2 } from "lucide-react";
-import type { Booking, Lab, TimeSlot, Equipment } from "@/types";
+import type { Booking } from "@/types";
 import { MOCK_BOOKINGS, MOCK_LABS, MOCK_TIME_SLOTS, MOCK_EQUIPMENT } from "@/constants";
 import { format, parseISO } from "date-fns";
 import { useRoleGuard } from '@/hooks/use-role-guard';
@@ -46,7 +45,7 @@ export default function CrRequestsPage() {
 
   const getLabName = (labId: string) => MOCK_LABS.find(l => l.id === labId)?.name || "Unknown Lab";
   const getTimeSlotDisplay = (timeSlotId: string) => MOCK_TIME_SLOTS.find(ts => ts.id === timeSlotId)?.displayTime || "Unknown Time";
-  const getEquipmentNames = (equipmentIds: string[]) => {
+  const getEquipmentNames = (equipmentIds?: string[]) => {
     if (!equipmentIds || equipmentIds.length === 0) return "None";
     return equipmentIds.map(id => MOCK_EQUIPMENT.find(eq => eq.id === id)?.name || "Unknown Eq.").join(", ");
   };
@@ -106,7 +105,7 @@ export default function CrRequestsPage() {
             <CardTitle className="text-2xl font-semibold">CR Booking Requests</CardTitle>
           </div>
           <CardDescription>
-            Review and approve or reject lab booking requests submitted by Class Representatives.
+            Review and approve or reject lab booking requests submitted by Class Representatives for the Optimized Lab Management System.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -140,11 +139,10 @@ export default function CrRequestsPage() {
                   </TableCell>
                   <TableCell className="text-center space-x-2">
                     <Button 
-                      variant="default" 
+                      variant="accent" // Changed from default with custom green to themed accent
                       size="sm" 
                       onClick={() => handleRequestAction(booking.id, 'booked')}
                       disabled={isProcessing[booking.id]}
-                      className="bg-green-600 hover:bg-green-700"
                     >
                       {isProcessing[booking.id] ? <Loader2 className="mr-1 h-4 w-4 animate-spin"/> : <CheckCircle className="mr-1 h-4 w-4" />}
                        Approve

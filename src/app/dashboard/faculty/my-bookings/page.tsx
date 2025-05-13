@@ -1,4 +1,3 @@
-
 // src/app/dashboard/faculty/my-bookings/page.tsx
 "use client";
 
@@ -33,7 +32,7 @@ export default function FacultyMyBookingsPage() {
   React.useEffect(() => {
     if (isAuthorized) {
       // Filter bookings for the current faculty member and sort by date
-      const filtered = MOCK_BOOKINGS.filter(b => b.userId === CURRENT_FACULTY_ID && b.requestedByRole === USER_ROLES.FACULTY)
+      const filtered = MOCK_BOOKINGS.filter(b => b.userId === CURRENT_FACULTY_ID && (b.requestedByRole === USER_ROLES.FACULTY || b.batchIdentifier)) // Also include class bookings made by faculty
         .sort((a, b) => {
             try {
                 return new Date(b.date).getTime() - new Date(a.date).getTime();
@@ -47,8 +46,8 @@ export default function FacultyMyBookingsPage() {
 
   const getLabDetails = (labId: string): Lab | undefined => MOCK_LABS.find(l => l.id === labId);
   const getTimeSlotDetails = (timeSlotId: string): TimeSlot | undefined => MOCK_TIME_SLOTS.find(ts => ts.id === timeSlotId);
-  const getEquipmentDetails = (equipmentIds: string[]): Equipment[] => 
-    equipmentIds.map(id => MOCK_EQUIPMENT.find(eq => eq.id === id)).filter(Boolean) as Equipment[];
+  const getEquipmentDetails = (equipmentIds?: string[]): Equipment[] => 
+    (equipmentIds || []).map(id => MOCK_EQUIPMENT.find(eq => eq.id === id)).filter(Boolean) as Equipment[];
 
   const handleCancelBooking = (bookingId: string) => {
     // Simulate API call
@@ -72,7 +71,10 @@ export default function FacultyMyBookingsPage() {
         return;
       }
       
-      bookingToCancel.status = 'cancelled';
+      const bookingIndex = MOCK_BOOKINGS.findIndex(b => b.id === bookingId);
+      if (bookingIndex !== -1) {
+        MOCK_BOOKINGS[bookingIndex].status = 'cancelled';
+      }
       setMyBookings(prev => prev.map(b => b.id === bookingId ? {...b, status: 'cancelled'} : b));
       toast({
         title: "Booking Cancelled",
@@ -83,11 +85,12 @@ export default function FacultyMyBookingsPage() {
     }
   };
 
-  const getStatusBadgeVariant = (status: Booking['status']) => {
+  const getStatusBadgeVariant = (status: Booking['status']): "default" | "secondary" | "destructive" | "outline" => {
     switch (status) {
       case 'booked': return 'default';
       case 'pending': return 'secondary';
       case 'cancelled': return 'destructive';
+      case 'rejected': return 'destructive';
       default: return 'outline';
     }
   };
@@ -139,7 +142,7 @@ export default function FacultyMyBookingsPage() {
             <CardTitle className="text-2xl font-semibold">My Lab Bookings</CardTitle>
           </div>
           <CardDescription>
-            View and manage your scheduled lab sessions and booking history.
+            View and manage your scheduled lab sessions and booking history in the Optimized Lab Management System.
           </CardDescription>
         </CardHeader>
       </Card>
@@ -159,17 +162,17 @@ export default function FacultyMyBookingsPage() {
             const isPastBooking = timeSlot ? isBookingPast(booking.date, timeSlot.endTime) && booking.status !== 'cancelled' : false;
 
             return (
-              <Card key={booking.id} className={`shadow-md hover:shadow-lg transition-shadow ${isPastBooking ? 'opacity-70' : ''}`}>
+              <Card key={booking.id} className={`shadow-md hover:shadow-lg transition-shadow duration-300 ${isPastBooking ? 'opacity-70' : ''}`}>
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle className="text-xl mb-1">{lab?.name || "Unknown Lab"}</CardTitle>
+                      <CardTitle className="text-xl mb-1">{lab?.name || "Unknown Lab"} {booking.batchIdentifier ? `(${booking.batchIdentifier})` : ''}</CardTitle>
                       <CardDescription className="flex items-center text-sm">
                         <MapPin className="h-4 w-4 mr-1 text-muted-foreground" /> Room: {lab?.roomNumber || "N/A"}
                       </CardDescription>
                     </div>
-                     <Badge variant={getStatusBadgeVariant(booking.status)} className="whitespace-nowrap">
-                      {isPastBooking && booking.status === 'booked' ? 'Completed' : booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                     <Badge variant={getStatusBadgeVariant(booking.status)} className="whitespace-nowrap capitalize">
+                      {isPastBooking && booking.status === 'booked' ? 'Completed' : booking.status}
                     </Badge>
                   </div>
                 </CardHeader>
@@ -199,14 +202,9 @@ export default function FacultyMyBookingsPage() {
                   )}
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                  {booking.status === 'booked' && !isPastBooking && (
+                  {(booking.status === 'booked' || booking.status === 'pending') && !isPastBooking && (
                      <Button variant="outline" size="sm" onClick={() => handleCancelBooking(booking.id)}>
                        Cancel Booking
-                     </Button>
-                  )}
-                  {booking.status === 'pending' && !isPastBooking && (
-                     <Button variant="outline" size="sm" disabled>
-                       Pending Approval
                      </Button>
                   )}
                 </CardFooter>
@@ -218,4 +216,3 @@ export default function FacultyMyBookingsPage() {
     </div>
   );
 }
-
