@@ -1,6 +1,6 @@
 
 "use client";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useRoleGuard } from '@/hooks/use-role-guard';
@@ -117,3 +117,4 @@ function FeatureCard({ title, description, icon, linkHref, linkLabel }: FeatureC
     </Card>
   );
 }
+
