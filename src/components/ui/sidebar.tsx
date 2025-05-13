@@ -29,9 +29,9 @@ const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 type SidebarContext = {
   state: "expanded" | "collapsed"
   open: boolean
-  setOpen: (open: boolean) => void
+  setOpen: (open: boolean | ((currentOpen: boolean) => boolean)) => void
   openMobile: boolean
-  setOpenMobile: (open: boolean) => void
+  setOpenMobile: (open: boolean | ((currentOpenMobile: boolean) => boolean)) => void
   isMobile: boolean
   toggleSidebar: () => void
 }
@@ -50,14 +50,14 @@ function useSidebar() {
 const SidebarProvider = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & {
-    defaultOpen?: boolean
-    open?: boolean
-    onOpenChange?: (open: boolean) => void
+    defaultOpen?: boolean // This prop acts as a fallback if no cookie is found
+    open?: boolean // For controlled mode
+    onOpenChange?: (open: boolean) => void // For controlled mode
   }
 >(
   (
     {
-      defaultOpen = true,
+      defaultOpen = true, // Default for the prop itself, if parent doesn't provide it
       open: openProp,
       onOpenChange: setOpenProp,
       className,
@@ -67,58 +67,78 @@ const SidebarProvider = React.forwardRef<
     },
     ref
   ) => {
-    const isMobile = useIsMobile()
-    const [openMobile, setOpenMobile] = React.useState(false)
+    const isMobile = useIsMobile();
+    const [openMobile, setOpenMobile] = React.useState(false);
 
-    // This is the internal state of the sidebar.
-    // We use openProp and setOpenProp for control from outside the component.
-    const [_open, _setOpen] = React.useState(defaultOpen)
-    const open = openProp ?? _open
+    // Initialize _open state for uncontrolled mode.
+    // Priority: 1. Cookie, 2. defaultOpen prop.
+    const [_open, _setOpen] = React.useState(() => {
+      if (typeof document !== "undefined") {
+        const cookieValue = document.cookie
+          .split("; ")
+          .find((row) => row.startsWith(`${SIDEBAR_COOKIE_NAME}=`))
+          ?.split("=")[1];
+        if (cookieValue) {
+          return cookieValue === "true";
+        }
+      }
+      return defaultOpen; // Fallback to prop if no cookie or server-side
+    });
+
+    // If component is controlled (openProp is provided), _open should sync with openProp.
+    React.useEffect(() => {
+      if (openProp !== undefined && openProp !== _open) {
+        _setOpen(openProp);
+      }
+    }, [openProp, _open]);
+
+    const open = openProp ?? _open; // Determine the effective open state
+
     const setOpen = React.useCallback(
-      (value: boolean | ((value: boolean) => boolean)) => {
-        const openState = typeof value === "function" ? value(open) : value
-        if (setOpenProp) {
-          setOpenProp(openState)
-        } else {
-          _setOpen(openState)
+      (value: boolean | ((currentOpen: boolean) => boolean)) => {
+        const newOpenState = typeof value === "function" ? value(open) : value;
+        
+        if (setOpenProp) { // Controlled mode
+          setOpenProp(newOpenState);
+        } else { // Uncontrolled mode
+          _setOpen(newOpenState);
         }
 
-        // This sets the cookie to keep the sidebar state.
-        document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+        // Persist to cookie regardless of mode, as cookie reflects user's last preference
+        if (typeof document !== "undefined") {
+          document.cookie = `${SIDEBAR_COOKIE_NAME}=${newOpenState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
+        }
       },
-      [setOpenProp, open]
-    )
+      [open, setOpenProp] // Depends on current `open` state for functional updates
+    );
 
-    // Helper to toggle the sidebar.
     const toggleSidebar = React.useCallback(() => {
-      return isMobile
-        ? setOpenMobile((open) => !open)
-        : setOpen((open) => !open)
-    }, [isMobile, setOpen, setOpenMobile])
+      if (isMobile) {
+        setOpenMobile((current) => !current);
+      } else {
+        setOpen((current) => !current); // Uses the enhanced setOpen
+      }
+    }, [isMobile, setOpen, setOpenMobile]);
 
-    // Adds a keyboard shortcut to toggle the sidebar.
     React.useEffect(() => {
       const handleKeyDown = (event: KeyboardEvent) => {
         if (
           event.key === SIDEBAR_KEYBOARD_SHORTCUT &&
           (event.metaKey || event.ctrlKey)
         ) {
-          event.preventDefault()
-          toggleSidebar()
+          event.preventDefault();
+          toggleSidebar();
         }
-      }
+      };
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [toggleSidebar]);
 
-      window.addEventListener("keydown", handleKeyDown)
-      return () => window.removeEventListener("keydown", handleKeyDown)
-    }, [toggleSidebar])
-
-    // We add a state so that we can do data-state="expanded" or "collapsed".
-    // This makes it easier to style the sidebar with Tailwind classes.
-    const state = open ? "expanded" : "collapsed"
+    const stateAttribute = open ? "expanded" : "collapsed"; // For data-state attribute
 
     const contextValue = React.useMemo<SidebarContext>(
       () => ({
-        state,
+        state: stateAttribute,
         open,
         setOpen,
         isMobile,
@@ -126,8 +146,8 @@ const SidebarProvider = React.forwardRef<
         setOpenMobile,
         toggleSidebar,
       }),
-      [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
-    )
+      [stateAttribute, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
+    );
 
     return (
       <SidebarContext.Provider value={contextValue}>
@@ -151,9 +171,9 @@ const SidebarProvider = React.forwardRef<
           </div>
         </TooltipProvider>
       </SidebarContext.Provider>
-    )
+    );
   }
-)
+);
 SidebarProvider.displayName = "SidebarProvider"
 
 const Sidebar = React.forwardRef<
@@ -224,21 +244,27 @@ const Sidebar = React.forwardRef<
         {/* This is what handles the sidebar gap on desktop */}
         <div
           className={cn(
-            "duration-200 relative h-svh w-[--sidebar-width] bg-transparent transition-[width] ease-linear",
+            "duration-200 relative h-svh bg-transparent transition-[width] ease-linear",
+            // Default width when expanded or collapsible="none"
+            collapsible !== "none" && "w-[--sidebar-width]",
+            // Width when collapsed to icon
+            "group-data-[collapsible=icon]:w-[--sidebar-width-icon]",
+            // Width when offcanvas (effectively 0 for the gap)
             "group-data-[collapsible=offcanvas]:w-0",
-            "group-data-[side=right]:rotate-180",
-            variant === "floating" || variant === "inset"
-              ? "group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)_+_theme(spacing.4))]"
-              : "group-data-[collapsible=icon]:w-[--sidebar-width-icon]"
+            // Adjust for floating/inset variants when collapsed to icon
+            (variant === "floating" || variant === "inset") && "group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)_+_theme(spacing.4))]"
           )}
         />
         <div
           className={cn(
-            "duration-200 fixed inset-y-0 z-10 hidden h-svh w-[--sidebar-width] transition-[left,right,width] ease-linear md:flex",
+            "duration-200 fixed inset-y-0 z-10 hidden h-svh transition-[left,right,width] ease-linear md:flex",
+            // Default width when expanded or collapsible="none"
+             collapsible !== "none" && "w-[--sidebar-width]",
+            // Position based on side
             side === "left"
               ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
               : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
-            // Adjust the padding for floating and inset variants.
+            // Width and padding adjustments for different states/variants
             variant === "floating" || variant === "inset"
               ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)_+_theme(spacing.4)_+2px)]"
               : "group-data-[collapsible=icon]:w-[--sidebar-width-icon] group-data-[side=left]:border-r group-data-[side=right]:border-l",

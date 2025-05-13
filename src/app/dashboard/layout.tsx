@@ -21,18 +21,19 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const isMobile = useIsMobile();
-  // Default sidebar to open on desktop, closed on mobile unless triggered
-  const [defaultOpen, setDefaultOpen] = React.useState(true);
-
-  React.useEffect(() => {
+  
+  // This value is now just a suggestion for SidebarProvider if no cookie exists.
+  // It's calculated once and should be stable.
+  const initialSidebarDefaultOpen = React.useMemo(() => {
     if (typeof window !== 'undefined') {
-      setDefaultOpen(window.innerWidth > 768);
+      return window.innerWidth > 768; // md breakpoint (768px)
     }
+    return true; // Default for SSR or if window is not available yet
   }, []);
 
 
   return (
-    <SidebarProvider defaultOpen={defaultOpen}>
+    <SidebarProvider defaultOpen={initialSidebarDefaultOpen}>
       <Sidebar variant="sidebar" collapsible={isMobile ? "offcanvas" : "icon"} className="border-r bg-card">
         <SidebarHeader className="p-4 border-b border-border">
           <Link href="/dashboard/overview" className="flex items-center gap-2">
