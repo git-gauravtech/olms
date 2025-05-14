@@ -1,157 +1,60 @@
-import * as React from "react";
-import { useNavigate } from "react-router-dom";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { ROLES_ARRAY, USER_ROLES, UserRole } from "@/types";
-import { AtomIcon } from "lucide-react"; 
-// Removed ShadCN UI imports: Button, Card, Input, Label, Select, useToast
+# Optimized Lab Management System (HTML, CSS, JS Version)
 
-const loginSchema = z.object({
-  email: z.string().email({ message: "Invalid email address." }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters." }),
-  role: z.enum(ROLES_ARRAY, { required_error: "Please select a role." }),
-});
+This is a lab management system frontend built with plain HTML, CSS, and JavaScript.
 
-type LoginFormValues = z.infer<typeof loginSchema>;
+## To run this project:
 
-export function LoginForm() {
-  const navigate = useNavigate();
-  // const { toast } removed - using window.alert instead
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    setValue, 
-    watch,    
-  } = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
-  });
+1.  You need a simple HTTP server to serve the static files because browser security restrictions can prevent some JavaScript functionalities (like `localStorage` access across different files or dynamic loading of resources) from working correctly when opening HTML files directly from the file system (`file:///...`).
 
-  const selectedRole = watch("role");
+2.  **Using `live-server` (Recommended):**
+    *   If you don't have `live-server` installed globally, you can install it:
+        ```bash
+        npm install -g live-server
+        ```
+    *   Navigate to the project's root directory in your terminal and run:
+        ```bash
+        live-server --port=9002
+        ```
+    *   This will automatically open the `index.html` (login page) in your default web browser.
 
-  const onSubmit = (data: LoginFormValues) => {
-    // Using window.alert instead of toast
-    window.alert(`Login Successful. Welcome, ${data.role}! Redirecting to your dashboard...`);
+    *   Alternatively, if you have it as a dev dependency (as per the updated `package.json`):
+        ```bash
+        npm install
+        npm start 
+        ``` 
+        or
+        ```bash
+        npm run dev
+        ```
 
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('userRole', data.role);
-    }
-    
-    switch (data.role) {
-      case USER_ROLES.ADMIN:
-        navigate("/dashboard/admin");
-        break;
-      case USER_ROLES.FACULTY:
-        navigate("/dashboard/faculty");
-        break;
-      case USER_ROLES.STUDENT:
-        navigate("/dashboard/student");
-        break;
-      case USER_ROLES.CR:
-        navigate("/dashboard/cr");
-        break;
-      default:
-        navigate("/dashboard/overview"); // Fallback
-    }
-  };
-  
-  const cardStyle: React.CSSProperties = {
-      width: '100%',
-      maxWidth: '450px', // Equivalent to max-w-md
-      boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)', // shadow-xl
-      borderRadius: '0.75rem', // rounded-xl
-      backgroundColor: 'white', // Assuming card background is white
-      padding: '1.5rem' // p-6 roughly
-  };
+3.  **Using Python's Simple HTTP Server:**
+    *   If you have Python installed, navigate to the project's root directory and run:
+        *   For Python 3: `python -m http.server 9002`
+        *   For Python 2: `python -m SimpleHTTPServer 9002`
+    *   Then open your browser and go to `http://localhost:9002`.
 
-  const cardHeaderStyle: React.CSSProperties = {
-      textAlign: 'center',
-      marginBottom: '1.5rem'
-  };
-  
-  const cardTitleStyle: React.CSSProperties = {
-      fontSize: '1.875rem', // text-3xl
-      fontWeight: 'bold',
-      marginBottom: '0.5rem'
-  };
+4.  **Using VS Code Live Server Extension:**
+    *   If you are using Visual Studio Code, you can install the "Live Server" extension by Ritwick Dey.
+    *   Right-click on `index.html` in the VS Code explorer and choose "Open with Live Server".
 
-  const cardDescriptionStyle: React.CSSProperties = {
-      color: '#6B7280', // text-muted-foreground
-      marginBottom: '1.5rem'
-  };
+## Project Structure
 
-  const formFieldStyle: React.CSSProperties = {
-      marginBottom: '1.5rem' // space-y-6 implies spacing between elements
-  };
-  
-  const labelStyle: React.CSSProperties = {
-    display: 'block',
-    marginBottom: '0.5rem',
-    fontWeight: '500'
-  };
+*   `index.html`: The login page and main entry point.
+*   `signup.html`: The user registration page.
+*   `css/`: Contains the global stylesheet (`style.css`).
+*   `js/`: Contains JavaScript files:
+    *   `constants.js`: Mock data and application constants.
+    *   `auth.js`: Handles login and signup logic.
+    *   `utils.js`: Helper utility functions.
+    *   `dashboard/`: Contains HTML pages for different dashboard views and their specific JavaScript files.
+        *   `dashboard.js`: Shared JavaScript for dashboard layout and common functionalities.
+        *   `lab_grid.js`: Logic for the lab availability grid.
+        *   `booking_form.js`: Logic for the lab booking form.
 
-  return (
-    <div style={cardStyle} className="custom-card">
-      <div style={cardHeaderStyle} className="custom-card-header">
-        <div style={{ margin: '0 auto 1rem auto' }}>
-          <AtomIcon style={{ height: '4rem', width: '4rem', color: '#007BFF' }} /> {/* Primary color */}
-        </div>
-        <h1 style={cardTitleStyle} className="custom-card-title">Optimized Lab Management System</h1>
-        <p style={cardDescriptionStyle} className="custom-card-description">Sign in to access lab schedules and bookings</p>
-      </div>
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <div style={{ marginBottom: '1.5rem' }} className="custom-card-content"> {/* space-y-6 */}
-          <div style={formFieldStyle}>
-            <label htmlFor="email" style={labelStyle} className="custom-label">Email</label>
-            <input
-              id="email"
-              type="email"
-              placeholder="you@example.com"
-              {...register("email")}
-              aria-invalid={errors.email ? "true" : "false"}
-              className="custom-input"
-            />
-            {errors.email && <p className="error-message">{errors.email.message}</p>}
-          </div>
-          <div style={formFieldStyle}>
-            <label htmlFor="password" style={labelStyle} className="custom-label">Password</label>
-            <input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              {...register("password")}
-              aria-invalid={errors.password ? "true" : "false"}
-              className="custom-input"
-            />
-            {errors.password && <p className="error-message">{errors.password.message}</p>}
-          </div>
-          <div style={formFieldStyle}>
-            <label htmlFor="role" style={labelStyle} className="custom-label">Role</label>
-            <select
-              id="role"
-              {...register("role")}
-              value={selectedRole}
-              onChange={(e) => setValue("role", e.target.value as UserRole, { shouldValidate: true })}
-              aria-invalid={errors.role ? "true" : "false"}
-              className="custom-select"
-            >
-              <option value="">Select your role</option>
-              {ROLES_ARRAY.map((role) => (
-                <option key={role} value={role}>
-                  {role}
-                </option>
-              ))}
-            </select>
-            {errors.role && <p className="error-message">{errors.role.message}</p>}
-          </div>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }} className="custom-card-footer">
-          <button type="submit" className="custom-button custom-button-primary" style={{width: '100%'}}>
-            Login
-          </button>
-        </div>
-      </form>
-    </div>
-  );
-}
+## Notes
+
+*   This version does not use React, Next.js, Vite, or Tailwind CSS.
+*   All data is mocked and stored/managed using JavaScript and `localStorage`. There is no backend database.
+*   Styling is done with plain CSS.
+*   Interactivity is handled by vanilla JavaScript.
+*   Icons are from the [Lucide Icons](https://lucide.dev/) library, loaded via CDN.

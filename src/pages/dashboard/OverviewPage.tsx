@@ -1,89 +1,60 @@
-import React from 'react';
-import { CheckCircle, Clock, FlaskConical, Users } from "lucide-react";
+# Optimized Lab Management System (HTML, CSS, JS Version)
 
-// Minimal styles, replace with proper CSS
-const containerStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '2rem' };
-const titleStyle: React.CSSProperties = { fontSize: '1.875rem', fontWeight: 'bold', color: '#333' };
-const gridStyle: React.CSSProperties = { display: 'grid', gap: '1.5rem', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' };
-const cardStyle: React.CSSProperties = { 
-    border: '1px solid #ddd', 
-    borderRadius: '8px', 
-    padding: '1rem', 
-    backgroundColor: 'white',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-};
-const cardHeaderStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' };
-const cardTitleStyle: React.CSSProperties = { fontSize: '0.875rem', fontWeight: 500 };
-const cardContentValueStyle: React.CSSProperties = { fontSize: '1.5rem', fontWeight: 'bold' };
-const cardContentDescStyle: React.CSSProperties = { fontSize: '0.75rem', color: '#666' };
-const iconStyle = { height: '1.25rem', width: '1.25rem' };
+This is a lab management system frontend built with plain HTML, CSS, and JavaScript.
 
-export default function OverviewPage() {
-  return (
-    <div style={containerStyle}>
-      <h1 style={titleStyle}>Dashboard Overview</h1>
-      
-      <div style={gridStyle}>
-        <div style={cardStyle}>
-          <div style={cardHeaderStyle}>
-            <h3 style={cardTitleStyle}>Total Labs</h3>
-            <FlaskConical style={{...iconStyle, color: '#007BFF'}} />
-          </div>
-          <div>
-            <div style={cardContentValueStyle}>3</div>
-            <p style={cardContentDescStyle}>Available for booking</p>
-          </div>
-        </div>
-        <div style={cardStyle}>
-          <div style={cardHeaderStyle}>
-            <h3 style={cardTitleStyle}>Upcoming Bookings</h3>
-            <Clock style={{...iconStyle, color: '#20C997'}} />
-          </div>
-          <div>
-            <div style={cardContentValueStyle}>5</div>
-            <p style={cardContentDescStyle}>In the next 7 days</p>
-          </div>
-        </div>
-        <div style={cardStyle}>
-          <div style={cardHeaderStyle}>
-            <h3 style={cardTitleStyle}>Active Users</h3>
-            <Users style={{...iconStyle, color: '#007BFF'}} />
-          </div>
-          <div>
-            <div style={cardContentValueStyle}>120</div>
-            <p style={cardContentDescStyle}>Students and Faculty</p>
-          </div>
-        </div>
-        <div style={cardStyle}>
-          <div style={cardHeaderStyle}>
-            <h3 style={cardTitleStyle}>System Status</h3>
-            <CheckCircle style={{...iconStyle, color: 'green'}} />
-          </div>
-          <div>
-            <div style={cardContentValueStyle}>Operational</div>
-            <p style={cardContentDescStyle}>All systems normal</p>
-          </div>
-        </div>
-      </div>
+## To run this project:
 
-      <div style={cardStyle}>
-        <h2 style={{...cardTitleStyle, fontSize: '1.25rem', marginBottom: '0.5rem'}}>Recent Activity</h2>
-        <p style={{...cardContentDescStyle, marginBottom: '1rem'}}>Latest bookings and system notifications.</p>
-        <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <li style={{ display: 'flex', alignItems: 'center' }}>
-            <FlaskConical style={{...iconStyle, marginRight: '0.5rem', color: '#6c757d'}} />
-            <span style={{fontSize: '0.875rem'}}>Physics Lab Alpha booked by Student X for 2-3 PM.</span>
-          </li>
-          <li style={{ display: 'flex', alignItems: 'center' }}>
-            <Users style={{...iconStyle, marginRight: '0.5rem', color: '#6c757d'}} />
-            <span style={{fontSize: '0.875rem'}}>New user 'Faculty Y' registered.</span>
-          </li>
-          <li style={{ display: 'flex', alignItems: 'center' }}>
-            <FlaskConical style={{...iconStyle, marginRight: '0.5rem', color: '#6c757d'}} />
-            <span style={{fontSize: '0.875rem'}}>Computer Lab Gamma booked by CR Z for group study 9-11 AM.</span>
-          </li>
-        </ul>
-      </div>
-    </div>
-  );
-}
+1.  You need a simple HTTP server to serve the static files because browser security restrictions can prevent some JavaScript functionalities (like `localStorage` access across different files or dynamic loading of resources) from working correctly when opening HTML files directly from the file system (`file:///...`).
+
+2.  **Using `live-server` (Recommended):**
+    *   If you don't have `live-server` installed globally, you can install it:
+        ```bash
+        npm install -g live-server
+        ```
+    *   Navigate to the project's root directory in your terminal and run:
+        ```bash
+        live-server --port=9002
+        ```
+    *   This will automatically open the `index.html` (login page) in your default web browser.
+
+    *   Alternatively, if you have it as a dev dependency (as per the updated `package.json`):
+        ```bash
+        npm install
+        npm start 
+        ``` 
+        or
+        ```bash
+        npm run dev
+        ```
+
+3.  **Using Python's Simple HTTP Server:**
+    *   If you have Python installed, navigate to the project's root directory and run:
+        *   For Python 3: `python -m http.server 9002`
+        *   For Python 2: `python -m SimpleHTTPServer 9002`
+    *   Then open your browser and go to `http://localhost:9002`.
+
+4.  **Using VS Code Live Server Extension:**
+    *   If you are using Visual Studio Code, you can install the "Live Server" extension by Ritwick Dey.
+    *   Right-click on `index.html` in the VS Code explorer and choose "Open with Live Server".
+
+## Project Structure
+
+*   `index.html`: The login page and main entry point.
+*   `signup.html`: The user registration page.
+*   `css/`: Contains the global stylesheet (`style.css`).
+*   `js/`: Contains JavaScript files:
+    *   `constants.js`: Mock data and application constants.
+    *   `auth.js`: Handles login and signup logic.
+    *   `utils.js`: Helper utility functions.
+    *   `dashboard/`: Contains HTML pages for different dashboard views and their specific JavaScript files.
+        *   `dashboard.js`: Shared JavaScript for dashboard layout and common functionalities.
+        *   `lab_grid.js`: Logic for the lab availability grid.
+        *   `booking_form.js`: Logic for the lab booking form.
+
+## Notes
+
+*   This version does not use React, Next.js, Vite, or Tailwind CSS.
+*   All data is mocked and stored/managed using JavaScript and `localStorage`. There is no backend database.
+*   Styling is done with plain CSS.
+*   Interactivity is handled by vanilla JavaScript.
+*   Icons are from the [Lucide Icons](https://lucide.dev/) library, loaded via CDN.

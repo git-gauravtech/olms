@@ -1,101 +1,60 @@
-import React from 'react';
-import { User } from "lucide-react"; // Assuming lucide-react is kept
+# Optimized Lab Management System (HTML, CSS, JS Version)
 
-// Minimal styles, replace with proper CSS
-const containerStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '2rem', maxWidth: '768px', margin: '0 auto' };
-const titleStyle: React.CSSProperties = { fontSize: '1.875rem', fontWeight: 'bold', color: '#333' };
-const cardStyle: React.CSSProperties = { 
-    border: '1px solid #ddd', 
-    borderRadius: '8px', 
-    padding: '1.5rem', 
-    backgroundColor: 'white',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-};
-const cardHeaderStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' };
-const avatarStyle: React.CSSProperties = { 
-    height: '5rem', 
-    width: '5rem', 
-    borderRadius: '50%', 
-    backgroundColor: '#007BFF', 
-    color: 'white',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '2rem',
-    border: '2px solid #007BFF'
-};
-const cardTitleStyle: React.CSSProperties = { fontSize: '1.5rem', fontWeight: 600 };
-const cardDescriptionStyle: React.CSSProperties = { fontSize: '0.875rem', color: '#666' };
-const formFieldStyle: React.CSSProperties = { marginBottom: '1rem' };
-const labelStyle: React.CSSProperties = { display: 'block', marginBottom: '0.25rem', fontWeight: 500 };
-const inputStyle: React.CSSProperties = { 
-    width: 'calc(100% - 1.5rem)', 
-    padding: '0.5rem 0.75rem', 
-    border: '1px solid #ccc', 
-    borderRadius: '4px',
-    fontSize: '1rem'
-};
-const buttonStyle: React.CSSProperties = {
-    padding: '0.6rem 1.2rem',
-    backgroundColor: '#007BFF',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontSize: '0.875rem'
-};
+This is a lab management system frontend built with plain HTML, CSS, and JavaScript.
 
-export default function ProfilePage() {
-  return (
-    <div style={containerStyle}>
-      <h1 style={titleStyle}>User Profile</h1>
-      
-      <div style={cardStyle}>
-        <div style={cardHeaderStyle}>
-          <div style={avatarStyle}>
-            {/* Placeholder Avatar Image or Fallback */}
-            {/* <img src="/placeholder-avatar.jpg" alt="User avatar" style={{width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%'}} data-ai-hint="person avatar" /> */}
-             U {/* Fallback Initial */}
-          </div>
-          <div>
-            <h2 style={cardTitleStyle}>Optimized Lab Management System User</h2>
-            <p style={cardDescriptionStyle}>user@example.com</p>
-          </div>
-        </div>
-        <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
-          <div style={formFieldStyle}>
-            <label htmlFor="name" style={labelStyle}>Full Name</label>
-            <input id="name" defaultValue="Optimized Lab Management System User" style={inputStyle} />
-          </div>
-          <div style={formFieldStyle}>
-            <label htmlFor="email" style={labelStyle}>Email Address</label>
-            <input id="email" type="email" defaultValue="user@example.com" disabled style={inputStyle} />
-          </div>
-          <div style={formFieldStyle}>
-            <label htmlFor="role" style={labelStyle}>Role</label>
-            <input id="role" defaultValue="Student" disabled style={inputStyle} />
-          </div>
-          <div style={formFieldStyle}>
-            <label htmlFor="department" style={labelStyle}>Department (Optional)</label>
-            <input id="department" placeholder="e.g., Computer Science" style={inputStyle} />
-          </div>
-          <button style={buttonStyle}>
-            Update Profile
-          </button>
-        </div>
-      </div>
+## To run this project:
 
-       <div style={cardStyle}>
-        <h2 style={{...cardTitleStyle, marginBottom: '1rem'}}>Security Settings</h2>
-        <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
-           <div>
-            <button style={{...buttonStyle, backgroundColor: 'transparent', border: '1px solid #007BFF', color: '#007BFF'}}>Change Password</button>
-           </div>
-           <div>
-             <p style={{fontSize: '0.875rem', color: '#666'}}>Two-Factor Authentication: Not Configured</p>
-           </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+1.  You need a simple HTTP server to serve the static files because browser security restrictions can prevent some JavaScript functionalities (like `localStorage` access across different files or dynamic loading of resources) from working correctly when opening HTML files directly from the file system (`file:///...`).
+
+2.  **Using `live-server` (Recommended):**
+    *   If you don't have `live-server` installed globally, you can install it:
+        ```bash
+        npm install -g live-server
+        ```
+    *   Navigate to the project's root directory in your terminal and run:
+        ```bash
+        live-server --port=9002
+        ```
+    *   This will automatically open the `index.html` (login page) in your default web browser.
+
+    *   Alternatively, if you have it as a dev dependency (as per the updated `package.json`):
+        ```bash
+        npm install
+        npm start 
+        ``` 
+        or
+        ```bash
+        npm run dev
+        ```
+
+3.  **Using Python's Simple HTTP Server:**
+    *   If you have Python installed, navigate to the project's root directory and run:
+        *   For Python 3: `python -m http.server 9002`
+        *   For Python 2: `python -m SimpleHTTPServer 9002`
+    *   Then open your browser and go to `http://localhost:9002`.
+
+4.  **Using VS Code Live Server Extension:**
+    *   If you are using Visual Studio Code, you can install the "Live Server" extension by Ritwick Dey.
+    *   Right-click on `index.html` in the VS Code explorer and choose "Open with Live Server".
+
+## Project Structure
+
+*   `index.html`: The login page and main entry point.
+*   `signup.html`: The user registration page.
+*   `css/`: Contains the global stylesheet (`style.css`).
+*   `js/`: Contains JavaScript files:
+    *   `constants.js`: Mock data and application constants.
+    *   `auth.js`: Handles login and signup logic.
+    *   `utils.js`: Helper utility functions.
+    *   `dashboard/`: Contains HTML pages for different dashboard views and their specific JavaScript files.
+        *   `dashboard.js`: Shared JavaScript for dashboard layout and common functionalities.
+        *   `lab_grid.js`: Logic for the lab availability grid.
+        *   `booking_form.js`: Logic for the lab booking form.
+
+## Notes
+
+*   This version does not use React, Next.js, Vite, or Tailwind CSS.
+*   All data is mocked and stored/managed using JavaScript and `localStorage`. There is no backend database.
+*   Styling is done with plain CSS.
+*   Interactivity is handled by vanilla JavaScript.
+*   Icons are from the [Lucide Icons](https://lucide.dev/) library, loaded via CDN.

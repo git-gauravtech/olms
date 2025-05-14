@@ -1,70 +1,60 @@
-import type { DEPARTMENTS } from "@/constants";
+# Optimized Lab Management System (HTML, CSS, JS Version)
 
-export const USER_ROLES = {
-  ADMIN: 'Admin',
-  FACULTY: 'Faculty',
-  STUDENT: 'Student',
-  CR: 'CR', // Class Representative
-} as const;
+This is a lab management system frontend built with plain HTML, CSS, and JavaScript.
 
-export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
+## To run this project:
 
-export const ROLES_ARRAY = Object.values(USER_ROLES) as UserRole[];
+1.  You need a simple HTTP server to serve the static files because browser security restrictions can prevent some JavaScript functionalities (like `localStorage` access across different files or dynamic loading of resources) from working correctly when opening HTML files directly from the file system (`file:///...`).
 
+2.  **Using `live-server` (Recommended):**
+    *   If you don't have `live-server` installed globally, you can install it:
+        ```bash
+        npm install -g live-server
+        ```
+    *   Navigate to the project's root directory in your terminal and run:
+        ```bash
+        live-server --port=9002
+        ```
+    *   This will automatically open the `index.html` (login page) in your default web browser.
 
-export interface NavItem {
-  label: string;
-  href: string;
-  icon?: React.ComponentType<{ className?: string }>;
-  children?: NavItem[];
-}
+    *   Alternatively, if you have it as a dev dependency (as per the updated `package.json`):
+        ```bash
+        npm install
+        npm start 
+        ``` 
+        or
+        ```bash
+        npm run dev
+        ```
 
-export interface Lab {
-  id: string;
-  name: string;
-  capacity: number;
-  roomNumber: string; // Added roomNumber
-}
+3.  **Using Python's Simple HTTP Server:**
+    *   If you have Python installed, navigate to the project's root directory and run:
+        *   For Python 3: `python -m http.server 9002`
+        *   For Python 2: `python -m SimpleHTTPServer 9002`
+    *   Then open your browser and go to `http://localhost:9002`.
 
-export interface Equipment {
-  id: string;
-  name: string;
-  type: string; // e.g., 'Microscope', 'Computer', 'Chemicals'
-  labId?: string; // Optional: if specific to a lab
-  status: 'available' | 'in-use' | 'maintenance';
-}
+4.  **Using VS Code Live Server Extension:**
+    *   If you are using Visual Studio Code, you can install the "Live Server" extension by Ritwick Dey.
+    *   Right-click on `index.html` in the VS Code explorer and choose "Open with Live Server".
 
-export interface TimeSlot {
-  id: string;
-  startTime: string; // e.g., "09:00"
-  endTime: string;   // e.g., "10:00"
-  displayTime: string; // e.g., "09:00 - 10:00 AM"
-}
+## Project Structure
 
-export interface Booking {
-  id: string;
-  labId: string;
-  date: string; // YYYY-MM-DD
-  timeSlotId: string;
-  userId: string; // or role-specific identifier
-  purpose: string;
-  equipmentIds: string[]; // Added equipmentIds
-  status: 'booked' | 'available' | 'pending' | 'cancelled' | 'rejected'; // Example statuses, added 'cancelled', 'rejected'
-  batchIdentifier?: string; // For CR class bookings
-  requestedByRole?: UserRole; // To identify who made the booking if needed
-}
+*   `index.html`: The login page and main entry point.
+*   `signup.html`: The user registration page.
+*   `css/`: Contains the global stylesheet (`style.css`).
+*   `js/`: Contains JavaScript files:
+    *   `constants.js`: Mock data and application constants.
+    *   `auth.js`: Handles login and signup logic.
+    *   `utils.js`: Helper utility functions.
+    *   `dashboard/`: Contains HTML pages for different dashboard views and their specific JavaScript files.
+        *   `dashboard.js`: Shared JavaScript for dashboard layout and common functionalities.
+        *   `lab_grid.js`: Logic for the lab availability grid.
+        *   `booking_form.js`: Logic for the lab booking form.
 
-export type Department = typeof DEPARTMENTS[number];
+## Notes
 
-export interface RescheduleRequest {
-  id: string;
-  requestingUserId: string; // facultyId
-  requestingUserRole: UserRole;
-  originalBookingId?: string; // If they are requesting to reschedule an existing booking
-  conflictingLabId: string;
-  conflictingDate: string; // YYYY-MM-DD
-  conflictingTimeSlotId: string;
-  reason: string; // faculty provides this
-  status: 'pending' | 'reviewed' | 'resolved' | 'rejected';
-  requestedAt: string; // ISO date string
-}
+*   This version does not use React, Next.js, Vite, or Tailwind CSS.
+*   All data is mocked and stored/managed using JavaScript and `localStorage`. There is no backend database.
+*   Styling is done with plain CSS.
+*   Interactivity is handled by vanilla JavaScript.
+*   Icons are from the [Lucide Icons](https://lucide.dev/) library, loaded via CDN.

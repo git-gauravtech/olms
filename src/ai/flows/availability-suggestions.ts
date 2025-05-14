@@ -1,66 +1,60 @@
+# Optimized Lab Management System (HTML, CSS, JS Version)
 
-// 'use server'; // Removed Next.js specific directive
-/**
- * @fileOverview Suggests alternative lab time slots based on AI analysis of lab schedules and booking patterns.
- *
- * - suggestAlternativeSlots - A function that suggests alternative lab slots.
- * - SuggestAlternativeSlotsInput - The input type for the suggestAlternativeSlots function.
- * - SuggestAlternativeSlotsOutput - The return type for the suggestAlternativeSlots function.
- */
+This is a lab management system frontend built with plain HTML, CSS, and JavaScript.
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+## To run this project:
 
-const SuggestAlternativeSlotsInputSchema = z.object({
-  labName: z.string().describe('The name of the lab for which to suggest alternative slots.'),
-  preferredSlot: z.string().describe('The preferred time slot that is unavailable.'),
-  bookingPatterns: z.string().describe('The booking patterns for the lab, including historical data and current bookings.'),
-});
-export type SuggestAlternativeSlotsInput = z.infer<typeof SuggestAlternativeSlotsInputSchema>;
+1.  You need a simple HTTP server to serve the static files because browser security restrictions can prevent some JavaScript functionalities (like `localStorage` access across different files or dynamic loading of resources) from working correctly when opening HTML files directly from the file system (`file:///...`).
 
-const SuggestAlternativeSlotsOutputSchema = z.object({
-  suggestedSlots: z.array(z.string()).describe('An array of suggested alternative time slots.'),
-  reasoning: z.string().describe('The reasoning behind the suggested slots, based on booking patterns.'),
-});
-export type SuggestAlternativeSlotsOutput = z.infer<typeof SuggestAlternativeSlotsOutputSchema>;
+2.  **Using `live-server` (Recommended):**
+    *   If you don't have `live-server` installed globally, you can install it:
+        ```bash
+        npm install -g live-server
+        ```
+    *   Navigate to the project's root directory in your terminal and run:
+        ```bash
+        live-server --port=9002
+        ```
+    *   This will automatically open the `index.html` (login page) in your default web browser.
 
-export async function suggestAlternativeSlots(input: SuggestAlternativeSlotsInput): Promise<SuggestAlternativeSlotsOutput> {
-  // In a non-Next.js context, this flow would typically be called via an HTTP request
-  // to a backend endpoint that hosts the Genkit flows.
-  // For direct invocation in a serverless function or similar environment, this can remain.
-  return suggestAlternativeSlotsFlow(input);
-}
+    *   Alternatively, if you have it as a dev dependency (as per the updated `package.json`):
+        ```bash
+        npm install
+        npm start 
+        ``` 
+        or
+        ```bash
+        npm run dev
+        ```
 
-const prompt = ai.definePrompt({
-  name: 'suggestAlternativeSlotsPrompt',
-  input: {schema: SuggestAlternativeSlotsInputSchema},
-  output: {schema: SuggestAlternativeSlotsOutputSchema},
-  prompt: `You are an AI assistant that suggests alternative time slots for lab bookings.
+3.  **Using Python's Simple HTTP Server:**
+    *   If you have Python installed, navigate to the project's root directory and run:
+        *   For Python 3: `python -m http.server 9002`
+        *   For Python 2: `python -m SimpleHTTPServer 9002`
+    *   Then open your browser and go to `http://localhost:9002`.
 
-The user's preferred time slot is unavailable. Based on the lab's booking patterns, suggest 3 alternative time slots.
+4.  **Using VS Code Live Server Extension:**
+    *   If you are using Visual Studio Code, you can install the "Live Server" extension by Ritwick Dey.
+    *   Right-click on `index.html` in the VS Code explorer and choose "Open with Live Server".
 
-Lab Name: {{{labName}}}
-Preferred Slot: {{{preferredSlot}}}
-Booking Patterns: {{{bookingPatterns}}}
+## Project Structure
 
-Consider the following factors when suggesting alternative slots:
-- Historical booking data
-- Current bookings
-- Duration of bookings
-- Frequency of bookings
+*   `index.html`: The login page and main entry point.
+*   `signup.html`: The user registration page.
+*   `css/`: Contains the global stylesheet (`style.css`).
+*   `js/`: Contains JavaScript files:
+    *   `constants.js`: Mock data and application constants.
+    *   `auth.js`: Handles login and signup logic.
+    *   `utils.js`: Helper utility functions.
+    *   `dashboard/`: Contains HTML pages for different dashboard views and their specific JavaScript files.
+        *   `dashboard.js`: Shared JavaScript for dashboard layout and common functionalities.
+        *   `lab_grid.js`: Logic for the lab availability grid.
+        *   `booking_form.js`: Logic for the lab booking form.
 
-Output the suggestions in a JSON format.
-`,
-});
+## Notes
 
-const suggestAlternativeSlotsFlow = ai.defineFlow(
-  {
-    name: 'suggestAlternativeSlotsFlow',
-    inputSchema: SuggestAlternativeSlotsInputSchema,
-    outputSchema: SuggestAlternativeSlotsOutputSchema,
-  },
-  async input => {
-    const {output} = await prompt(input);
-    return output!;
-  }
-);
+*   This version does not use React, Next.js, Vite, or Tailwind CSS.
+*   All data is mocked and stored/managed using JavaScript and `localStorage`. There is no backend database.
+*   Styling is done with plain CSS.
+*   Interactivity is handled by vanilla JavaScript.
+*   Icons are from the [Lucide Icons](https://lucide.dev/) library, loaded via CDN.

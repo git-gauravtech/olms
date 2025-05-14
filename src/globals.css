@@ -1,169 +1,60 @@
-/* Remove Tailwind CSS directives */
-/* @tailwind base; */
-/* @tailwind components; */
-/* @tailwind utilities; */
+# Optimized Lab Management System (HTML, CSS, JS Version)
 
-/* Keep basic body styling or CSS resets */
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background-color: #F8F9FA; /* Light gray background */
-  color: #212529; /* Dark text color */
-}
+This is a lab management system frontend built with plain HTML, CSS, and JavaScript.
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
-}
+## To run this project:
 
-/* 
-  The HSL variables from the original globals.css were for Tailwind's theming system.
-  They won't apply automatically without Tailwind.
-  If you need to replicate the theme, you'd define CSS variables like:
-  :root {
-    --primary-color: #007BFF;
-    --secondary-color: #F8F9FA;
-    --accent-color: #20C997;
-    --background-color: #F8F9FA;
-    --text-color: #212529;
-    --card-background: #FFFFFF;
-    --border-color: #dee2e6;
-  }
-  And then use them in your custom CSS:
-  .my-button {
-    background-color: var(--primary-color);
-    color: white;
-  }
-*/
+1.  You need a simple HTTP server to serve the static files because browser security restrictions can prevent some JavaScript functionalities (like `localStorage` access across different files or dynamic loading of resources) from working correctly when opening HTML files directly from the file system (`file:///...`).
 
-/* Basic styling for a card-like element to replace ShadCN Card */
-.custom-card {
-  background-color: white;
-  border: 1px solid #dee2e6; /* var(--border-color) */
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
-  margin-bottom: 1rem;
-}
+2.  **Using `live-server` (Recommended):**
+    *   If you don't have `live-server` installed globally, you can install it:
+        ```bash
+        npm install -g live-server
+        ```
+    *   Navigate to the project's root directory in your terminal and run:
+        ```bash
+        live-server --port=9002
+        ```
+    *   This will automatically open the `index.html` (login page) in your default web browser.
 
-.custom-card-header {
-  padding: 1.5rem;
-  border-bottom: 1px solid #dee2e6; /* var(--border-color) */
-}
+    *   Alternatively, if you have it as a dev dependency (as per the updated `package.json`):
+        ```bash
+        npm install
+        npm start 
+        ``` 
+        or
+        ```bash
+        npm run dev
+        ```
 
-.custom-card-title {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-}
+3.  **Using Python's Simple HTTP Server:**
+    *   If you have Python installed, navigate to the project's root directory and run:
+        *   For Python 3: `python -m http.server 9002`
+        *   For Python 2: `python -m SimpleHTTPServer 9002`
+    *   Then open your browser and go to `http://localhost:9002`.
 
-.custom-card-description {
-  font-size: 0.875rem;
-  color: #6c757d; /* Muted text color */
-  margin-bottom: 1rem;
-}
+4.  **Using VS Code Live Server Extension:**
+    *   If you are using Visual Studio Code, you can install the "Live Server" extension by Ritwick Dey.
+    *   Right-click on `index.html` in the VS Code explorer and choose "Open with Live Server".
 
-.custom-card-content {
-  padding: 1.5rem;
-}
+## Project Structure
 
-.custom-card-footer {
-  padding: 1.5rem;
-  border-top: 1px solid #dee2e6; /* var(--border-color) */
-}
+*   `index.html`: The login page and main entry point.
+*   `signup.html`: The user registration page.
+*   `css/`: Contains the global stylesheet (`style.css`).
+*   `js/`: Contains JavaScript files:
+    *   `constants.js`: Mock data and application constants.
+    *   `auth.js`: Handles login and signup logic.
+    *   `utils.js`: Helper utility functions.
+    *   `dashboard/`: Contains HTML pages for different dashboard views and their specific JavaScript files.
+        *   `dashboard.js`: Shared JavaScript for dashboard layout and common functionalities.
+        *   `lab_grid.js`: Logic for the lab availability grid.
+        *   `booking_form.js`: Logic for the lab booking form.
 
-/* Basic button styling to replace ShadCN Button */
-.custom-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  border-radius: 0.375rem;
-  border: 1px solid transparent;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
+## Notes
 
-.custom-button-primary {
-  background-color: #007BFF; /* var(--primary-color) */
-  color: white;
-}
-.custom-button-primary:hover {
-  background-color: #0056b3;
-}
-
-.custom-button-secondary {
-  background-color: #6c757d;
-  color: white;
-}
-.custom-button-secondary:hover {
-  background-color: #545b62;
-}
-
-.custom-button-outline {
-  background-color: transparent;
-  border-color: #007BFF; /* var(--primary-color) */
-  color: #007BFF; /* var(--primary-color) */
-}
-.custom-button-outline:hover {
-  background-color: rgba(0, 123, 255, 0.1);
-}
-
-/* Basic input styling */
-.custom-input {
-  display: block;
-  width: calc(100% - 22px); /* Account for padding and border */
-  padding: 0.5rem 0.75rem;
-  font-size: 1rem;
-  line-height: 1.5;
-  color: #495057;
-  background-color: #fff;
-  background-clip: padding-box;
-  border: 1px solid #ced4da;
-  border-radius: 0.25rem;
-  transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
-  margin-bottom: 0.5rem;
-}
-.custom-input:focus {
-  border-color: #80bdff;
-  outline: 0;
-  box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
-}
-
-.custom-label {
-  display: inline-block;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-}
-
-/* Basic Select styling */
-.custom-select {
-   display: block;
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  font-size: 1rem;
-  line-height: 1.5;
-  color: #495057;
-  background-color: #fff;
-  background-clip: padding-box;
-  border: 1px solid #ced4da;
-  border-radius: 0.25rem;
-  transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
-  margin-bottom: 0.5rem;
-}
-.custom-select:focus {
-  border-color: #80bdff;
-  outline: 0;
-  box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
-}
-
-.error-message {
-  color: red;
-  font-size: 0.875em;
-  margin-top: 0.25rem;
-}
+*   This version does not use React, Next.js, Vite, or Tailwind CSS.
+*   All data is mocked and stored/managed using JavaScript and `localStorage`. There is no backend database.
+*   Styling is done with plain CSS.
+*   Interactivity is handled by vanilla JavaScript.
+*   Icons are from the [Lucide Icons](https://lucide.dev/) library, loaded via CDN.

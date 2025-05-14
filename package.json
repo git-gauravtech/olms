@@ -1,39 +1,16 @@
 {
-  "name": "react-lablink-app",
+  "name": "html-lablink-app",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "vite -p 9002",
-    "build": "tsc && vite build",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview",
-    "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
-    "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
-    "typecheck": "tsc --noEmit"
+    "start": "live-server --port=9002 --open=index.html",
+    "dev": "live-server --port=9002 --open=index.html"
   },
   "dependencies": {
-    "@genkit-ai/googleai": "^1.8.0",
-    "dotenv": "^16.5.0",
-    "firebase": "^11.7.0",
-    "genkit": "^1.8.0",
-    "lucide-react": "^0.475.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-router-dom": "^6.23.0",
-    "zod": "^3.24.2",
-    "date-fns": "^3.6.0"
+    "date-fns": "^3.6.0",
+    "lucide-static": "^0.395.0"
   },
   "devDependencies": {
-    "@types/node": "^20",
-    "@types/react": "^18.3.0",
-    "@types/react-dom": "^18.3.0",
-    "@vitejs/plugin-react": "^4.2.1",
-    "eslint": "^8.57.0",
-    "eslint-plugin-react-hooks": "^4.6.0",
-    "eslint-plugin-react-refresh": "^0.4.6",
-    "genkit-cli": "^1.8.0",
-    "typescript": "^5.3.3",
-    "vite": "^5.2.0",
-    "tsx": "^4.7.3"
+    "live-server": "^1.2.2"
   }
 }

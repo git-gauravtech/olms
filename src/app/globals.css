@@ -1,108 +1,60 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+# Optimized Lab Management System (HTML, CSS, JS Version)
 
-@layer base {
-  :root {
-    --background: 210 17% 98%; /* Light Gray #F8F9FA */
-    --foreground: 224 71% 4%; /* Dark Blue/Black */
+This is a lab management system frontend built with plain HTML, CSS, and JavaScript.
 
-    --card: 0 0% 100%; /* White */
-    --card-foreground: 224 71% 4%;
+## To run this project:
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 224 71% 4%;
+1.  You need a simple HTTP server to serve the static files because browser security restrictions can prevent some JavaScript functionalities (like `localStorage` access across different files or dynamic loading of resources) from working correctly when opening HTML files directly from the file system (`file:///...`).
 
-    --primary: 211 100% 50%; /* Blue #007BFF */
-    --primary-foreground: 0 0% 100%; /* White */
+2.  **Using `live-server` (Recommended):**
+    *   If you don't have `live-server` installed globally, you can install it:
+        ```bash
+        npm install -g live-server
+        ```
+    *   Navigate to the project's root directory in your terminal and run:
+        ```bash
+        live-server --port=9002
+        ```
+    *   This will automatically open the `index.html` (login page) in your default web browser.
 
-    --secondary: 220 13% 91%; /* Lighter gray */
-    --secondary-foreground: 224 71% 4%;
+    *   Alternatively, if you have it as a dev dependency (as per the updated `package.json`):
+        ```bash
+        npm install
+        npm start 
+        ``` 
+        or
+        ```bash
+        npm run dev
+        ```
 
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%; /* Grayer text */
+3.  **Using Python's Simple HTTP Server:**
+    *   If you have Python installed, navigate to the project's root directory and run:
+        *   For Python 3: `python -m http.server 9002`
+        *   For Python 2: `python -m SimpleHTTPServer 9002`
+    *   Then open your browser and go to `http://localhost:9002`.
 
-    --accent: 162 72% 45%; /* Teal #20C997 */
-    --accent-foreground: 0 0% 100%; /* White */
+4.  **Using VS Code Live Server Extension:**
+    *   If you are using Visual Studio Code, you can install the "Live Server" extension by Ritwick Dey.
+    *   Right-click on `index.html` in the VS Code explorer and choose "Open with Live Server".
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
+## Project Structure
 
-    --border: 220 13% 85%;
-    --input: 220 13% 85%;
-    --ring: 211 100% 50%; /* Primary color for focus rings */
+*   `index.html`: The login page and main entry point.
+*   `signup.html`: The user registration page.
+*   `css/`: Contains the global stylesheet (`style.css`).
+*   `js/`: Contains JavaScript files:
+    *   `constants.js`: Mock data and application constants.
+    *   `auth.js`: Handles login and signup logic.
+    *   `utils.js`: Helper utility functions.
+    *   `dashboard/`: Contains HTML pages for different dashboard views and their specific JavaScript files.
+        *   `dashboard.js`: Shared JavaScript for dashboard layout and common functionalities.
+        *   `lab_grid.js`: Logic for the lab availability grid.
+        *   `booking_form.js`: Logic for the lab booking form.
 
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
+## Notes
 
-    /* Sidebar variables from existing globals, ensure they are compatible or adjust if needed */
-    --sidebar-background: 240 5.9% 10%; /* Default dark sidebar, might want a light version */
-    --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 211 100% 50%; /* Use app primary for sidebar highlights */
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 211 100% 50%;
-  }
-
-  .dark {
-    --background: 224 71% 4%;
-    --foreground: 210 17% 98%;
-
-    --card: 224 71% 4%;
-    --card-foreground: 210 17% 98%;
-
-    --popover: 224 71% 4%;
-    --popover-foreground: 210 17% 98%;
-
-    --primary: 211 100% 50%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 220 13% 15%;
-    --secondary-foreground: 210 17% 98%;
-
-    --muted: 220 13% 10%;
-    --muted-foreground: 220 9% 55%;
-
-    --accent: 162 72% 45%;
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-
-    --border: 220 13% 20%;
-    --input: 220 13% 20%;
-    --ring: 211 100% 50%;
-
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-
-    /* Dark Sidebar variables */
-    --sidebar-background: 224 71% 4%;
-    --sidebar-foreground: 210 17% 98%;
-    --sidebar-primary: 211 100% 50%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 13% 15%;
-    --sidebar-accent-foreground: 210 17% 98%;
-    --sidebar-border: 220 13% 15%;
-    --sidebar-ring: 211 100% 50%;
-  }
-}
-
-@layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-    /* font-family removed to allow Next/Font to take precedence */
-  }
-}
+*   This version does not use React, Next.js, Vite, or Tailwind CSS.
+*   All data is mocked and stored/managed using JavaScript and `localStorage`. There is no backend database.
+*   Styling is done with plain CSS.
+*   Interactivity is handled by vanilla JavaScript.
+*   Icons are from the [Lucide Icons](https://lucide.dev/) library, loaded via CDN.

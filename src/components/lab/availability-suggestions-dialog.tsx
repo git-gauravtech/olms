@@ -1,136 +1,60 @@
-import React from "react";
-import { suggestAlternativeSlots, SuggestAlternativeSlotsInput, SuggestAlternativeSlotsOutput } from "@/ai/flows/availability-suggestions";
-import { Loader2 } from "lucide-react"; // Assuming lucide-react is kept
+# Optimized Lab Management System (HTML, CSS, JS Version)
 
-// Basic styling for the dialog - move to CSS for a real app
-const dialogOverlayStyle: React.CSSProperties = {
-  position: 'fixed',
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  backgroundColor: 'rgba(0,0,0,0.5)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 100,
-};
+This is a lab management system frontend built with plain HTML, CSS, and JavaScript.
 
-const dialogContentStyle: React.CSSProperties = {
-  backgroundColor: 'white',
-  padding: '20px',
-  borderRadius: '8px',
-  minWidth: '300px',
-  maxWidth: '425px', // sm:max-w-[425px]
-  boxShadow: '0 0 10px rgba(0,0,0,0.25)',
-};
+## To run this project:
 
-const dialogHeaderStyle: React.CSSProperties = { marginBottom: '1rem' };
-const dialogTitleStyle: React.CSSProperties = { fontSize: '1.25rem', fontWeight: 'bold' };
-const dialogDescStyle: React.CSSProperties = { fontSize: '0.875rem', color: '#555', marginBottom: '1rem' };
-const dialogFooterStyle: React.CSSProperties = { marginTop: '1.5rem', textAlign: 'right' as 'right' };
-const buttonStyle: React.CSSProperties = { padding: '0.5rem 1rem', borderRadius: '4px', border: '1px solid #ccc', cursor: 'pointer', marginLeft: '0.5rem' };
-const suggestionItemStyle: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', border: '1px solid #eee', borderRadius: '4px', marginBottom: '0.5rem' };
+1.  You need a simple HTTP server to serve the static files because browser security restrictions can prevent some JavaScript functionalities (like `localStorage` access across different files or dynamic loading of resources) from working correctly when opening HTML files directly from the file system (`file:///...`).
 
+2.  **Using `live-server` (Recommended):**
+    *   If you don't have `live-server` installed globally, you can install it:
+        ```bash
+        npm install -g live-server
+        ```
+    *   Navigate to the project's root directory in your terminal and run:
+        ```bash
+        live-server --port=9002
+        ```
+    *   This will automatically open the `index.html` (login page) in your default web browser.
 
-interface AvailabilitySuggestionsDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  labName: string;
-  preferredSlot: string;
-  onSlotSelect: (slot: string) => void;
-}
+    *   Alternatively, if you have it as a dev dependency (as per the updated `package.json`):
+        ```bash
+        npm install
+        npm start 
+        ``` 
+        or
+        ```bash
+        npm run dev
+        ```
 
-export function AvailabilitySuggestionsDialog({
-  open,
-  onOpenChange,
-  labName,
-  preferredSlot,
-  onSlotSelect,
-}: AvailabilitySuggestionsDialogProps) {
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [suggestions, setSuggestions] = React.useState<SuggestAlternativeSlotsOutput | null>(null);
+3.  **Using Python's Simple HTTP Server:**
+    *   If you have Python installed, navigate to the project's root directory and run:
+        *   For Python 3: `python -m http.server 9002`
+        *   For Python 2: `python -m SimpleHTTPServer 9002`
+    *   Then open your browser and go to `http://localhost:9002`.
 
-  React.useEffect(() => {
-    if (open) {
-      fetchSuggestions();
-    } else {
-      setSuggestions(null);
-      setIsLoading(false);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+4.  **Using VS Code Live Server Extension:**
+    *   If you are using Visual Studio Code, you can install the "Live Server" extension by Ritwick Dey.
+    *   Right-click on `index.html` in the VS Code explorer and choose "Open with Live Server".
 
-  const fetchSuggestions = async () => {
-    setIsLoading(true);
-    setSuggestions(null);
-    try {
-      const mockBookingPatterns = `${labName} is popular. Consider off-peak hours.`;
-      const input: SuggestAlternativeSlotsInput = { labName, preferredSlot, bookingPatterns: mockBookingPatterns };
-      const result = await suggestAlternativeSlots(input);
-      setSuggestions(result);
-    } catch (error) {
-      console.error("Error fetching suggestions:", error);
-      window.alert("Could not fetch alternative slot suggestions.");
-      onOpenChange(false);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+## Project Structure
 
-  if (!open) return null;
+*   `index.html`: The login page and main entry point.
+*   `signup.html`: The user registration page.
+*   `css/`: Contains the global stylesheet (`style.css`).
+*   `js/`: Contains JavaScript files:
+    *   `constants.js`: Mock data and application constants.
+    *   `auth.js`: Handles login and signup logic.
+    *   `utils.js`: Helper utility functions.
+    *   `dashboard/`: Contains HTML pages for different dashboard views and their specific JavaScript files.
+        *   `dashboard.js`: Shared JavaScript for dashboard layout and common functionalities.
+        *   `lab_grid.js`: Logic for the lab availability grid.
+        *   `booking_form.js`: Logic for the lab booking form.
 
-  return (
-    <div style={dialogOverlayStyle} onClick={() => onOpenChange(false)}>
-      <div style={dialogContentStyle} onClick={(e) => e.stopPropagation()}>
-        <div style={dialogHeaderStyle}>
-          <h3 style={dialogTitleStyle}>Alternative Slot Suggestions</h3>
-          <p style={dialogDescStyle}>
-            The slot <strong style={{fontWeight: 'bold'}}>{preferredSlot}</strong> for <strong style={{fontWeight: 'bold'}}>{labName}</strong> is unavailable. Here are some AI-powered suggestions:
-          </p>
-        </div>
-        <div style={{padding: '1rem 0'}}>
-          {isLoading && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-              <Loader2 style={{ height: '1.5rem', width: '1.5rem' }} className="animate-spin" />
-              <p>Finding alternative slots...</p>
-            </div>
-          )}
-          {!isLoading && suggestions && (
-            <div>
-              <h4 style={{fontWeight: '500', marginBottom: '0.5rem'}}>Suggested Slots:</h4>
-              {suggestions.suggestedSlots.length > 0 ? (
-                <ul style={{listStyle: 'none', padding: 0}}>
-                  {suggestions.suggestedSlots.map((slot, index) => (
-                    <li key={index} style={suggestionItemStyle}>
-                      <span>{slot}</span>
-                      <button style={{...buttonStyle, backgroundColor: 'transparent', borderColor: '#007BFF', color: '#007BFF'}} onClick={() => {
-                        onSlotSelect(slot);
-                        onOpenChange(false);
-                      }}>
-                        Select
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p style={{color: '#6c757d'}}>No alternative slots found.</p>
-              )}
-              <p style={{fontSize: '0.875rem', color: '#6c757d', paddingTop: '0.5rem'}}>
-                <strong>Reasoning:</strong> {suggestions.reasoning}
-              </p>
-            </div>
-          )}
-           {!isLoading && !suggestions && !open && ( // Added !open to ensure it doesn't flash
-            <p style={{textAlign: 'center', color: '#6c757d'}}>Could not load suggestions.</p>
-          )}
-        </div>
-        <div style={dialogFooterStyle}>
-          <button style={{...buttonStyle, backgroundColor: 'transparent'}} onClick={() => onOpenChange(false)}>
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
+## Notes
+
+*   This version does not use React, Next.js, Vite, or Tailwind CSS.
+*   All data is mocked and stored/managed using JavaScript and `localStorage`. There is no backend database.
+*   Styling is done with plain CSS.
+*   Interactivity is handled by vanilla JavaScript.
+*   Icons are from the [Lucide Icons](https://lucide.dev/) library, loaded via CDN.

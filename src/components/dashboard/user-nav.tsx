@@ -1,164 +1,60 @@
-import React, { useEffect, useState, useRef } from "react";
-import { useNavigate, Link } from "react-router-dom"; // Changed from next/navigation
-import type { UserRole } from "@/types";
-import { LogOut, UserCircle } from "lucide-react";
+# Optimized Lab Management System (HTML, CSS, JS Version)
 
-// Basic styling - move to CSS file for a real app
-const userNavStyle: React.CSSProperties = {
-  position: "relative",
-  display: "inline-block",
-};
+This is a lab management system frontend built with plain HTML, CSS, and JavaScript.
 
-const avatarButtonStyle: React.CSSProperties = {
-  cursor: "pointer",
-  background: "none",
-  border: "none",
-  padding: 0,
-  borderRadius: "50%",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  height: "40px",
-  width: "40px",
-  backgroundColor: "#007BFF", // Primary color
-  color: "white",
-  fontSize: "1.2rem",
-  fontWeight: "bold",
-  borderWidth: "2px", // Added for consistency with original Avatar
-  borderColor: "#007BFF", // Added
-  overflow: 'hidden', // Added
-};
+## To run this project:
 
-const dropdownContentStyle: React.CSSProperties = {
-  display: "block",
-  position: "absolute",
-  right: 0,
-  backgroundColor: "white",
-  minWidth: "220px", // w-56
-  boxShadow: "0px 8px 16px 0px rgba(0,0,0,0.2)",
-  zIndex: 1,
-  borderRadius: "0.375rem", // rounded-md
-  border: "1px solid #e5e7eb", // border
-  padding: "0.25rem 0", // p-1
-};
+1.  You need a simple HTTP server to serve the static files because browser security restrictions can prevent some JavaScript functionalities (like `localStorage` access across different files or dynamic loading of resources) from working correctly when opening HTML files directly from the file system (`file:///...`).
 
-const dropdownItemStyle: React.CSSProperties = {
-  padding: "0.5rem 1rem", // px-2 py-1.5
-  textDecoration: "none",
-  display: "flex", // For icon alignment
-  alignItems: "center",
-  gap: "0.5rem", // gap-2
-  color: "black",
-  cursor: "pointer",
-  fontSize: "0.875rem", // text-sm
-};
+2.  **Using `live-server` (Recommended):**
+    *   If you don't have `live-server` installed globally, you can install it:
+        ```bash
+        npm install -g live-server
+        ```
+    *   Navigate to the project's root directory in your terminal and run:
+        ```bash
+        live-server --port=9002
+        ```
+    *   This will automatically open the `index.html` (login page) in your default web browser.
 
-const dropdownItemHoverStyle: React.CSSProperties = {
-  backgroundColor: "#f3f4f6", // bg-accent
-};
+    *   Alternatively, if you have it as a dev dependency (as per the updated `package.json`):
+        ```bash
+        npm install
+        npm start 
+        ``` 
+        or
+        ```bash
+        npm run dev
+        ```
 
-const dropdownLabelStyle: React.CSSProperties = {
-  padding: "0.75rem 1rem", // Similar to DropdownMenuLabel
-  borderBottom: "1px solid #e5e7eb", // Separator
-  marginBottom: "0.25rem",
-};
+3.  **Using Python's Simple HTTP Server:**
+    *   If you have Python installed, navigate to the project's root directory and run:
+        *   For Python 3: `python -m http.server 9002`
+        *   For Python 2: `python -m SimpleHTTPServer 9002`
+    *   Then open your browser and go to `http://localhost:9002`.
 
-export function UserNav() {
-  const navigate = useNavigate();
-  const [userRole, setUserRole] = useState<UserRole | null>(null);
-  const [userInitial, setUserInitial] = useState<string>("U");
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+4.  **Using VS Code Live Server Extension:**
+    *   If you are using Visual Studio Code, you can install the "Live Server" extension by Ritwick Dey.
+    *   Right-click on `index.html` in the VS Code explorer and choose "Open with Live Server".
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const role = localStorage.getItem('userRole') as UserRole | null;
-      setUserRole(role);
-      if (role) {
-        setUserInitial(role.charAt(0).toUpperCase());
-      }
-    }
-  }, []);
+## Project Structure
 
-  // Close dropdown if clicked outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [dropdownRef]);
+*   `index.html`: The login page and main entry point.
+*   `signup.html`: The user registration page.
+*   `css/`: Contains the global stylesheet (`style.css`).
+*   `js/`: Contains JavaScript files:
+    *   `constants.js`: Mock data and application constants.
+    *   `auth.js`: Handles login and signup logic.
+    *   `utils.js`: Helper utility functions.
+    *   `dashboard/`: Contains HTML pages for different dashboard views and their specific JavaScript files.
+        *   `dashboard.js`: Shared JavaScript for dashboard layout and common functionalities.
+        *   `lab_grid.js`: Logic for the lab availability grid.
+        *   `booking_form.js`: Logic for the lab booking form.
 
-  const handleLogout = () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('userRole');
-    }
-    setIsOpen(false);
-    navigate("/login");
-  };
+## Notes
 
-  const handleProfileClick = () => {
-    setIsOpen(false);
-    navigate('/dashboard/profile');
-  };
-  
-  // Basic placeholder image style, replace with actual image handling if needed
-  const avatarImageStyle: React.CSSProperties = {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
-  };
-
-
-  return (
-    <div style={userNavStyle} ref={dropdownRef}>
-      <button onClick={() => setIsOpen(!isOpen)} style={avatarButtonStyle} title="User menu">
-         {/* Basic Avatar Fallback - replace with actual image if available */}
-         {/* For simplicity, using initial directly. Add <img /> if you have an image source */}
-         {userInitial}
-         {/* Example if you had an image: 
-         <img src="/placeholder-avatar.jpg" alt="User avatar" style={avatarImageStyle} data-ai-hint="user avatar" /> 
-         If image fails to load, the initial would be covered. You'd need more logic for true fallback.
-         */}
-      </button>
-      {isOpen && (
-        <div style={dropdownContentStyle}>
-          <div style={dropdownLabelStyle}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-              <p style={{ fontSize: "0.875rem", fontWeight: 500, lineHeight: "1.25" }}>Optimized Lab Management System User</p>
-              <p style={{ fontSize: "0.75rem", lineHeight: "1.25", color: "#6b7280" }}>
-                {userRole || "Role not set"}
-              </p>
-            </div>
-          </div>
-          
-          <div 
-            onClick={handleProfileClick} 
-            style={dropdownItemStyle}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = dropdownItemHoverStyle.backgroundColor}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-          >
-            <UserCircle size={16} /> {/* lucide-react icon */}
-            <span>Profile</span>
-          </div>
-
-          <hr style={{margin: '0.25rem 0', borderColor: '#e5e7eb'}}/> {/* Separator */}
-          
-          <div 
-            onClick={handleLogout} 
-            style={{...dropdownItemStyle, color: 'red'}}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fee2e2' } // Light red hover
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent' }
-          >
-            <LogOut size={16} /> {/* lucide-react icon */}
-            <span>Log out</span>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+*   This version does not use React, Next.js, Vite, or Tailwind CSS.
+*   All data is mocked and stored/managed using JavaScript and `localStorage`. There is no backend database.
+*   Styling is done with plain CSS.
+*   Interactivity is handled by vanilla JavaScript.
+*   Icons are from the [Lucide Icons](https://lucide.dev/) library, loaded via CDN.
