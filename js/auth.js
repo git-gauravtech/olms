@@ -88,9 +88,8 @@ function handleSignup(event) {
     clearErrors();
     const signupButton = document.getElementById('signupButton');
     signupButton.disabled = true;
-    // Ensure the spinner icon is correct for lucide
-    signupButton.innerHTML = '<i class="lucide lucide-loader-2" style="animation: spin 1s linear infinite; margin-right: 0.5rem;"></i> Creating Account...';
-     if (window.lucide) window.lucide.createIcons();
+    signupButton.innerHTML = '<i data-lucide="loader-2" class="button-primary-loader" style="animation: spin 1s linear infinite; margin-right: 0.5rem;"></i> Creating Account...';
+    if (window.lucide) window.lucide.createIcons(); // Render the loader icon
 
 
     const fullName = document.getElementById('fullName').value;
@@ -98,7 +97,7 @@ function handleSignup(event) {
     const password = document.getElementById('password').value;
     const confirmPassword = document.getElementById('confirmPassword').value;
     const role = document.getElementById('role').value;
-    // const department = document.getElementById('department').value; // Optional
+    const department = document.getElementById('department').value; 
 
     let isValid = true;
     if (!fullName || fullName.length < 3) {
@@ -132,6 +131,8 @@ function handleSignup(event) {
         localStorage.setItem('userRole', role);
         localStorage.setItem('userEmail', email);
         localStorage.setItem('userName', fullName);
+        if (department) localStorage.setItem('userDepartment', department);
+
 
         alert(`Account Created! Welcome, ${fullName}! Your account as ${role} has been successfully created.`);
         signupButton.disabled = false;

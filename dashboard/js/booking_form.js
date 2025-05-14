@@ -7,13 +7,16 @@ function initializeBookingForm() {
     const bookingDateInput = document.getElementById('bookingDate');
     const batchIdentifierGroup = document.getElementById('batchIdentifierGroup');
     const batchIdentifierInput = document.getElementById('batchIdentifier');
-    const formSubmissionMessage = document.getElementById('formSubmissionMessage');
+    const formSubmissionMessageEl = document.getElementById('formSubmissionMessage'); // Dedicated element for messages
     const checkAvailabilityBtn = document.getElementById('checkAvailabilityBtn');
 
 
     const currentUserRole = getCurrentUserRole();
     if (currentUserRole === USER_ROLES.CR) {
         batchIdentifierGroup.style.display = 'block';
+        if (batchIdentifierInput) batchIdentifierInput.required = true;
+    } else {
+         if (batchIdentifierGroup) batchIdentifierGroup.style.display = 'none';
     }
 
     // Populate Lab select
@@ -41,7 +44,7 @@ function initializeBookingForm() {
         checkbox.id = `equip_${equipment.id}`;
         checkbox.value = equipment.id;
         checkbox.name = 'equipment';
-        checkbox.className = 'mr-2';
+        checkbox.className = 'mr-2'; // Ensure this class provides margin if needed
 
         const label = document.createElement('label');
         label.htmlFor = `equip_${equipment.id}`;
@@ -106,7 +109,7 @@ function initializeBookingForm() {
         if (!timeSlotId) { showError('timeSlotIdError', 'Time slot is required.'); isValid = false; }
         if (!purpose.trim()) { showError('purposeError', 'Purpose is required.'); isValid = false; }
 
-        const batchId = batchIdentifierInput.value.trim();
+        const batchId = batchIdentifierInput ? batchIdentifierInput.value.trim() : '';
         if (currentUserRole === USER_ROLES.CR && !batchId) {
             showError('batchIdentifierError', 'Batch/Class Name is required for CR bookings.');
             isValid = false;
@@ -144,36 +147,53 @@ function initializeBookingForm() {
         MOCK_BOOKINGS.push(newBooking);
         saveMockBookings(); // Persist to localStorage (from constants.js)
 
-        showFormSubmissionMessage(`Booking request for ${newBooking.purpose} as ${newBooking.status.toUpperCase()} successfully submitted!`, false);
-        bookingForm.reset(); // Reset form
-        // Optionally redirect or update UI further
-        // For CRs, also reset batch identifier if it was specific to this form structure
-        if (currentUserRole === USER_ROLES.CR) {
+        const successMessage = currentUserRole === USER_ROLES.FACULTY 
+            ? `Booking for ${newBooking.purpose} confirmed successfully!`
+            : `Booking request for ${newBooking.purpose} (Status: PENDING) submitted successfully! It needs approval.`;
+        showFormSubmissionMessage(successMessage, false);
+        
+        bookingForm.reset(); 
+        if (currentUserRole === USER_ROLES.CR && batchIdentifierInput) {
             batchIdentifierInput.value = '';
         }
-        bookingDateInput.min = formatDate(new Date()); // Reset min date
+        bookingDateInput.min = formatDate(new Date()); 
+        // Clear query params to prevent re-filling if user stays on page
+        if (history.pushState) {
+            const newURL = window.location.pathname; // Or specific page URL
+            history.pushState({path:newURL}, '', newURL);
+        }
     });
 
     function showError(elementId, message) {
         const errorElement = document.getElementById(elementId);
         if (errorElement) {
             errorElement.textContent = message;
-            errorElement.style.display = 'block';
+            errorElement.style.display = 'block'; // Make sure this is 'block' or as intended by .visible
+            errorElement.classList.add('visible'); 
         }
     }
 
     function clearFormErrors() {
         const errorMessages = bookingForm.querySelectorAll('.error-message');
         errorMessages.forEach(el => {
-            el.textContent = '';
-            el.style.display = 'none';
+            if (el.id !== 'formSubmissionMessage') { // Don't clear the general message element here
+                el.textContent = '';
+                el.style.display = 'none';
+                 el.classList.remove('visible');
+            }
         });
     }
     
     function showFormSubmissionMessage(message, isError) {
-        formSubmissionMessage.textContent = message;
-        formSubmissionMessage.style.color = isError ? 'red' : 'green';
-        formSubmissionMessage.style.display = 'block';
+        if (formSubmissionMessageEl) {
+            formSubmissionMessageEl.textContent = message;
+            formSubmissionMessageEl.style.color = isError ? 'red' : 'green';
+            formSubmissionMessageEl.style.display = message ? 'block' : 'none';
+            formSubmissionMessageEl.className = isError ? 'error-message visible' : 'success-message visible'; // Assuming you have .success-message
+             if (!isError && message) {
+                formSubmissionMessageEl.style.color = 'green'; // Explicitly set green for success
+            }
+        }
     }
 
 }

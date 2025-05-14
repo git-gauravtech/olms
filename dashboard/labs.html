@@ -45,7 +45,7 @@
                         
                         <div class="form-group">
                             <label for="labSelector">Select Lab:</label>
-                            <select id="labSelector" name="labSelector" class="mb-4">
+                            <select id="labSelector" name="labSelector" class="mb-4" style="padding: 0.5rem 0.75rem; border-radius: 0.25rem; border: 1px solid #ced4da;">
                                 <!-- Options will be populated by JS -->
                             </select>
                         </div>
@@ -65,10 +65,10 @@
                         <p class="text-muted-foreground mt-4 text-sm">
                             Click on a slot to see more details or book (if available).
                             <br>
-                            <span class="status-available p-1 rounded-sm text-xs">Available</span>
-                            <span class="status-booked p-1 rounded-sm text-xs">Booked</span>
-                            <span class="status-pending p-1 rounded-sm text-xs">Pending</span>
-                            <span class="status-past p-1 rounded-sm text-xs">Past</span>
+                            <span class="status-available p-1 rounded-sm text-xs" style="border-radius: 0.125rem; font-size: 0.75rem;">Available</span>
+                            <span class="status-booked p-1 rounded-sm text-xs" style="border-radius: 0.125rem; font-size: 0.75rem;">Booked</span>
+                            <span class="status-pending p-1 rounded-sm text-xs" style="border-radius: 0.125rem; font-size: 0.75rem;">Pending</span>
+                            <span class="status-past p-1 rounded-sm text-xs" style="border-radius: 0.125rem; font-size: 0.75rem;">Past</span>
                         </p>
                     </div>
                 </div>
@@ -101,7 +101,12 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // Lab Availability is accessible by Faculty and CR
-            if (!roleGuard([USER_ROLES.FACULTY, USER_ROLES.CR])) return;
+            const currentUserRole = getCurrentUserRole();
+            if (!roleGuard([USER_ROLES.FACULTY, USER_ROLES.CR, USER_ROLES.ADMIN])) { // Admin can also view
+                // If roleGuard redirects, the rest of the script won't execute.
+                // If it doesn't redirect (e.g. for testing), we might want to stop here.
+                return; 
+            }
             
             initializeDashboard(); // From dashboard.js
             setDashboardHomeLink(); // Sets the correct link for the sidebar header based on role

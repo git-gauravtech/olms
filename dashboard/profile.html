@@ -64,12 +64,14 @@
                             </div>
                             <button type="submit" class="button button-primary">Update Profile</button>
                         </form>
+                        <p id="profileMessage" class="mt-3" style="display:none; font-weight: 500;"></p>
 
-                        <hr class="my-6">
+                        <hr class="my-6" style="margin-top: 1.5rem; margin-bottom: 1.5rem; border-top: 1px solid #e5e7eb;">
+
 
                         <h2 class="text-xl font-semibold mb-3">Security Settings</h2>
                         <button type="button" id="changePasswordBtn" class="button button-outline">Change Password</button>
-                        <p id="profileMessage" class="mt-3" style="display:none;"></p>
+                        
 
                     </div>
                 </div>
@@ -108,7 +110,7 @@
             const userName = localStorage.getItem('userName');
             const userEmail = localStorage.getItem('userEmail');
             const userRole = localStorage.getItem('userRole');
-            const userDepartment = localStorage.getItem('userDepartment'); // Assuming department is stored
+            const userDepartment = localStorage.getItem('userDepartment');
 
             if (userName) fullNameInput.value = userName;
             if (userEmail) emailInput.value = userEmail;
@@ -117,20 +119,27 @@
 
             profileForm.addEventListener('submit', (event) => {
                 event.preventDefault();
-                localStorage.setItem('userName', fullNameInput.value);
-                localStorage.setItem('userDepartment', departmentSelect.value);
-                // Simulate update
+                const newFullName = fullNameInput.value;
+                const newDepartment = departmentSelect.value;
+
+                localStorage.setItem('userName', newFullName);
+                localStorage.setItem('userDepartment', newDepartment);
+                
                 profileMessage.textContent = 'Profile updated successfully!';
                 profileMessage.style.color = 'green';
                 profileMessage.style.display = 'block';
-                setTimeout(() => { profileMessage.style.display = 'none'; }, 3000);
+                
                 // Update user nav as name might have changed
+                // Need to call populateUserNav again for the header to update
                 populateUserNav(userRole); 
-                if (window.lucide) window.lucide.createIcons(); // Redraw icons in user nav
+                if (window.lucide) window.lucide.createIcons(); // Redraw icons in user nav, if any
+
+                setTimeout(() => { profileMessage.style.display = 'none'; }, 3000);
             });
 
             changePasswordBtn.addEventListener('click', () => {
                 alert('Change password functionality is not implemented in this demo.');
+                // Here you would typically open a modal or navigate to a change password form.
             });
 
             if (window.lucide) window.lucide.createIcons();
