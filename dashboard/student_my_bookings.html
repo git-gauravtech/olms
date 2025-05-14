@@ -1,0 +1,123 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Schedule - Optimized Lab Management System</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="dashboard-layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                 <a href="#" class="sidebar-header-link" id="dashboardHomeLink">
+                    <i data-lucide="atom"></i>
+                    <span class="sidebar-title">Optimized Lab Management</span>
+                </a>
+            </div>
+            <ul class="sidebar-nav" id="sidebarNav">
+                <!-- Nav items will be populated by JS -->
+            </ul>
+        </aside>
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <div class="main-content-wrapper">
+            <header class="dashboard-header">
+                <button class="mobile-menu-button" id="mobileMenuButton">
+                    <i data-lucide="menu"></i>
+                </button>
+                <div class="user-nav" id="userNavContainer">
+                    <!-- UserNav will be populated by JS -->
+                </div>
+            </header>
+            <main class="page-content">
+                <div class="custom-card">
+                    <div class="custom-card-header">
+                        <i data-lucide="calendar-check"></i>
+                        <h1 class="custom-card-title">My Lab Schedule</h1>
+                    </div>
+                    <div class="custom-card-content">
+                        <p class="text-muted-foreground mb-4">
+                            Here are your upcoming and past lab sessions.
+                        </p>
+                        <div id="myScheduleList" class="space-y-4">
+                            <!-- Schedule will be listed here by JS -->
+                            <p>Loading your schedule...</p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="../js/constants.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Accessible by Student and CR
+            if (!roleGuard([USER_ROLES.STUDENT, USER_ROLES.CR])) return;
+            
+            initializeDashboard();
+            setDashboardHomeLink();
+
+            const scheduleListContainer = document.getElementById('myScheduleList');
+            const currentUserEmail = localStorage.getItem('userEmail');
+            const currentUserRole = getCurrentUserRole();
+            
+            let userBookings = [];
+            if (currentUserRole === USER_ROLES.STUDENT) {
+                 // Students see bookings where they are the userId and it's a student booking OR a CR booking for their batch (if batch matching was implemented)
+                 // For now, just direct student bookings for simplicity.
+                userBookings = MOCK_BOOKINGS.filter(booking => booking.userId === currentUserEmail && booking.status === 'booked');
+            } else if (currentUserRole === USER_ROLES.CR) {
+                // CRs see bookings they made for their class (batchIdentifier) or direct bookings if any.
+                // For simplicity, CRs see bookings they made that are 'booked' or 'pending'.
+                userBookings = MOCK_BOOKINGS.filter(booking => booking.userId === currentUserEmail && (booking.status === 'booked' || booking.status === 'pending'));
+            }
+
+
+            if (userBookings.length > 0) {
+                scheduleListContainer.innerHTML = ''; // Clear loading message
+                // Sort by date and time
+                userBookings.sort((a,b) => new Date(a.date + 'T' + MOCK_TIME_SLOTS.find(ts => ts.id === a.timeSlotId).startTime) - new Date(b.date + 'T' + MOCK_TIME_SLOTS.find(ts => ts.id === b.timeSlotId).startTime));
+
+                userBookings.forEach(booking => {
+                    const lab = MOCK_LABS.find(l => l.id === booking.labId);
+                    const timeSlot = MOCK_TIME_SLOTS.find(ts => ts.id === booking.timeSlotId);
+                    
+                    const card = document.createElement('div');
+                    card.className = 'custom-card p-4 border rounded-md';
+                    
+                    let equipmentNames = 'None';
+                    if (booking.equipmentIds && booking.equipmentIds.length > 0) {
+                        equipmentNames = booking.equipmentIds.map(eqId => MOCK_EQUIPMENT.find(eq => eq.id === eqId)?.name || 'Unknown Equipment').join(', ');
+                    }
+                    
+                    const isPast = new Date(booking.date + 'T' + timeSlot.startTime) < new Date();
+
+                    card.innerHTML = `
+                        <h3 class="custom-card-title text-lg font-semibold ${isPast ? 'text-gray-500' : ''}">${lab ? lab.name : 'Unknown Lab'} ${booking.batchIdentifier ? `(${booking.batchIdentifier})` : ''}</h3>
+                        <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Date:</strong> ${booking.date}</p>
+                        <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Time:</strong> ${timeSlot ? timeSlot.displayTime : 'Unknown Time'}</p>
+                        <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Purpose:</strong> ${booking.purpose}</p>
+                        <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Status:</strong> 
+                            <span class="font-medium ${booking.status === 'booked' ? (isPast ? 'text-gray-500': 'text-green-600') : 'text-yellow-600'}">
+                                ${booking.status.toUpperCase()} ${isPast && booking.status === 'booked' ? '(Completed)' : ''}
+                            </span>
+                        </p>
+                        <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Equipment:</strong> ${equipmentNames}</p>
+                    `;
+                    scheduleListContainer.appendChild(card);
+                });
+            } else {
+                scheduleListContainer.innerHTML = '<p>You have no scheduled lab sessions.</p>';
+            }
+
+            if (window.lucide) window.lucide.createIcons();
+        });
+    </script>
+</body>
+</html>

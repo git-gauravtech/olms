@@ -8,31 +8,32 @@ const USER_ROLES = {
 
 const ROLES_ARRAY = Object.values(USER_ROLES);
 
+// Defines the navigation links for the sidebar for each role.
+// Ensure href points to the correct HTML file within the dashboard/ directory.
 const NAV_LINKS = {
   [USER_ROLES.ADMIN]: [
     { href: 'admin.html', label: 'Admin Dashboard', icon: 'layout-dashboard' },
     { href: 'admin_manage_labs.html', label: 'Manage Labs', icon: 'settings-2' },
     { href: 'admin_manage_equipment.html', label: 'Manage Equipment', icon: 'wrench' },
-    // { href: 'admin_manage_users.html', label: 'Manage Users', icon: 'user-cog' }, // Page not created yet
     { href: 'admin_view_bookings.html', label: 'View All Bookings', icon: 'calendar-days' },
     { href: 'admin_faculty_requests.html', label: 'Faculty Requests', icon: 'clipboard-list' },
     { href: 'admin_run_algorithms.html', label: 'Run Algorithms', icon: 'brain-circuit' },
   ],
   [USER_ROLES.FACULTY]: [
     { href: 'faculty.html', label: 'Faculty Dashboard', icon: 'layout-dashboard' },
-    { href: 'labs.html', label: 'Lab Availability', icon: 'flask-conical' },
+    { href: 'labs.html', label: 'Lab Availability', icon: 'flask-conical' }, // Common page
     { href: 'book_slot.html', label: 'Book a Slot', icon: 'calendar-plus' },
     { href: 'faculty_my_bookings.html', label: 'My Bookings', icon: 'calendar-check' },
     { href: 'faculty_cr_requests.html', label: 'CR Booking Requests', icon: 'file-check' },
   ],
   [USER_ROLES.STUDENT]: [
     { href: 'student.html', label: 'Student Dashboard', icon: 'layout-dashboard' },
-    { href: 'student_my_bookings.html', label: 'View Schedule', icon: 'calendar-check' }, // Changed label
+    { href: 'student_my_bookings.html', label: 'View Schedule', icon: 'calendar-check' },
   ],
   [USER_ROLES.CR]: [
     { href: 'cr.html', label: 'CR Dashboard', icon: 'layout-dashboard' },
-    { href: 'labs.html', label: 'Lab Availability', icon: 'flask-conical' },
-    { href: 'student_my_bookings.html', label: 'View My Schedule', icon: 'calendar-check' },
+    { href: 'labs.html', label: 'Lab Availability', icon: 'flask-conical' }, // Common page
+    { href: 'student_my_bookings.html', label: 'View My Schedule', icon: 'calendar-check' }, // Shared with student
     { href: 'cr_request_class_booking.html', label: 'Request Class Slot', icon: 'user-plus' },
   ],
 };
@@ -99,7 +100,7 @@ function initializeMockBookings() {
             { id: 'b1', labId: 'physics_lab_alpha', date: formatDate(today), timeSlotId: 'ts_0900_1000', userId: 'student1', purpose: 'Physics Experiment A', equipmentIds: ['eq_spectrometer_01'], status: 'booked', requestedByRole: USER_ROLES.STUDENT},
             { id: 'b2', labId: 'physics_lab_alpha', date: formatDate(today), timeSlotId: 'ts_1000_1100', userId: 'student2', purpose: 'Quantum Study', equipmentIds: [], status: 'pending', requestedByRole: USER_ROLES.STUDENT},
             { id: 'b3', labId: 'chemistry_lab_beta', date: formatDate(tomorrow), timeSlotId: 'ts_1400_1500', userId: 'faculty1', purpose: 'Chem 101 Class', equipmentIds: ['eq_microscope_01'], status: 'booked', requestedByRole: USER_ROLES.FACULTY},
-            { id: 'b4', labId: 'computer_lab_gamma', date: formatDate(new Date(today.setDate(today.getDate() + 2))), timeSlotId: 'ts_1100_1200', userId: 'cr_user_1', purpose: 'AI Project Work', equipmentIds: ['eq_pc_high_01'], status: 'pending', batchIdentifier: 'CSE Year 2 - Section A', requestedByRole: USER_ROLES.CR },
+            { id: 'b4', labId: 'computer_lab_gamma', date: formatDate(new Date(new Date().setDate(new Date().getDate() + 2))), timeSlotId: 'ts_1100_1200', userId: 'cr_user_1', purpose: 'AI Project Work', equipmentIds: ['eq_pc_high_01'], status: 'pending', batchIdentifier: 'CSE Year 2 - Section A', requestedByRole: USER_ROLES.CR },
             { id: 'b5', labId: 'electronics_lab_delta', date: formatDate(yesterday), timeSlotId: 'ts_1500_1600', userId: 'student1', purpose: 'Circuit Design (Completed)', equipmentIds: ['eq_oscilloscope_01'], status: 'booked', requestedByRole: USER_ROLES.STUDENT },
         ];
         saveMockBookings();

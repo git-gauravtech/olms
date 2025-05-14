@@ -1,0 +1,112 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Request Class Lab Slot - Optimized Lab Management System</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="dashboard-layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                 <a href="#" class="sidebar-header-link" id="dashboardHomeLink">
+                    <i data-lucide="atom"></i>
+                    <span class="sidebar-title">Optimized Lab Management</span>
+                </a>
+            </div>
+            <ul class="sidebar-nav" id="sidebarNav">
+                <!-- Nav items will be populated by JS -->
+            </ul>
+        </aside>
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <div class="main-content-wrapper">
+            <header class="dashboard-header">
+                <button class="mobile-menu-button" id="mobileMenuButton">
+                    <i data-lucide="menu"></i>
+                </button>
+                <div class="user-nav" id="userNavContainer">
+                    <!-- UserNav will be populated by JS -->
+                </div>
+            </header>
+            <main class="page-content">
+                <div class="custom-card">
+                    <div class="custom-card-header">
+                        <i data-lucide="user-plus"></i>
+                        <h1 class="custom-card-title">Request Lab Slot for Class</h1>
+                    </div>
+                    <!-- Reusing bookingForm structure, but it's managed by booking_form.js which shows batchIdentifier for CR -->
+                    <form id="bookingForm" class="custom-card-content">
+                        <p class="text-muted-foreground mb-6">
+                           As a Class Representative, you can request a lab slot for your entire class/batch here. 
+                           The request will be sent for approval.
+                        </p>
+                        <div class="form-group">
+                            <label for="labId">Select Lab</label>
+                            <select id="labId" name="labId" required>
+                                <!-- Options populated by JS -->
+                            </select>
+                             <p class="error-message" id="labIdError"></p>
+                        </div>
+                         <div class="form-group">
+                            <label for="bookingDate">Date</label>
+                            <input type="date" id="bookingDate" name="bookingDate" required>
+                            <p class="error-message" id="bookingDateError"></p>
+                        </div>
+                        <div class="form-group">
+                            <label for="timeSlotId">Time Slot</label>
+                            <select id="timeSlotId" name="timeSlotId" required>
+                                <!-- Options populated by JS -->
+                            </select>
+                            <p class="error-message" id="timeSlotIdError"></p>
+                        </div>
+                        <div class="form-group">
+                            <label for="purpose">Purpose of Booking / Course Name</label>
+                            <textarea id="purpose" name="purpose" rows="3" required placeholder="e.g., CS101 Lab Session, EE203 Practical"></textarea>
+                            <p class="error-message" id="purposeError"></p>
+                        </div>
+                        <!-- Batch Identifier is crucial for CR bookings -->
+                        <div class="form-group" id="batchIdentifierGroup">
+                            <label for="batchIdentifier">Batch/Class Name</label>
+                            <input type="text" id="batchIdentifier" name="batchIdentifier" placeholder="e.g., CSE Year 2 - Section A" required>
+                            <p class="error-message" id="batchIdentifierError"></p>
+                        </div>
+                        <div class="form-group">
+                            <label>Required Equipment (Optional)</label>
+                            <div id="equipmentCheckboxes" class="grid sm-grid-cols-2 gap-2">
+                                <!-- Checkboxes populated by JS -->
+                            </div>
+                        </div>
+                        <p id="formSubmissionMessage" class="error-message mb-2"></p> <!-- For general errors or success -->
+                    </form>
+                     <div class="custom-card-footer">
+                        <button type="button" id="checkAvailabilityBtn" class="button button-outline">Check Availability First</button>
+                        <button type="submit" form="bookingForm" class="button button-primary">
+                            <i data-lucide="send" class="mr-2"></i>Submit Class Booking Request
+                        </button>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="../js/constants.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/booking_form.js"></script> <!-- Reusing the booking form logic -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!roleGuard(USER_ROLES.CR)) return; // Only for CR
+            
+            initializeDashboard();
+            setDashboardHomeLink();
+            initializeBookingForm(); // From booking_form.js
+            // The booking_form.js should automatically show batchIdentifier field for CR.
+            if (window.lucide) window.lucide.createIcons();
+        });
+    </script>
+</body>
+</html>
