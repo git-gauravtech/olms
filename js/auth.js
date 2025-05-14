@@ -55,8 +55,11 @@ function handleLogin(event) {
     // Simulate successful login
     localStorage.setItem('userRole', role);
     localStorage.setItem('userEmail', email); // Store email for profile display
+    // Try to get a name for user, default to role if not available (e.g. from signup)
+    const userName = localStorage.getItem('userName') || email.split('@')[0] || role;
+    localStorage.setItem('userName', userName);
     
-    alert(`Login Successful. Welcome! Redirecting to your dashboard...`);
+    alert(`Login Successful. Welcome, ${userName}! Redirecting to your dashboard...`);
 
     // Redirect based on role
     switch (role) {
@@ -73,7 +76,10 @@ function handleLogin(event) {
             window.location.href = 'dashboard/cr.html';
             break;
         default:
-            window.location.href = 'dashboard/overview.html'; // Fallback
+            // Fallback, should ideally not happen if role validation is correct
+            showError('roleError', 'Invalid role selected. Cannot redirect.');
+            console.error("Login: Invalid role for redirection:", role);
+            // window.location.href = 'index.html'; // Or a generic error page
     }
 }
 
@@ -82,7 +88,8 @@ function handleSignup(event) {
     clearErrors();
     const signupButton = document.getElementById('signupButton');
     signupButton.disabled = true;
-    signupButton.innerHTML = '<i class="lucide lucide-loader-2 animate-spin"></i> Creating Account...';
+    // Ensure the spinner icon is correct for lucide
+    signupButton.innerHTML = '<i class="lucide lucide-loader-2" style="animation: spin 1s linear infinite; margin-right: 0.5rem;"></i> Creating Account...';
      if (window.lucide) window.lucide.createIcons();
 
 
@@ -144,7 +151,7 @@ function handleSignup(event) {
                 window.location.href = 'dashboard/cr.html';
                 break;
             default:
-                window.location.href = 'dashboard/overview.html';
+                window.location.href = 'index.html'; // Fallback to login
         }
     }, 1500);
 }

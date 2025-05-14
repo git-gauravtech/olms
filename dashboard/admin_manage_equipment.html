@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Equipment - Optimized Lab Management System</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="dashboard-layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <a href="admin.html" class="sidebar-header-link">
+                    <i data-lucide="atom"></i>
+                    <span class="sidebar-title">Optimized Lab Management</span>
+                </a>
+            </div>
+            <ul class="sidebar-nav" id="sidebarNav">
+                <!-- Nav items will be populated by JS -->
+            </ul>
+        </aside>
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <div class="main-content-wrapper">
+            <header class="dashboard-header">
+                <button class="mobile-menu-button" id="mobileMenuButton">
+                    <i data-lucide="menu"></i>
+                </button>
+                <div class="user-nav" id="userNavContainer">
+                    <!-- UserNav will be populated by JS -->
+                </div>
+            </header>
+            <main class="page-content">
+                <div class="custom-card">
+                    <div class="custom-card-header">
+                        <i data-lucide="wrench"></i>
+                        <h1 class="custom-card-title">Manage Equipment</h1>
+                    </div>
+                    <div class="custom-card-content">
+                        <p class="text-muted-foreground">
+                            Oversee laboratory equipment, inventory, status, and assignments.
+                        </p>
+                        <!-- Placeholder for equipment management interface -->
+                        <div class="mt-4 p-4 border rounded-md bg-gray-50">
+                            <h2 class="text-lg font-semibold">Equipment Management Area</h2>
+                            <p>Equipment listing, add/edit/delete forms will be here.</p>
+                             <button class="button button-primary mt-2">Add New Equipment (Placeholder)</button>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="../js/constants.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!roleGuard(USER_ROLES.ADMIN)) return;
+            initializeDashboard();
+            if (window.lucide) window.lucide.createIcons();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Run Algorithms - Optimized Lab Management System</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="dashboard-layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <a href="admin.html" class="sidebar-header-link">
+                    <i data-lucide="atom"></i>
+                    <span class="sidebar-title">Optimized Lab Management</span>
+                </a>
+            </div>
+            <ul class="sidebar-nav" id="sidebarNav">
+                <!-- Nav items will be populated by JS -->
+            </ul>
+        </aside>
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <div class="main-content-wrapper">
+            <header class="dashboard-header">
+                <button class="mobile-menu-button" id="mobileMenuButton">
+                    <i data-lucide="menu"></i>
+                </button>
+                <div class="user-nav" id="userNavContainer">
+                    <!-- UserNav will be populated by JS -->
+                </div>
+            </header>
+            <main class="page-content">
+                <div class="custom-card">
+                    <div class="custom-card-header">
+                        <i data-lucide="brain-circuit"></i>
+                        <h1 class="custom-card-title">Run Optimization Algorithms</h1>
+                    </div>
+                    <div class="custom-card-content">
+                        <p class="text-muted-foreground mb-6">
+                            Execute optimization algorithms for scheduling and resource allocation. Results will be reflected in the system.
+                        </p>
+                        
+                        <div class="grid sm-grid-cols-2 gap-4">
+                            <button class="button button-primary" onclick="runAlgorithm('Graph Coloring Scheduling')">
+                                <i data-lucide="palette" class="mr-2"></i> Run Scheduling (Graph Coloring)
+                            </button>
+                            <button class="button button-primary" onclick="runAlgorithm('0/1 Knapsack Resource Allocation')">
+                                <i data-lucide="box" class="mr-2"></i> Run Resource Allocation (0/1 Knapsack)
+                            </button>
+                            <button class="button button-primary" onclick="runAlgorithm('Greedy Lab Usage Optimization')">
+                                <i data-lucide="trending-up" class="mr-2"></i> Optimize Lab Usage (Greedy)
+                            </button>
+                            <button class="button button-primary" onclick="runAlgorithm('Dijkstra Nearest Lab Assignment')">
+                                <i data-lucide="map-pin" class="mr-2"></i> Assign Nearest Labs (Dijkstra)
+                            </button>
+                        </div>
+
+                        <div id="algorithmStatus" class="mt-6 p-4 border rounded-md bg-gray-50" style="display: none;">
+                            <h3 class="font-semibold text-lg mb-2">Algorithm Status:</h3>
+                            <p id="statusMessage"></p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="../js/constants.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!roleGuard(USER_ROLES.ADMIN)) return;
+            initializeDashboard();
+            if (window.lucide) window.lucide.createIcons();
+        });
+
+        function runAlgorithm(algorithmName) {
+            const statusDiv = document.getElementById('algorithmStatus');
+            const statusMessage = document.getElementById('statusMessage');
+            
+            statusMessage.innerHTML = `<i data-lucide="loader-2" style="animation: spin 1s linear infinite; display: inline-block; margin-right: 0.5rem;"></i> Running ${algorithmName}... Please wait.`;
+            statusDiv.style.display = 'block';
+            if (window.lucide) window.lucide.createIcons(); // Re-render loader icon
+
+            // Simulate algorithm execution
+            setTimeout(() => {
+                statusMessage.innerHTML = `<i data-lucide="check-circle" style="color: green; display: inline-block; margin-right: 0.5rem;"></i> ${algorithmName} completed successfully!`;
+                if (window.lucide) window.lucide.createIcons(); // Re-render success icon
+                // You might want to hide the status after a few more seconds
+                // setTimeout(() => { statusDiv.style.display = 'none'; }, 5000);
+            }, 2000 + Math.random() * 2000); // Simulate varying execution time
+        }
+    </script>
+</body>
+</html>
