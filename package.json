@@ -7,7 +7,6 @@
     "dev": "live-server --port=9002 --open=index.html"
   },
   "dependencies": {
-    "date-fns": "^3.6.0",
     "lucide-static": "^0.395.0"
   },
   "devDependencies": {
