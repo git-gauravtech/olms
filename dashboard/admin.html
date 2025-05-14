@@ -6,6 +6,7 @@
     <title>Admin Dashboard - Optimized Lab Management System</title>
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="https://unpkg.com/lucide-static@latest/font/lucide.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
     <div class="dashboard-layout">
@@ -76,7 +77,7 @@
             adminFeatures.forEach(feature => {
                 featureCardsContainer.appendChild(createFeatureCard(feature));
             });
-             if (window.lucide) window.lucide.createIcons();
+             if (window.lucide) window.lucide.createIcons(); // Ensure icons created after dynamic content added
         });
     </script>
 </body>
