@@ -6,8 +6,8 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #F8F9FA; /* Light gray background */
-  color: #212529; /* Dark text color */
+  background-color: #EFF3F5; /* New: Cooler Light Gray background */
+  color: #343F4B; /* New: Dark Slate Blue/Gray text color */
   line-height: 1.6;
 }
 
@@ -23,17 +23,18 @@ code {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(to bottom right, rgba(0,123,255,0.1), white, rgba(32,201,151,0.1));
+    /* New: Teal and subtle grey gradient */
+    background: linear-gradient(to bottom right, rgba(20, 153, 122, 0.1), white, rgba(100, 116, 139, 0.05));
     padding: 1rem;
 }
 
 .auth-card {
     background-color: white;
     border: 1px solid #dee2e6;
-    border-radius: 0.75rem; /* increased from 0.5rem */
-    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05); /* shadow-xl */
+    border-radius: 0.75rem;
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
     margin-bottom: 1rem;
-    padding: 2rem; /* increased from 1.5rem */
+    padding: 2rem;
     width: 100%;
     max-width: 450px;
 }
@@ -44,22 +45,22 @@ code {
 }
 
 .auth-icon {
-    height: 3rem; /* was 4rem */
-    width: 3rem; /* was 4rem */
-    color: #007BFF;
+    height: 3rem;
+    width: 3rem;
+    color: #14997A; /* New: Teal */
     margin: 0 auto 1rem auto;
     display: block;
 }
 
 .auth-header h1 {
-    font-size: 1.875rem; /* text-3xl */
+    font-size: 1.875rem;
     font-weight: bold;
     margin-bottom: 0.5rem;
 }
 
 .auth-header p {
-    color: #6B7280; /* text-muted-foreground */
-    margin-bottom: 0; /* was 1.5rem */
+    color: #6B7A88; /* New: Softer Grey for muted text */
+    margin-bottom: 0;
 }
 
 .auth-form .form-group {
@@ -77,22 +78,22 @@ code {
 .auth-form input[type="password"],
 .auth-form select {
     display: block;
-    width: 100%; /* Recalc for box-sizing */
-    box-sizing: border-box; /* Add this */
-    padding: 0.75rem; /* increased from 0.5rem */
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.75rem;
     font-size: 1rem;
     line-height: 1.5;
     color: #495057;
     background-color: #fff;
     background-clip: padding-box;
     border: 1px solid #ced4da;
-    border-radius: 0.375rem; /* increased */
+    border-radius: 0.375rem;
     transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
 }
 .auth-form input:focus, .auth-form select:focus {
-  border-color: #80bdff;
+  border-color: #25c9a3; /* New: Lighter Teal for focus */
   outline: 0;
-  box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+  box-shadow: 0 0 0 0.2rem rgba(20, 153, 122, .25); /* New: Teal focus ring */
 }
 
 .password-wrapper {
@@ -100,18 +101,17 @@ code {
     display: flex;
     align-items: center;
 }
-.password-wrapper input[type="password"], 
-.password-wrapper input[type="text"] { /* Ensure text type also gets padding if toggled */
+.password-wrapper input[type="password"],
+.password-wrapper input[type="text"] {
     flex-grow: 1;
-    /* remove right padding to make space for button */
-    padding-right: 3.5rem; /* Increased to ensure no overlap */
+    padding-right: 3.5rem;
 }
 .password-toggle {
     position: absolute;
-    right: 1px; 
+    right: 1px;
     top: 1px;
     bottom: 1px;
-    width: 3rem; /* Give button explicit width */
+    width: 3rem;
     background: transparent;
     border: none;
     padding: 0 0.75rem;
@@ -119,14 +119,14 @@ code {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #6c757d;
+    color: #6B7A88; /* New: Softer Grey */
 }
 .password-toggle:hover {
-    color: #007BFF;
+    color: #14997A; /* New: Teal */
 }
-.password-toggle i.lucide { /* Lucide icon */
-    width: 1.25rem; /* 20px */
-    height: 1.25rem; /* 20px */
+.password-toggle i.lucide {
+    width: 1.25rem;
+    height: 1.25rem;
 }
 
 
@@ -134,11 +134,11 @@ code {
     margin-top: 1.5rem;
     text-align: center;
     font-size: 0.875rem;
-    color: #6c757d;
+    color: #6B7A88; /* New: Softer Grey */
 }
 .auth-switch-link a {
     font-weight: 600;
-    color: #007BFF;
+    color: #14997A; /* New: Teal */
     text-decoration: none;
 }
 .auth-switch-link a:hover {
@@ -151,14 +151,14 @@ code {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.75rem 1.25rem; /* increased padding */
-  font-size: 1rem; /* increased font size */
+  padding: 0.75rem 1.25rem;
+  font-size: 1rem;
   font-weight: 500;
   border-radius: 0.375rem;
   border: 1px solid transparent;
   cursor: pointer;
   transition: background-color 0.2s, border-color 0.2s, color 0.2s;
-  text-decoration: none; /* For <a> styled as buttons */
+  text-decoration: none;
 }
 
 .button.full-width {
@@ -166,49 +166,49 @@ code {
 }
 
 .button-primary {
-  background-color: #007BFF;
+  background-color: #14997A; /* New: Teal */
   color: white;
 }
 .button-primary:hover {
-  background-color: #0056b3;
+  background-color: #107C63; /* New: Darker Teal */
 }
 .button-primary:disabled {
-  background-color: #a0cfff;
+  background-color: #a0d8cb; /* New: Lighter, desaturated Teal */
   cursor: not-allowed;
 }
 .button-primary .lucide-loader-2,
-.button-primary i.button-primary-loader { /* For loading spinner */
+.button-primary i.button-primary-loader {
     margin-right: 0.5rem;
     animation: spin 1s linear infinite;
 }
 
 .button-secondary {
-  background-color: #6c757d;
+  background-color: #5A6872; /* New: Bluish Grey */
   color: white;
 }
 .button-secondary:hover {
-  background-color: #545b62;
+  background-color: #4C5860; /* New: Darker Bluish Grey */
 }
 
 .button-outline {
   background-color: transparent;
-  border-color: #007BFF;
-  color: #007BFF;
+  border-color: #14997A; /* New: Teal */
+  color: #14997A; /* New: Teal */
 }
 .button-outline:hover {
-  background-color: rgba(0, 123, 255, 0.1);
+  background-color: rgba(20, 153, 122, 0.1); /* New: Light Teal background */
 }
 
 .error-message {
   color: red;
   font-size: 0.875em;
   margin-top: 0.25rem;
-  display: none; /* Hidden by default */
+  display: none;
 }
 .error-message.visible {
     display: block;
 }
-.success-message.visible { /* For general success messages not tied to specific fields */
+.success-message.visible {
     color: green;
     font-size: 0.9em;
     margin-top: 0.5rem;
@@ -226,11 +226,11 @@ code {
 .sidebar {
     width: 250px;
     border-right: 1px solid #dee2e6;
-    background-color: #f8f9fa; /* Light grey */
+    background-color: #f8f9fa; /* Keeping sidebar light for now, could be adjusted */
     padding: 1rem;
     display: flex;
     flex-direction: column;
-    position: fixed; /* For mobile */
+    position: fixed;
     left: -100%;
     top: 0;
     height: 100%;
@@ -257,10 +257,10 @@ code {
 .sidebar-header-link .lucide-atom {
     height: 2rem;
     width: 2rem;
-    color: #007BFF;
+    color: #14997A; /* New: Teal */
 }
 .sidebar-title {
-    font-size: 1.1rem; /* Adjusted */
+    font-size: 1.1rem;
     font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
@@ -293,7 +293,7 @@ code {
     background-color: #e9ecef;
 }
 .sidebar-nav-link.active {
-    background-color: #007BFF;
+    background-color: #14997A; /* New: Teal */
     color: white;
     font-weight: 500;
 }
@@ -307,28 +307,28 @@ code {
     flex: 1;
     display: flex;
     flex-direction: column;
-    margin-left: 0; /* Adjusted by JS for desktop */
+    margin-left: 0;
 }
 
 .dashboard-header {
     height: 4rem;
     display: flex;
     align-items: center;
-    justify-content: space-between; /* Adjusted */
+    justify-content: space-between;
     border-bottom: 1px solid #ddd;
     background-color: white;
     padding: 0 1.5rem;
     box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);
     position: sticky;
     top: 0;
-    z-index: 900; /* Below sidebar */
+    z-index: 900;
 }
 .mobile-menu-button {
     background: none;
     border: none;
     cursor: pointer;
     padding: 0.5rem;
-    display: none; /* Shown by JS on mobile */
+    display: none;
 }
 .mobile-menu-button .lucide-menu {
     width: 24px;
@@ -341,8 +341,8 @@ code {
 }
 .user-avatar-button {
     cursor: pointer;
-    background: #007BFF;
-    border: 2px solid #007BFF;
+    background: #14997A; /* New: Teal */
+    border: 2px solid #14997A; /* New: Teal */
     padding: 0;
     border-radius: 50%;
     display: flex;
@@ -380,7 +380,7 @@ code {
     font-size: 0.875rem; font-weight: 500; line-height: 1.25; margin:0;
 }
 .user-nav-label p:last-child {
-    font-size: 0.75rem; line-height: 1.25; color: #6b7280; margin:0; margin-top: 0.25rem;
+    font-size: 0.75rem; line-height: 1.25; color: #6B7A88; margin:0; margin-top: 0.25rem; /* New: Softer Grey */
 }
 .user-nav-item {
     padding: 0.5rem 1rem;
@@ -388,7 +388,7 @@ code {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    color: black;
+    color: #343F4B; /* New: Dark Slate Blue/Gray text color */
     cursor: pointer;
     font-size: 0.875rem;
 }
@@ -406,9 +406,9 @@ code {
 
 .page-content {
     flex: 1;
-    padding: 1.5rem; /* p-6, was p-10 */
+    padding: 1.5rem;
     overflow-y: auto;
-    background-color: #e9ecef;
+    background-color: #e0e6e9; /* New: Slightly darker page content background for contrast */
 }
 
 /* Overlay for mobile sidebar */
@@ -419,7 +419,7 @@ code {
     right: 0;
     bottom: 0;
     background: rgba(0,0,0,0.5);
-    z-index: 999; /* Below sidebar, above content */
+    z-index: 999;
     display: none;
 }
 .sidebar-overlay.open {
@@ -427,13 +427,13 @@ code {
 }
 
 
-/* Custom Card Styles (replaces ShadCN Card) */
+/* Custom Card Styles */
 .custom-card {
   background-color: white;
   border: 1px solid #dee2e6;
   border-radius: 0.5rem;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
-  margin-bottom: 1.5rem; /* space-y-6 */
+  margin-bottom: 1.5rem;
 }
 
 .custom-card-header {
@@ -444,27 +444,27 @@ code {
   gap: 0.75rem;
 }
 .custom-card-header .lucide {
-    height: 1.5rem; /* text-2xl */
-    width: 1.5rem; /* text-2xl */
-    color: #007BFF; /* primary */
+    height: 1.5rem;
+    width: 1.5rem;
+    color: #14997A; /* New: Teal */
 }
 
 .custom-card-title {
-  font-size: 1.25rem; /* text-xl */
+  font-size: 1.25rem;
   font-weight: 600;
-  margin:0; /* Reset margin */
+  margin:0;
 }
 
 .custom-card-description {
   font-size: 0.875rem;
-  color: #6c757d; /* Muted text color */
+  color: #6B7A88; /* New: Softer Grey */
   margin-top: 0.25rem;
 }
 
 .custom-card-content {
   padding: 1.5rem;
 }
-.custom-card-content .form-group { /* For forms inside cards */
+.custom-card-content .form-group {
     margin-bottom: 1rem;
 }
 .custom-card-content label {
@@ -497,25 +497,25 @@ code {
   padding: 1.5rem;
   border-top: 1px solid #dee2e6;
   display: flex;
-  justify-content: flex-end; /* Align buttons to the right by default */
+  justify-content: flex-end;
   gap: 0.5rem;
 }
 
 /* Responsive adjustments */
-@media (min-width: 768px) { /* md breakpoint */
+@media (min-width: 768px) {
     .sidebar {
-        position: sticky; /* Keep sidebar visible on scroll for desktop */
-        left: 0; /* Always visible */
+        position: sticky;
+        left: 0;
         box-shadow: none;
     }
     .main-content-wrapper {
-        margin-left: 250px; /* Make space for the sidebar */
+        margin-left: 250px;
     }
     .mobile-menu-button {
         display: none;
     }
     .sidebar-overlay {
-        display: none !important; /* Ensure it's never shown on desktop */
+        display: none !important;
     }
 }
 
@@ -528,14 +528,14 @@ code {
 .gap-6 { gap: 1.5rem; }
 
 .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
-@media (min-width: 640px) { /* sm */
+@media (min-width: 640px) {
     .sm-grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-@media (min-width: 768px) { /* md */
+@media (min-width: 768px) {
     .md-grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .md-grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
-@media (min-width: 1024px) { /* lg */
+@media (min-width: 1024px) {
     .lg-grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .lg-grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
@@ -545,7 +545,7 @@ code {
 .text-lg { font-size: 1.125rem; }
 .text-xl { font-size: 1.25rem; }
 .text-2xl { font-size: 1.5rem; }
-.text-muted-foreground { color: #6B7280; }
+.text-muted-foreground { color: #6B7A88; } /* New: Softer Grey */
 .mb-1 { margin-bottom: 0.25rem; }
 .mb-2 { margin-bottom: 0.5rem; }
 .mb-3 { margin-bottom: 0.75rem; }
@@ -568,7 +568,7 @@ code {
 .flex-col { flex-direction: column; }
 .flex-grow { flex-grow: 1; }
 
-.space-y-4 > :not([hidden]) ~ :not([hidden]) { /* Simplified space-y */
+.space-y-4 > :not([hidden]) ~ :not([hidden]) {
     margin-top: 1rem;
 }
 
@@ -595,8 +595,8 @@ code {
 .lab-availability-grid {
     display: grid;
     gap: 1px;
-    background-color: #ccc; /* Grid lines */
-    min-width: 800px; /* Ensure horizontal scroll for smaller screens */
+    background-color: #ccc;
+    min-width: 800px;
 }
 .lab-grid-cell {
     padding: 0.5rem;
@@ -607,7 +607,7 @@ code {
     justify-content: center;
     align-items: center;
     font-size: 0.75rem;
-    background-color: white; /* Default cell background */
+    background-color: white;
     transition: filter 0.2s;
     cursor: default;
 }
@@ -645,9 +645,9 @@ code {
     -webkit-box-orient: vertical;
 }
 
-.status-available { background-color: #d4edda; } /* Light green */
-.status-booked { background-color: #f8d7da; } /* Light red */
-.status-pending { background-color: #fff3cd; } /* Light yellow */
+.status-available { background-color: #d4edda; } /* Light green - keep as is for clarity */
+.status-booked { background-color: #f8d7da; } /* Light red - keep as is for clarity */
+.status-pending { background-color: #fff3cd; } /* Light yellow - keep as is for clarity */
 .status-past { background-color: #e9ecef; cursor: not-allowed; opacity: 0.7; }
 
 
@@ -659,7 +659,7 @@ code {
   right: 0;
   bottom: 0;
   background-color: rgba(0,0,0,0.5);
-  display: none; /* Hidden by default */
+  display: none;
   align-items: center;
   justify-content: center;
   z-index: 2000;
@@ -703,12 +703,15 @@ code {
   gap: 0.75rem;
   flex-wrap: wrap;
 }
-/* Additional styles for specific elements if needed */
-.text-green-600 { color: #16a34a; } /* Example, if not provided by Tailwind */
+
+/* Specific text color overrides if needed, but generally rely on body color */
+.text-green-600 { color: #16a34a; }
 .text-yellow-600 { color: #ca8a04; }
-.text-gray-500 { color: #6b7280; }
-.text-gray-400 { color: #9ca3af; }
-.button-sm { /* Example for smaller buttons */
+.text-gray-500 { color: #6B7A88; } /* New: Softer Grey */
+.text-gray-400 { color: #9ca3af; } /* Standard Tailwind Gray-400 */
+.button-sm {
     padding: 0.5rem 0.75rem;
     font-size: 0.875rem;
 }
+
+```
