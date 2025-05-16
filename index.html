@@ -8,60 +8,40 @@
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-    <main class="auth-page login-page-background">
-        <div class="login-container">
-            <div class="login-info-panel">
-                <div class="login-info-content">
-                    <h2>WELCOME</h2>
-                    <p>Optimized Lab Management System</p>
-                </div>
-                <div class="sphere sphere1"></div>
-                <div class="sphere sphere2"></div>
-                <div class="sphere sphere3"></div>
+    <main class="auth-page">
+        <div class="auth-card">
+            <div class="auth-header">
+                <i data-lucide="atom" class="auth-icon"></i>
+                <h1>Login</h1>
+                <p>Access the Optimized Lab Management System</p>
             </div>
-            <div class="login-form-panel">
-                <h3>Sign In</h3>
-                <form id="loginForm" class="modern-auth-form">
-                    <div class="input-group">
-                        <i data-lucide="user" class="input-icon"></i>
-                        <input type="email" id="email" name="email" placeholder="Email or Username" required>
-                    </div>
+            <form id="loginForm" class="auth-form">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" placeholder="you@example.com" required>
                     <p class="error-message" id="emailError"></p>
-
-                    <div class="input-group">
-                        <i data-lucide="lock" class="input-icon"></i>
-                        <input type="password" id="password" name="password" placeholder="Password" required>
-                        <a href="#" class="forgot-password-link">Forgot?</a>
-                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="••••••••" required>
                     <p class="error-message" id="passwordError"></p>
-
-                    <div class="input-group">
-                        <i data-lucide="users" class="input-icon"></i>
-                        <select id="role" name="role" required>
-                            <option value="">Select your role</option>
-                            <option value="Admin">Admin</option>
-                            <option value="Faculty">Faculty</option>
-                            <option value="Student">Student</option>
-                            <option value="CR">CR</option>
-                        </select>
-                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="role">Role</label>
+                    <select id="role" name="role" required>
+                        <option value="">Select your role</option>
+                        <option value="Admin">Admin</option>
+                        <option value="Faculty">Faculty</option>
+                        <option value="Student">Student</option>
+                        <option value="CR">CR</option>
+                    </select>
                     <p class="error-message" id="roleError"></p>
-
-                    <button type="submit" class="button button-primary full-width modern-button">Sign in</button>
-                    
-                    <div class="form-separator">
-                        <span>or</span>
-                    </div>
-
-                    <button type="button" class="button button-outline full-width google-signin-button modern-button">
-                        <svg aria-hidden="true" class="native svg-icon" width="18" height="18" viewBox="0 0 18 18"><path d="M16.51 8.1H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 002.38-5.88c0-.57-.05-.66-.15-1.18z" fill="#4285F4"></path><path d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 01-2.69 1c-2.14 0-3.87-1.44-4.5-3.37H1.85v2.07A8 8 0 008.98 17z" fill="#34A853"></path><path d="M4.48 10.37c-.2-.56-.2-.56-.2-1.17s0-.61.18-1.17V6H1.85a8 8 0 000 6l2.63-2.06z" fill="#FBBC05"></path><path d="M8.98 3.3c1.2 0 2.23.44 3.06 1.2l2.3-2.3A8 8 0 001.85 6l2.63 2.05a4.8 4.8 0 014.5-4.75z" fill="#EA4335"></path></svg>
-                        Sign in with Google
-                    </button>
-                </form>
-                <p class="auth-switch-link modern-auth-switch">
-                    Don't have an account? <a href="signup.html">Sign up</a>
-                </p>
-            </div>
+                </div>
+                <button type="submit" class="button button-primary full-width">Login</button>
+            </form>
+            <p class="auth-switch-link">
+                Don't have an account? <a href="signup.html">Sign up</a>
+            </p>
         </div>
     </main>
     <script src="js/constants.js"></script>
