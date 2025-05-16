@@ -873,9 +873,15 @@ code {
 .lab-layout-desk .lucide-armchair {
     width: 20px; 
     height: 20px;
-    color: #6c757d; /* Muted grey for student seats */
     stroke-width: 1.5;
 }
+.lab-layout-desk .lucide-armchair.system-working {
+    color: #28a745; /* Green for working system */
+}
+.lab-layout-desk .lucide-armchair.system-not-working {
+    color: #dc3545; /* Red for non-working system */
+}
+
 
 .lab-layout-teacher-desk {
     display: flex;
@@ -930,3 +936,6 @@ code {
     font-size: 0.875rem;
     border-radius: 0.375rem; 
 }
+
+
+    

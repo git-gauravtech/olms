@@ -158,12 +158,20 @@ function initializeLabGrid() {
         if (window.lucide) window.lucide.createIcons(); 
     }
 
-    function renderDesk() { // Number parameter removed as it's not used for icons
+    function renderDesk() {
         const deskDiv = document.createElement('div');
         deskDiv.className = 'lab-layout-desk';
 
         const icon = document.createElement('i');
         icon.setAttribute('data-lucide', 'armchair');
+
+        // Simulate system status: 85% chance working (green), 15% not working (red)
+        if (Math.random() < 0.15) { // 15% chance of being not working
+            icon.classList.add('system-not-working');
+        } else {
+            icon.classList.add('system-working');
+        }
+        
         deskDiv.appendChild(icon);
         return deskDiv;
     }
@@ -179,7 +187,7 @@ function initializeLabGrid() {
             row.className = 'lab-layout-row';
             const desksInThisRow = Math.min(desksPerRow, totalDesks - desksCreated);
             for (let i = 0; i < desksInThisRow; i++) {
-                row.appendChild(renderDesk());
+                row.appendChild(renderDesk()); // renderDesk now determines its own color
                 desksCreated++;
             }
             section.appendChild(row);
@@ -218,33 +226,39 @@ function initializeLabGrid() {
             noDesksMsg.className = 'text-xs text-center text-muted-foreground mt-2';
             noDesksMsg.textContent = 'This lab has no student desks.';
             dialogLabLayoutVisualization.appendChild(noDesksMsg);
+            if (window.lucide) window.lucide.createIcons(); // Render teacher icon if capacity is 0
             return;
         }
         
         const mainLayoutContainer = document.createElement('div');
         mainLayoutContainer.className = 'dialog-lab-layout-container';
 
-        const baseTotal = 70;
-        const baseLeft = 25;
-        const baseMiddle = 20;
-        
-        let numLeftDesks = Math.round(capacity * (baseLeft / baseTotal));
-        let numMiddleDesks = Math.round(capacity * (baseMiddle / baseTotal));
+        // Define proportions based on the 70-seat example (25-20-25)
+        const proportionLeft = 25 / 70;
+        const proportionMiddle = 20 / 70;
+        // Right proportion is 1 - left - middle to ensure total is capacity
+
+        let numLeftDesks = Math.round(capacity * proportionLeft);
+        let numMiddleDesks = Math.round(capacity * proportionMiddle);
+        // Ensure rightDesks makes up the remainder to match capacity exactly
         let numRightDesks = capacity - numLeftDesks - numMiddleDesks;
 
+        // Adjust if rounding leads to negative numRightDesks (can happen with small capacities)
         if (numRightDesks < 0) {
-            numMiddleDesks += numRightDesks; 
+            // Prioritize filling left and middle, then adjust if still negative
+            numMiddleDesks += numRightDesks; // numRightDesks is negative, so this reduces middle
             numRightDesks = 0;
             if (numMiddleDesks < 0) {
-                numLeftDesks += numMiddleDesks;
+                numLeftDesks += numMiddleDesks; // numMiddleDesks is negative
                 numMiddleDesks = 0;
             }
-            if (numLeftDesks < 0) numLeftDesks = 0;
+             if (numLeftDesks < 0) numLeftDesks = 0; // Safety, shouldn't happen with positive capacity
         }
 
-        mainLayoutContainer.appendChild(createDeskSection(numLeftDesks, 3));
-        mainLayoutContainer.appendChild(createDeskSection(numMiddleDesks, 2));
-        mainLayoutContainer.appendChild(createDeskSection(numRightDesks, 3));
+
+        mainLayoutContainer.appendChild(createDeskSection(numLeftDesks, 3));   // Left section, 3 desks per row
+        mainLayoutContainer.appendChild(createDeskSection(numMiddleDesks, 2)); // Middle section, 2 desks per row
+        mainLayoutContainer.appendChild(createDeskSection(numRightDesks, 3));  // Right section, 3 desks per row
         
         dialogLabLayoutVisualization.appendChild(mainLayoutContainer);
     }
@@ -311,3 +325,5 @@ if (document.readyState === 'loading') {
 } else {
     initializeLabGrid();
 }
+
+    
