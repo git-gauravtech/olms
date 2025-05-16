@@ -20,42 +20,45 @@ function initializeLabGrid() {
     let currentDate = new Date(); // Start with today
 
     // Populate lab selector
-    MOCK_LABS.forEach(lab => {
-        const option = document.createElement('option');
-        option.value = lab.id;
-        option.textContent = `${lab.name} (Capacity: ${lab.capacity})`;
-        labSelector.appendChild(option);
-    });
-    if (MOCK_LABS.length > 0) {
-        currentSelectedLabId = MOCK_LABS[0].id;
-        labSelector.value = currentSelectedLabId;
+    if (labSelector) {
+        MOCK_LABS.forEach(lab => {
+            const option = document.createElement('option');
+            option.value = lab.id;
+            option.textContent = `${lab.name} (Capacity: ${lab.capacity})`;
+            labSelector.appendChild(option);
+        });
+        if (MOCK_LABS.length > 0) {
+            currentSelectedLabId = MOCK_LABS[0].id;
+            labSelector.value = currentSelectedLabId;
+        }
+
+        labSelector.addEventListener('change', (e) => {
+            currentSelectedLabId = e.target.value;
+            renderGrid();
+        });
     }
 
-    labSelector.addEventListener('change', (e) => {
-        currentSelectedLabId = e.target.value;
-        renderGrid();
-    });
 
-    prevWeekBtn.addEventListener('click', () => {
+    if (prevWeekBtn) prevWeekBtn.addEventListener('click', () => {
         currentDate.setDate(currentDate.getDate() - 7);
         renderGrid();
     });
 
-    nextWeekBtn.addEventListener('click', () => {
+    if (nextWeekBtn) nextWeekBtn.addEventListener('click', () => {
         currentDate.setDate(currentDate.getDate() + 7);
         renderGrid();
     });
     
-    todayBtn.addEventListener('click', () => {
+    if (todayBtn) todayBtn.addEventListener('click', () => {
         currentDate = new Date();
         renderGrid();
     });
 
-    dialogCloseButton.addEventListener('click', () => {
+    if (dialogCloseButton) dialogCloseButton.addEventListener('click', () => {
         slotDetailDialog.classList.remove('open');
     });
 
-    slotDetailDialog.addEventListener('click', (event) => {
+    if (slotDetailDialog) slotDetailDialog.addEventListener('click', (event) => {
         if (event.target === slotDetailDialog) { // Clicked on overlay
             slotDetailDialog.classList.remove('open');
         }
@@ -64,11 +67,12 @@ function initializeLabGrid() {
     function getWeekDateRange(date) {
         const startOfWeek = new Date(date);
         const day = startOfWeek.getDay();
-        const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1); // Adjust if day is Sunday
+        // Adjust to make Monday the start of the week (day 1) and Sunday the end (day 0 or 7)
+        const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1); 
         startOfWeek.setDate(diff);
 
         const endOfWeek = new Date(startOfWeek);
-        endOfWeek.setDate(startOfWeek.getDate() + 6);
+        endOfWeek.setDate(startOfWeek.getDate() + 6); // Monday + 6 days = Sunday
         
         return { start: startOfWeek, end: endOfWeek };
     }
@@ -78,9 +82,12 @@ function initializeLabGrid() {
         gridContainer.innerHTML = ''; // Clear previous grid
 
         const { start, end } = getWeekDateRange(currentDate);
-        currentWeekDisplay.textContent = `${formatDate(start)} - ${formatDate(end)}`;
+        if (currentWeekDisplay) {
+            currentWeekDisplay.textContent = `${formatDate(start)} - ${formatDate(end)}`;
+        }
 
-        // Set grid columns: 1 for time + 7 for days
+
+        // Set grid columns: 1 for time + 7 for days (Mon-Sun)
         gridContainer.style.gridTemplateColumns = `minmax(80px, auto) repeat(${DAYS_OF_WEEK.length}, 1fr)`;
         
         // Header Row (Days of Week)
@@ -148,20 +155,23 @@ function initializeLabGrid() {
                 gridContainer.appendChild(cell);
             });
         });
-        if (window.lucide) window.lucide.createIcons(); // For any icons used in dialogs
+        if (window.lucide) window.lucide.createIcons(); 
     }
 
-    function renderDesk(number) {
-        const desk = document.createElement('div');
-        desk.className = 'lab-layout-desk';
-        // desk.textContent = number; // Optionally show desk number
-        return desk;
+    function renderDesk() { // Number parameter removed as it's not used for icons
+        const deskDiv = document.createElement('div');
+        deskDiv.className = 'lab-layout-desk';
+
+        const icon = document.createElement('i');
+        icon.setAttribute('data-lucide', 'armchair');
+        deskDiv.appendChild(icon);
+        return deskDiv;
     }
 
     function createDeskSection(totalDesks, desksPerRow) {
         const section = document.createElement('div');
         section.className = 'dialog-lab-layout-section';
-        if (totalDesks <= 0) return section; // Return empty section if no desks or negative
+        if (totalDesks <= 0) return section; 
 
         let desksCreated = 0;
         while (desksCreated < totalDesks) {
@@ -169,7 +179,7 @@ function initializeLabGrid() {
             row.className = 'lab-layout-row';
             const desksInThisRow = Math.min(desksPerRow, totalDesks - desksCreated);
             for (let i = 0; i < desksInThisRow; i++) {
-                row.appendChild(renderDesk(desksCreated + 1));
+                row.appendChild(renderDesk());
                 desksCreated++;
             }
             section.appendChild(row);
@@ -178,21 +188,30 @@ function initializeLabGrid() {
     }
 
     function renderLabLayoutVisualization(labId) {
-        dialogLabLayoutVisualization.innerHTML = ''; // Clear previous layout
+        dialogLabLayoutVisualization.innerHTML = ''; 
 
         const lab = MOCK_LABS.find(l => l.id === labId);
         const capacity = lab ? lab.capacity : 0;
 
         const title = document.createElement('h4');
         title.className = 'text-sm font-medium mb-3 text-center text-muted-foreground';
-        title.textContent = `Lab Layout for ${capacity} Desks`; // Removed "Illustrative"
+        title.textContent = `Lab Layout for ${capacity} Desks`;
         dialogLabLayoutVisualization.appendChild(title);
 
         // Teacher's Desk
-        const teacherDesk = document.createElement('div');
-        teacherDesk.className = 'lab-layout-teacher-desk';
-        teacherDesk.textContent = 'Teacher';
-        dialogLabLayoutVisualization.appendChild(teacherDesk);
+        const teacherDeskContainer = document.createElement('div');
+        teacherDeskContainer.className = 'lab-layout-teacher-desk';
+
+        const teacherIcon = document.createElement('i');
+        teacherIcon.setAttribute('data-lucide', 'user-cog'); 
+        teacherDeskContainer.appendChild(teacherIcon);
+
+        const teacherLabel = document.createElement('span');
+        teacherLabel.textContent = 'Teacher';
+        teacherLabel.className = 'teacher-desk-label';
+        teacherDeskContainer.appendChild(teacherLabel);
+        dialogLabLayoutVisualization.appendChild(teacherDeskContainer);
+
 
         if (capacity === 0) {
             const noDesksMsg = document.createElement('p');
@@ -205,38 +224,26 @@ function initializeLabGrid() {
         const mainLayoutContainer = document.createElement('div');
         mainLayoutContainer.className = 'dialog-lab-layout-container';
 
-        // Proportional distribution based on a 70-capacity model (25-20-25)
         const baseTotal = 70;
         const baseLeft = 25;
         const baseMiddle = 20;
-        // const baseRight = 25; // Derived
-
+        
         let numLeftDesks = Math.round(capacity * (baseLeft / baseTotal));
         let numMiddleDesks = Math.round(capacity * (baseMiddle / baseTotal));
-        // Ensure the sum matches capacity by assigning remainder to the right section
         let numRightDesks = capacity - numLeftDesks - numMiddleDesks;
 
-        // Handle potential negative numRightDesks if capacity is very small and rounding pushes sum(left, middle) > capacity
         if (numRightDesks < 0) {
-            // If right becomes negative, try to take from middle, then left.
-            numMiddleDesks += numRightDesks; // numRightDesks is negative
+            numMiddleDesks += numRightDesks; 
             numRightDesks = 0;
             if (numMiddleDesks < 0) {
                 numLeftDesks += numMiddleDesks;
                 numMiddleDesks = 0;
             }
-            // Ensure left is not negative (shouldn't happen if capacity >=0)
             if (numLeftDesks < 0) numLeftDesks = 0;
         }
 
-
-        // Left Section: 3 desks per row
         mainLayoutContainer.appendChild(createDeskSection(numLeftDesks, 3));
-        
-        // Middle Section: 2 desks per row
         mainLayoutContainer.appendChild(createDeskSection(numMiddleDesks, 2));
-
-        // Right Section: 3 desks per row
         mainLayoutContainer.appendChild(createDeskSection(numRightDesks, 3));
         
         dialogLabLayoutVisualization.appendChild(mainLayoutContainer);
@@ -245,11 +252,11 @@ function initializeLabGrid() {
 
     function showSlotDetails(labId, date, timeSlot, booking) {
         const lab = MOCK_LABS.find(l => l.id === labId);
-        dialogTitle.textContent = `Details for ${lab.name}`;
-        dialogDescription.textContent = `Date: ${date}, Time: ${timeSlot.displayTime}`;
+        if (dialogTitle) dialogTitle.textContent = `Details for ${lab.name}`;
+        if (dialogDescription) dialogDescription.textContent = `Date: ${date}, Time: ${timeSlot.displayTime}`;
         
-        dialogSlotInfoContainer.innerHTML = ''; // Clear previous details
-        dialogBookButton.style.display = 'none'; // Hide by default
+        if (dialogSlotInfoContainer) dialogSlotInfoContainer.innerHTML = ''; 
+        if (dialogBookButton) dialogBookButton.style.display = 'none';
 
         const now = new Date();
         const slotDateTime = new Date(`${date}T${timeSlot.startTime}`);
@@ -257,45 +264,50 @@ function initializeLabGrid() {
         if (slotDateTime < now && !booking) {
              const pStatus = document.createElement('p');
             pStatus.innerHTML = `<strong>Status:</strong> Past (Unavailable for booking)`;
-            dialogSlotInfoContainer.appendChild(pStatus);
+            if (dialogSlotInfoContainer) dialogSlotInfoContainer.appendChild(pStatus);
         } else if (booking) {
             const pStatus = document.createElement('p');
             pStatus.innerHTML = `<strong>Status:</strong> <span class="font-bold text-lg">${booking.status.toUpperCase()}</span>`;
-            dialogSlotInfoContainer.appendChild(pStatus);
+           if (dialogSlotInfoContainer) dialogSlotInfoContainer.appendChild(pStatus);
 
             const pPurpose = document.createElement('p');
             pPurpose.innerHTML = `<strong>Purpose:</strong> ${booking.purpose || 'N/A'}`;
-            dialogSlotInfoContainer.appendChild(pPurpose);
+            if (dialogSlotInfoContainer) dialogSlotInfoContainer.appendChild(pPurpose);
 
             const pUser = document.createElement('p');
             pUser.innerHTML = `<strong>Booked By:</strong> ${booking.userId} (${booking.requestedByRole})`;
-            dialogSlotInfoContainer.appendChild(pUser);
+            if (dialogSlotInfoContainer) dialogSlotInfoContainer.appendChild(pUser);
 
             if (booking.batchIdentifier) {
                 const pBatch = document.createElement('p');
                 pBatch.innerHTML = `<strong>Batch/Class:</strong> ${booking.batchIdentifier}`;
-                dialogSlotInfoContainer.appendChild(pBatch);
+                if (dialogSlotInfoContainer) dialogSlotInfoContainer.appendChild(pBatch);
             }
         } else { // Available
             const pStatus = document.createElement('p');
             pStatus.innerHTML = `<strong>Status:</strong> <span class="font-bold text-lg text-green-600">Available</span>`;
-            dialogSlotInfoContainer.appendChild(pStatus);
+            if (dialogSlotInfoContainer) dialogSlotInfoContainer.appendChild(pStatus);
             
             const currentUserRole = getCurrentUserRole();
-            // Allow Faculty and CR to see the book button
-            if (currentUserRole === USER_ROLES.FACULTY || currentUserRole === USER_ROLES.CR) {
+            if ((currentUserRole === USER_ROLES.FACULTY || currentUserRole === USER_ROLES.CR) && dialogBookButton) {
                  dialogBookButton.style.display = 'inline-flex';
                  dialogBookButton.onclick = () => {
-                    // Redirect to booking page, pre-filling details
                     window.location.href = `book_slot.html?labId=${labId}&date=${date}&timeSlotId=${timeSlot.id}`;
                  };
             }
         }
         
-        renderLabLayoutVisualization(labId); // Render the new lab layout
-        slotDetailDialog.classList.add('open');
+        renderLabLayoutVisualization(labId); 
+        if (slotDetailDialog) slotDetailDialog.classList.add('open');
+        if (window.lucide) window.lucide.createIcons(); // Ensure icons are created after dialog content is set
     }
 
     renderGrid(); // Initial render
 }
 
+// Ensure this script runs after the DOM is fully loaded
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeLabGrid);
+} else {
+    initializeLabGrid();
+}
