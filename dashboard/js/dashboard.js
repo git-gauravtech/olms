@@ -77,7 +77,7 @@ function populateUserNav(role) {
     const userInitial = name.charAt(0).toUpperCase();
 
     userNavContainer.innerHTML = `
-        <button class="user-avatar-button" id="userAvatarButton" title="User menu">${userInitial}</button>
+        <button type="button" class="user-avatar-button" id="userAvatarButton" title="User menu">${userInitial}</button>
         <div class="user-nav-dropdown" id="userNavDropdown">
             <div class="user-nav-label">
                 <p>${name}</p>
@@ -94,6 +94,10 @@ function populateUserNav(role) {
             </div>
         </div>
     `;
+    // Ensure Lucide icons are created for the newly added dropdown content
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
 
     const userAvatarButton = document.getElementById('userAvatarButton');
     const userNavDropdown = document.getElementById('userNavDropdown');
@@ -180,9 +184,9 @@ function createFeatureCard(feature) {
     // So if feature.href is "some_page.html", the link is just "some_page.html"
     card.innerHTML = `
         <div class="custom-card-content flex flex-col items-center" style="padding-bottom: 1rem;">
-            <i data-lucide="${feature.icon}" style="height: 2.5rem; width: 2.5rem; color: #007BFF; margin-bottom: 0.75rem;"></i>
+            <i data-lucide="${feature.icon}" style="height: 2.5rem; width: 2.5rem; color: #14997A; margin-bottom: 0.75rem;"></i>
             <h3 class="custom-card-title" style="font-size: 1.25rem; margin-bottom: 0.5rem;">${feature.title}</h3>
-            <p class="text-sm text-muted-foreground mb-4" style="font-size: 0.875rem; color: #4A5568; flex-grow: 1;">${feature.description}</p>
+            <p class="text-sm text-muted-foreground mb-4" style="font-size: 0.875rem; color: #6B7A88; flex-grow: 1;">${feature.description}</p>
         </div>
         <div class="custom-card-footer" style="padding-top:0; justify-content: center;">
             <a href="${feature.href.startsWith('http') ? feature.href : `${feature.href}`}" class="button button-primary" style="width: auto;">
