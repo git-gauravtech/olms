@@ -3,8 +3,6 @@
 function initializeDashboard() {
     const currentRole = getCurrentUserRole();
     if (!currentRole) {
-        // Redirect to login if no role or other auth issue.
-        // Ensure path is correct if dashboard.js is in dashboard/js/
         window.location.href = '../index.html'; 
         return;
     }
@@ -13,7 +11,7 @@ function initializeDashboard() {
     populateUserNav(currentRole);
     setupMobileSidebar();
     setActiveNavLink();
-    setDashboardHomeLink(); // Call this to set the main dashboard link
+    setDashboardHomeLink(); 
 
     if (window.lucide) {
         window.lucide.createIcons();
@@ -29,10 +27,8 @@ function setDashboardHomeLink() {
         [USER_ROLES.ADMIN]: 'admin.html',
         [USER_ROLES.FACULTY]: 'faculty.html',
         [USER_ROLES.STUDENT]: 'student.html',
-        [USER_ROLES.CR]: 'cr.html'
+        [USER_ROLES.ASSISTANT]: 'assistant.html' // Changed from CR
     };
-    // Path needs to be relative to current page, or absolute from site root.
-    // Since dashboard pages are in /dashboard/, href can be just the filename.
     dashboardHomeLink.href = homePageMap[role] || '../index.html';
 }
 
@@ -41,7 +37,7 @@ function populateSidebarNav(role) {
     const sidebarNav = document.getElementById('sidebarNav');
     if (!sidebarNav) return;
 
-    sidebarNav.innerHTML = ''; // Clear existing items
+    sidebarNav.innerHTML = ''; 
 
     const links = NAV_LINKS[role] || COMMON_NAV_LINKS;
     links.forEach(link => {
@@ -49,10 +45,6 @@ function populateSidebarNav(role) {
         li.className = 'sidebar-nav-item';
         
         const a = document.createElement('a');
-        // Href for sidebar links should be relative to the /dashboard/ directory
-        // So, if link.href is "admin_manage_labs.html", the final href is "admin_manage_labs.html"
-        // If the page is outside /dashboard/, adjust accordingly.
-        // The current setup assumes all dashboard pages are flat within /dashboard/
         a.href = link.href.startsWith('http') ? link.href : `${link.href}`; 
         a.className = 'sidebar-nav-link';
         a.title = link.label;
@@ -73,7 +65,7 @@ function populateUserNav(role) {
     if (!userNavContainer) return;
 
     const email = localStorage.getItem('userEmail') || 'user@example.com';
-    const name = localStorage.getItem('userName') || email.split('@')[0] || role; // Use stored name
+    const name = localStorage.getItem('userName') || email.split('@')[0] || role; 
     const userInitial = name.charAt(0).toUpperCase();
 
     userNavContainer.innerHTML = `
@@ -83,7 +75,7 @@ function populateUserNav(role) {
                 <p>${name}</p>
                 <p>${email} (${role})</p>
             </div>
-            <a href="profile.html" class="user-nav-item"> <!-- Assuming profile.html is in dashboard/ -->
+            <a href="profile.html" class="user-nav-item"> 
                 <i data-lucide="user-circle"></i>
                 <span>Profile</span>
             </a>
@@ -94,7 +86,6 @@ function populateUserNav(role) {
             </div>
         </div>
     `;
-    // Ensure Lucide icons are created for the newly added dropdown content
     if (window.lucide) {
         window.lucide.createIcons();
     }
@@ -111,10 +102,9 @@ function populateUserNav(role) {
         localStorage.removeItem('userRole');
         localStorage.removeItem('userEmail');
         localStorage.removeItem('userName');
-        window.location.href = '../index.html'; // Path from /dashboard/* to /index.html
+        window.location.href = '../index.html'; 
     });
 
-    // Close dropdown if clicked outside
     document.addEventListener('click', (event) => {
         if (userNavDropdown && !userNavContainer.contains(event.target) && userNavDropdown.classList.contains('open')) {
             userNavDropdown.classList.remove('open');
@@ -130,7 +120,6 @@ function setupMobileSidebar() {
     if (menuButton && sidebar && overlay) {
         if(isMobile()){
             menuButton.style.display = 'block';
-             // Keep sidebar closed by default on mobile unless user opens it
             sidebar.classList.remove('open');
             overlay.classList.remove('open');
         } else {
@@ -139,7 +128,7 @@ function setupMobileSidebar() {
         }
 
         menuButton.addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent click from bubbling to document
+            e.stopPropagation(); 
             sidebar.classList.toggle('open');
             overlay.classList.toggle('open');
         });
@@ -152,8 +141,7 @@ function setupMobileSidebar() {
         if (menuButton && sidebar && overlay) {
             if (isMobile()) {
                 menuButton.style.display = 'block';
-                // Don't force close if user had it open
-            } else { // Desktop
+            } else { 
                 menuButton.style.display = 'none';
                 sidebar.classList.add('open');
                 overlay.classList.remove('open');
@@ -175,13 +163,9 @@ function setActiveNavLink() {
     });
 }
 
-
-// Helper to create feature cards (used on dashboard homepages)
 function createFeatureCard(feature) {
     const card = document.createElement('div');
     card.className = 'custom-card text-center'; 
-    // Href for feature cards needs to be relative to /dashboard/
-    // So if feature.href is "some_page.html", the link is just "some_page.html"
     card.innerHTML = `
         <div class="custom-card-content flex flex-col items-center" style="padding-bottom: 1rem;">
             <i data-lucide="${feature.icon}" style="height: 2.5rem; width: 2.5rem; color: #14997A; margin-bottom: 0.75rem;"></i>

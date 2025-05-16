@@ -25,7 +25,7 @@
 
         <div class="main-content-wrapper">
             <header class="dashboard-header">
-                <button class="mobile-menu-button" id="mobileMenuButton">
+                <button type="button" class="mobile-menu-button" id="mobileMenuButton">
                     <i data-lucide="menu"></i>
                 </button>
                 <div class="user-nav" id="userNavContainer">
@@ -84,8 +84,7 @@
     <script src="js/dashboard.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Profile page is accessible by all logged-in users
-            if (!roleGuard([USER_ROLES.ADMIN, USER_ROLES.FACULTY, USER_ROLES.STUDENT, USER_ROLES.CR])) return;
+            if (!roleGuard([USER_ROLES.ADMIN, USER_ROLES.FACULTY, USER_ROLES.STUDENT, USER_ROLES.ASSISTANT])) return; // Added ASSISTANT
             
             initializeDashboard();
             setDashboardHomeLink();
@@ -98,49 +97,52 @@
             const changePasswordBtn = document.getElementById('changePasswordBtn');
             const profileMessage = document.getElementById('profileMessage');
 
-            // Populate department dropdown
-            DEPARTMENTS.forEach(dept => {
-                const option = document.createElement('option');
-                option.value = dept;
-                option.textContent = dept;
-                departmentSelect.appendChild(option);
-            });
+            if(DEPARTMENTS && departmentSelect){
+                DEPARTMENTS.forEach(dept => {
+                    const option = document.createElement('option');
+                    option.value = dept;
+                    option.textContent = dept;
+                    departmentSelect.appendChild(option);
+                });
+            }
             
-            // Load user data from localStorage
             const userName = localStorage.getItem('userName');
             const userEmail = localStorage.getItem('userEmail');
             const userRole = localStorage.getItem('userRole');
             const userDepartment = localStorage.getItem('userDepartment');
 
-            if (userName) fullNameInput.value = userName;
-            if (userEmail) emailInput.value = userEmail;
-            if (userRole) roleInput.value = userRole;
-            if (userDepartment) departmentSelect.value = userDepartment;
+            if (fullNameInput && userName) fullNameInput.value = userName;
+            if (emailInput && userEmail) emailInput.value = userEmail;
+            if (roleInput && userRole) roleInput.value = userRole;
+            if (departmentSelect && userDepartment) departmentSelect.value = userDepartment;
 
-            profileForm.addEventListener('submit', (event) => {
-                event.preventDefault();
-                const newFullName = fullNameInput.value;
-                const newDepartment = departmentSelect.value;
+            if(profileForm) {
+                profileForm.addEventListener('submit', (event) => {
+                    event.preventDefault();
+                    const newFullName = fullNameInput.value;
+                    const newDepartment = departmentSelect.value;
 
-                localStorage.setItem('userName', newFullName);
-                localStorage.setItem('userDepartment', newDepartment);
-                
-                profileMessage.textContent = 'Profile updated successfully!';
-                profileMessage.style.color = 'green';
-                profileMessage.style.display = 'block';
-                
-                // Update user nav as name might have changed
-                // Need to call populateUserNav again for the header to update
-                populateUserNav(userRole); 
-                if (window.lucide) window.lucide.createIcons(); // Redraw icons in user nav, if any
+                    localStorage.setItem('userName', newFullName);
+                    localStorage.setItem('userDepartment', newDepartment);
+                    
+                    if(profileMessage){
+                        profileMessage.textContent = 'Profile updated successfully!';
+                        profileMessage.style.color = 'green';
+                        profileMessage.style.display = 'block';
+                    }
+                    
+                    populateUserNav(userRole); 
+                    if (window.lucide) window.lucide.createIcons(); 
 
-                setTimeout(() => { profileMessage.style.display = 'none'; }, 3000);
-            });
+                    setTimeout(() => { if(profileMessage) profileMessage.style.display = 'none'; }, 3000);
+                });
+            }
 
-            changePasswordBtn.addEventListener('click', () => {
-                alert('Change password functionality is not implemented in this demo.');
-                // Here you would typically open a modal or navigate to a change password form.
-            });
+            if(changePasswordBtn){
+                changePasswordBtn.addEventListener('click', () => {
+                    alert('Change password functionality is not implemented in this demo.');
+                });
+            }
 
             if (window.lucide) window.lucide.createIcons();
         });

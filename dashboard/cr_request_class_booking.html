@@ -1,10 +1,10 @@
-
+<!-- This file will be renamed to assistant_request_lab.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Request Class Lab Slot - Optimized Lab Management System</title>
+    <title>Request Lab Slot - Optimized Lab Management System</title>
     <link rel="stylesheet" href="../css/style.css">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
@@ -36,13 +36,12 @@
                 <div class="custom-card">
                     <div class="custom-card-header">
                         <i data-lucide="user-plus"></i>
-                        <h1 class="custom-card-title">Request Lab Slot for Class</h1>
+                        <h1 class="custom-card-title">Request Lab Slot</h1>
                     </div>
-                    <!-- Reusing bookingForm structure, but it's managed by booking_form.js which shows batchIdentifier for CR -->
                     <form id="bookingForm" class="custom-card-content">
                         <p class="text-muted-foreground mb-6">
-                           As a Class Representative, you can request a lab slot for your entire class/batch here. 
-                           The request will be sent for approval.
+                           As an Assistant, you can request a lab slot. 
+                           The request will be sent to Faculty for approval.
                         </p>
                         <div class="form-group">
                             <label for="labId">Select Lab</label>
@@ -68,10 +67,9 @@
                             <textarea id="purpose" name="purpose" rows="3" required placeholder="e.g., CS101 Lab Session, EE203 Practical"></textarea>
                             <p class="error-message" id="purposeError"></p>
                         </div>
-                        <!-- Batch Identifier is crucial for CR bookings -->
                         <div class="form-group" id="batchIdentifierGroup">
-                            <label for="batchIdentifier">Batch/Class Name</label>
-                            <input type="text" id="batchIdentifier" name="batchIdentifier" placeholder="e.g., CSE Year 2 - Section A" required>
+                            <label for="batchIdentifier">Batch/Class Name (If applicable)</label>
+                            <input type="text" id="batchIdentifier" name="batchIdentifier" placeholder="e.g., CSE Year 2 - Section A">
                             <p class="error-message" id="batchIdentifierError"></p>
                         </div>
                         <div class="form-group">
@@ -80,12 +78,12 @@
                                 <!-- Checkboxes populated by JS -->
                             </div>
                         </div>
-                        <p id="formSubmissionMessage" class="error-message mb-2"></p> <!-- For general errors or success -->
+                        <p id="formSubmissionMessage" class="error-message mb-2"></p> 
                     </form>
                      <div class="custom-card-footer">
                         <button type="button" id="checkAvailabilityBtn" class="button button-outline">Check Availability First</button>
                         <button type="submit" form="bookingForm" class="button button-primary">
-                            <i data-lucide="send" class="mr-2"></i>Submit Class Booking Request
+                            <i data-lucide="send" class="mr-2"></i>Submit Lab Booking Request
                         </button>
                     </div>
                 </div>
@@ -96,15 +94,14 @@
     <script src="../js/constants.js"></script>
     <script src="../js/utils.js"></script>
     <script src="js/dashboard.js"></script>
-    <script src="js/booking_form.js"></script> <!-- Reusing the booking form logic -->
+    <script src="js/booking_form.js"></script> 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            if (!roleGuard(USER_ROLES.CR)) return; // Only for CR
+            if (!roleGuard(USER_ROLES.ASSISTANT)) return; // Changed from CR
             
             initializeDashboard();
             setDashboardHomeLink();
-            initializeBookingForm(); // From booking_form.js
-            // The booking_form.js should automatically show batchIdentifier field for CR.
+            initializeBookingForm(); 
             if (window.lucide) window.lucide.createIcons();
         });
     </script>

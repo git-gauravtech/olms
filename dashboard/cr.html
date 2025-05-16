@@ -1,9 +1,10 @@
+<!-- This file will be renamed to assistant.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CR Dashboard - Optimized Lab Management System</title>
+    <title>Assistant Dashboard - Optimized Lab Management System</title>
     <link rel="stylesheet" href="../css/style.css">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
@@ -11,7 +12,7 @@
     <div class="dashboard-layout">
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <a href="cr.html" class="sidebar-header-link">
+                <a href="assistant.html" class="sidebar-header-link">
                     <i data-lucide="atom"></i>
                     <span class="sidebar-title">Optimized Lab Management</span>
                 </a>
@@ -24,7 +25,7 @@
 
         <div class="main-content-wrapper">
             <header class="dashboard-header">
-                <button class="mobile-menu-button" id="mobileMenuButton">
+                <button class="mobile-menu-button" id="mobileMenuButton" type="button">
                     <i data-lucide="menu"></i>
                 </button>
                 <div class="user-nav" id="userNavContainer">
@@ -35,11 +36,11 @@
                 <div class="custom-card">
                     <div class="custom-card-header">
                         <i data-lucide="layout-dashboard"></i>
-                        <h1 class="custom-card-title">CR Dashboard</h1>
+                        <h1 class="custom-card-title">Assistant Dashboard</h1>
                     </div>
                     <div class="custom-card-content">
                         <p class="text-lg text-muted-foreground mb-4">
-                            Welcome, Class Representative! View schedules and request lab slots for your class.
+                            Welcome, Assistant! View schedules, request lab slots, and update seat statuses.
                         </p>
                     </div>
                 </div>
@@ -55,18 +56,19 @@
     <script src="js/dashboard.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            if (!roleGuard(USER_ROLES.CR)) return;
+            if (!roleGuard(USER_ROLES.ASSISTANT)) return; // Changed from CR
             
-            initializeDashboard(); // From dashboard.js
+            initializeDashboard(); 
 
             const featureCardsContainer = document.getElementById('featureCardsContainer');
-            const crFeatures = [
+            const assistantFeatures = [
                 { title: "Lab Availability", description: "View current lab schedules and availability.", icon: "flask-conical", href: "labs.html", label: "View Labs" },
-                { title: "View My Schedule", description: "Check your class's booked lab slots.", icon: "calendar-check", href: "student_my_bookings.html", label: "View Schedule" },
-                { title: "Request Class Slot", description: "Submit a request for a lab slot for your class.", icon: "user-plus", href: "cr_request_class_booking.html", label: "Request Slot" }
+                { title: "View My Schedule", description: "Check booked lab slots.", icon: "calendar-check", href: "student_my_bookings.html", label: "View Schedule" },
+                { title: "Request Lab Slot", description: "Submit a request for a lab slot.", icon: "user-plus", href: "assistant_request_lab.html", label: "Request Slot" },
+                { title: "Update Seat Status", description: "Update working status of seats in labs.", icon: "edit-3", href: "assistant_update_seat_status.html", label: "Update Seats" }
             ];
 
-            crFeatures.forEach(feature => {
+            assistantFeatures.forEach(feature => {
                 featureCardsContainer.appendChild(createFeatureCard(feature));
             });
             if (window.lucide) window.lucide.createIcons();

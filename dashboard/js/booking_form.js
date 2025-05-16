@@ -7,19 +7,18 @@ function initializeBookingForm() {
     const bookingDateInput = document.getElementById('bookingDate');
     const batchIdentifierGroup = document.getElementById('batchIdentifierGroup');
     const batchIdentifierInput = document.getElementById('batchIdentifier');
-    const formSubmissionMessageEl = document.getElementById('formSubmissionMessage'); // Dedicated element for messages
+    const formSubmissionMessageEl = document.getElementById('formSubmissionMessage'); 
     const checkAvailabilityBtn = document.getElementById('checkAvailabilityBtn');
 
 
     const currentUserRole = getCurrentUserRole();
-    if (currentUserRole === USER_ROLES.CR) {
-        if (batchIdentifierGroup) batchIdentifierGroup.style.display = 'block'; // Check if element exists
+    if (currentUserRole === USER_ROLES.ASSISTANT) { // Changed from CR
+        if (batchIdentifierGroup) batchIdentifierGroup.style.display = 'block'; 
         if (batchIdentifierInput) batchIdentifierInput.required = true;
     } else {
          if (batchIdentifierGroup) batchIdentifierGroup.style.display = 'none';
     }
 
-    // Populate Lab select
     if (labIdSelect) {
         MOCK_LABS.forEach(lab => {
             const option = document.createElement('option');
@@ -29,7 +28,6 @@ function initializeBookingForm() {
         });
     }
 
-    // Populate Time Slot select
     if (timeSlotIdSelect) {
         MOCK_TIME_SLOTS.forEach(slot => {
             const option = document.createElement('option');
@@ -39,9 +37,8 @@ function initializeBookingForm() {
         });
     }
 
-    // Populate Equipment checkboxes
     if (equipmentCheckboxesContainer) {
-        equipmentCheckboxesContainer.innerHTML = ''; // Clear existing before populating
+        equipmentCheckboxesContainer.innerHTML = ''; 
         MOCK_EQUIPMENT.filter(eq => eq.status === 'available').forEach(equipment => {
             const div = document.createElement('div');
             div.className = 'flex items-center';
@@ -62,14 +59,12 @@ function initializeBookingForm() {
         });
     }
 
-    // Pre-fill form if query parameters are present (from lab availability grid)
     const urlParams = new URLSearchParams(window.location.search);
     if (labIdSelect && urlParams.has('labId')) labIdSelect.value = urlParams.get('labId');
     if (bookingDateInput && urlParams.has('date')) bookingDateInput.value = urlParams.get('date');
     if (timeSlotIdSelect && urlParams.has('timeSlotId')) timeSlotIdSelect.value = urlParams.get('timeSlotId');
 
 
-    // Set min date for bookingDate to today
     if (bookingDateInput) {
       bookingDateInput.min = formatDate(new Date());
     }
@@ -77,6 +72,7 @@ function initializeBookingForm() {
 
     if (checkAvailabilityBtn) {
         checkAvailabilityBtn.addEventListener('click', () => {
+            if (!labIdSelect || !bookingDateInput || !timeSlotIdSelect) return;
             const labId = labIdSelect.value;
             const date = bookingDateInput.value;
             const timeSlotId = timeSlotIdSelect.value;
@@ -90,7 +86,7 @@ function initializeBookingForm() {
                 b.labId === labId && 
                 b.date === date && 
                 b.timeSlotId === timeSlotId &&
-                b.status === 'booked' // Only consider 'booked' as unavailable for this check
+                b.status === 'booked' 
             );
 
             if (existingBooking) {
@@ -106,7 +102,9 @@ function initializeBookingForm() {
         bookingForm.addEventListener('submit', function(event) {
             event.preventDefault();
             clearFormErrors();
-            showFormSubmissionMessage('', false); // Clear previous messages
+            showFormSubmissionMessage('', false); 
+
+            if (!labIdSelect || !bookingDateInput || !timeSlotIdSelect) return;
 
             const labId = labIdSelect.value;
             const bookingDate = bookingDateInput.value;
@@ -123,14 +121,13 @@ function initializeBookingForm() {
             if (!purpose.trim()) { showError('purposeError', 'Purpose is required.'); isValid = false; }
 
             const batchId = batchIdentifierInput ? batchIdentifierInput.value.trim() : '';
-            if (currentUserRole === USER_ROLES.CR && !batchId) {
-                showError('batchIdentifierError', 'Batch/Class Name is required for CR bookings.');
+            if (currentUserRole === USER_ROLES.ASSISTANT && !batchId) { // Changed from CR
+                showError('batchIdentifierError', 'Batch/Class Name is required for Assistant bookings.');
                 isValid = false;
             }
             
             if (!isValid) return;
 
-            // Simulate availability check again before booking
             const conflictingBooking = MOCK_BOOKINGS.find(b =>
                 b.labId === labId &&
                 b.date === bookingDate &&
@@ -143,22 +140,21 @@ function initializeBookingForm() {
                 return;
             }
             
-            // Create new booking object
             const newBooking = {
-                id: 'b' + (MOCK_BOOKINGS.length + 1) + Date.now(), // Simple unique ID
+                id: 'b' + (MOCK_BOOKINGS.length + 1) + Date.now(), 
                 labId: labId,
                 date: bookingDate,
                 timeSlotId: timeSlotId,
-                userId: localStorage.getItem('userEmail') || 'current_user', // Get current user ID/email
+                userId: localStorage.getItem('userEmail') || 'current_user', 
                 purpose: purpose,
                 equipmentIds: selectedEquipment,
-                status: currentUserRole === USER_ROLES.FACULTY ? 'booked' : 'pending', // Faculty books directly, CR requests are pending
+                status: currentUserRole === USER_ROLES.FACULTY ? 'booked' : 'pending', 
                 requestedByRole: currentUserRole,
-                batchIdentifier: currentUserRole === USER_ROLES.CR ? batchId : null,
+                batchIdentifier: currentUserRole === USER_ROLES.ASSISTANT ? batchId : null, // Changed from CR
             };
 
             MOCK_BOOKINGS.push(newBooking);
-            saveMockBookings(); // Persist to localStorage (from constants.js)
+            saveMockBookings(); 
 
             const successMessage = currentUserRole === USER_ROLES.FACULTY 
                 ? `Booking for ${newBooking.purpose} confirmed successfully!`
@@ -166,13 +162,12 @@ function initializeBookingForm() {
             showFormSubmissionMessage(successMessage, false);
             
             bookingForm.reset(); 
-            if (currentUserRole === USER_ROLES.CR && batchIdentifierInput) {
-                batchIdentifierInput.value = ''; // Ensure CR-specific field is also reset
+            if (currentUserRole === USER_ROLES.ASSISTANT && batchIdentifierInput) { // Changed from CR
+                batchIdentifierInput.value = ''; 
             }
             if (bookingDateInput) bookingDateInput.min = formatDate(new Date()); 
-            // Clear query params to prevent re-filling if user stays on page
             if (history.pushState) {
-                const newURL = window.location.pathname; // Or specific page URL
+                const newURL = window.location.pathname; 
                 history.pushState({path:newURL}, '', newURL);
             }
         });
@@ -202,14 +197,14 @@ function initializeBookingForm() {
     
     function showFormSubmissionMessage(message, isError) {
         if (formSubmissionMessageEl) {
-            formSubmissionMessageEl.textContent = message; // Set text content
-            if (message) { // Only change style if there's a message
+            formSubmissionMessageEl.textContent = message; 
+            if (message) { 
                 formSubmissionMessageEl.style.color = isError ? 'red' : 'green';
                 formSubmissionMessageEl.className = isError ? 'error-message visible' : 'success-message visible';
                 formSubmissionMessageEl.style.display = 'block';
-            } else { // If message is empty, hide it
+            } else { 
                 formSubmissionMessageEl.style.display = 'none';
-                formSubmissionMessageEl.textContent = ''; // Clear text
+                formSubmissionMessageEl.textContent = ''; 
             }
         }
     }

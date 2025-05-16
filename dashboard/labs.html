@@ -25,7 +25,7 @@
 
         <div class="main-content-wrapper">
             <header class="dashboard-header">
-                <button class="mobile-menu-button" id="mobileMenuButton">
+                <button type="button" class="mobile-menu-button" id="mobileMenuButton">
                     <i data-lucide="menu"></i>
                 </button>
                 <div class="user-nav" id="userNavContainer">
@@ -78,7 +78,9 @@
                     <div class="dialog-content" style="max-width: 750px;">
                         <div class="dialog-header">
                             <h2 id="dialogTitle" class="dialog-title">Slot Details</h2>
-                            <p id="dialogDescription" class="dialog-description"></p>
+                             <button type="button" class="dialog-close-button" id="dialogCloseButton" aria-label="Close">
+                                <i data-lucide="x"></i>
+                            </button>
                         </div>
                         <div id="dialogBody" class="dialog-body">
                             <div id="dialogSlotInfo">
@@ -89,8 +91,8 @@
                             </div>
                         </div>
                         <div class="dialog-footer">
-                            <button id="dialogBookButton" class="button button-primary" style="display:none;">Book This Slot</button>
-                            <button id="dialogCloseButton" class="button button-secondary">Close</button>
+                            <button type="button" id="dialogBookButton" class="button button-primary" style="display:none;">Book This Slot</button>
+                            <button type="button" id="dialogCloseButtonSecondary" class="button button-secondary">Close</button> <!-- Renamed to avoid ID conflict -->
                         </div>
                     </div>
                 </div>
@@ -102,20 +104,34 @@
     <script src="../js/constants.js"></script>
     <script src="../js/utils.js"></script>
     <script src="js/dashboard.js"></script>
-    <script src="js/lab_grid.js"></script> <!-- Specific JS for this page -->
+    <script src="js/lab_grid.js"></script> 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Lab Availability is accessible by Faculty and CR
             const currentUserRole = getCurrentUserRole();
-            if (!roleGuard([USER_ROLES.FACULTY, USER_ROLES.CR, USER_ROLES.ADMIN])) { // Admin can also view
-                // If roleGuard redirects, the rest of the script won't execute.
-                // If it doesn't redirect (e.g. for testing), we might want to stop here.
+            if (!roleGuard([USER_ROLES.FACULTY, USER_ROLES.ASSISTANT, USER_ROLES.ADMIN])) { // Added ASSISTANT
                 return; 
             }
             
-            initializeDashboard(); // From dashboard.js
-            setDashboardHomeLink(); // Sets the correct link for the sidebar header based on role
-            initializeLabGrid(); // From lab_grid.js
+            initializeDashboard(); 
+            setDashboardHomeLink(); 
+            initializeLabGrid(); 
+
+            // Duplicate ID fix: ensure event listener is attached to the correct close button if IDs were unique or use class
+            const dialogCloseButton = document.getElementById('dialogCloseButton'); // In header
+            const dialogCloseButtonSecondary = document.getElementById('dialogCloseButtonSecondary'); // In footer
+            const slotDetailDialog = document.getElementById('slotDetailDialog');
+
+            if(dialogCloseButton) {
+                dialogCloseButton.addEventListener('click', () => {
+                    if(slotDetailDialog) slotDetailDialog.classList.remove('open');
+                });
+            }
+            if(dialogCloseButtonSecondary) {
+                dialogCloseButtonSecondary.addEventListener('click', () => {
+                     if(slotDetailDialog) slotDetailDialog.classList.remove('open');
+                });
+            }
+
 
             if (window.lucide) window.lucide.createIcons();
         });

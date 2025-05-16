@@ -54,14 +54,12 @@ function handleLogin(event) {
 
     // Simulate successful login
     localStorage.setItem('userRole', role);
-    localStorage.setItem('userEmail', email); // Store email for profile display
-    // Try to get a name for user, default to role if not available (e.g. from signup)
+    localStorage.setItem('userEmail', email); 
     const userName = localStorage.getItem('userName') || email.split('@')[0] || role;
     localStorage.setItem('userName', userName);
     
     alert(`Login Successful. Welcome, ${userName}! Redirecting to your dashboard...`);
 
-    // Redirect based on role
     switch (role) {
         case USER_ROLES.ADMIN:
             window.location.href = 'dashboard/admin.html';
@@ -72,14 +70,12 @@ function handleLogin(event) {
         case USER_ROLES.STUDENT:
             window.location.href = 'dashboard/student.html';
             break;
-        case USER_ROLES.CR:
-            window.location.href = 'dashboard/cr.html';
+        case USER_ROLES.ASSISTANT: // Changed from CR
+            window.location.href = 'dashboard/assistant.html'; // Changed path
             break;
         default:
-            // Fallback, should ideally not happen if role validation is correct
             showError('roleError', 'Invalid role selected. Cannot redirect.');
             console.error("Login: Invalid role for redirection:", role);
-            // window.location.href = 'index.html'; // Or a generic error page
     }
 }
 
@@ -89,7 +85,7 @@ function handleSignup(event) {
     const signupButton = document.getElementById('signupButton');
     signupButton.disabled = true;
     signupButton.innerHTML = '<i data-lucide="loader-2" class="button-primary-loader" style="animation: spin 1s linear infinite; margin-right: 0.5rem;"></i> Creating Account...';
-    if (window.lucide) window.lucide.createIcons(); // Render the loader icon
+    if (window.lucide) window.lucide.createIcons();
 
 
     const fullName = document.getElementById('fullName').value;
@@ -126,7 +122,6 @@ function handleSignup(event) {
         return;
     }
 
-    // Simulate API call
     setTimeout(() => {
         localStorage.setItem('userRole', role);
         localStorage.setItem('userEmail', email);
@@ -148,11 +143,11 @@ function handleSignup(event) {
             case USER_ROLES.STUDENT:
                 window.location.href = 'dashboard/student.html';
                 break;
-            case USER_ROLES.CR:
-                window.location.href = 'dashboard/cr.html';
+            case USER_ROLES.ASSISTANT: // Changed from CR
+                window.location.href = 'dashboard/assistant.html'; // Changed path
                 break;
             default:
-                window.location.href = 'index.html'; // Fallback to login
+                window.location.href = 'index.html'; 
         }
     }, 1500);
 }
@@ -167,7 +162,7 @@ function togglePasswordVisibility(fieldId, buttonElement) {
         passwordInput.type = 'password';
         icon.setAttribute('data-lucide', 'eye');
     }
-    if (window.lucide) { // Re-render icon
+    if (window.lucide) { 
       window.lucide.createIcons();
     }
 }

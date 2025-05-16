@@ -25,7 +25,7 @@
 
         <div class="main-content-wrapper">
             <header class="dashboard-header">
-                <button class="mobile-menu-button" id="mobileMenuButton">
+                <button type="button" class="mobile-menu-button" id="mobileMenuButton">
                     <i data-lucide="menu"></i>
                 </button>
                 <div class="user-nav" id="userNavContainer">
@@ -57,8 +57,7 @@
     <script src="js/dashboard.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Accessible by Student and CR
-            if (!roleGuard([USER_ROLES.STUDENT, USER_ROLES.CR])) return;
+            if (!roleGuard([USER_ROLES.STUDENT, USER_ROLES.ASSISTANT])) return; // Added ASSISTANT
             
             initializeDashboard();
             setDashboardHomeLink();
@@ -69,19 +68,14 @@
             
             let userBookings = [];
             if (currentUserRole === USER_ROLES.STUDENT) {
-                 // Students see bookings where they are the userId and it's a student booking OR a CR booking for their batch (if batch matching was implemented)
-                 // For now, just direct student bookings for simplicity.
                 userBookings = MOCK_BOOKINGS.filter(booking => booking.userId === currentUserEmail && booking.status === 'booked');
-            } else if (currentUserRole === USER_ROLES.CR) {
-                // CRs see bookings they made for their class (batchIdentifier) or direct bookings if any.
-                // For simplicity, CRs see bookings they made that are 'booked' or 'pending'.
+            } else if (currentUserRole === USER_ROLES.ASSISTANT) {
                 userBookings = MOCK_BOOKINGS.filter(booking => booking.userId === currentUserEmail && (booking.status === 'booked' || booking.status === 'pending'));
             }
 
 
             if (userBookings.length > 0) {
-                scheduleListContainer.innerHTML = ''; // Clear loading message
-                // Sort by date and time
+                scheduleListContainer.innerHTML = ''; 
                 userBookings.sort((a,b) => new Date(a.date + 'T' + MOCK_TIME_SLOTS.find(ts => ts.id === a.timeSlotId).startTime) - new Date(b.date + 'T' + MOCK_TIME_SLOTS.find(ts => ts.id === b.timeSlotId).startTime));
 
                 userBookings.forEach(booking => {
