@@ -1,4 +1,5 @@
 
+
 function initializeLabGrid() {
     const labSelector = document.getElementById('labSelector');
     const gridContainer = document.getElementById('labAvailabilityGrid');
@@ -184,7 +185,7 @@ function initializeLabGrid() {
 
         const title = document.createElement('h4');
         title.className = 'text-sm font-medium mb-3 text-center text-muted-foreground';
-        title.textContent = `Illustrative Lab Layout for ${capacity} Desks`;
+        title.textContent = `Lab Layout for ${capacity} Desks`; // Removed "Illustrative"
         dialogLabLayoutVisualization.appendChild(title);
 
         // Teacher's Desk
@@ -218,7 +219,6 @@ function initializeLabGrid() {
         // Handle potential negative numRightDesks if capacity is very small and rounding pushes sum(left, middle) > capacity
         if (numRightDesks < 0) {
             // If right becomes negative, try to take from middle, then left.
-            // This is a simple correction; more sophisticated distribution might be needed for edge cases.
             numMiddleDesks += numRightDesks; // numRightDesks is negative
             numRightDesks = 0;
             if (numMiddleDesks < 0) {
@@ -298,3 +298,4 @@ function initializeLabGrid() {
 
     renderGrid(); // Initial render
 }
+
