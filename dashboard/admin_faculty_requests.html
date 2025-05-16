@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -24,7 +25,7 @@
 
         <div class="main-content-wrapper">
             <header class="dashboard-header">
-                <button class="mobile-menu-button" id="mobileMenuButton">
+                <button class="mobile-menu-button" id="mobileMenuButton" type="button">
                     <i data-lucide="menu"></i>
                 </button>
                 <div class="user-nav" id="userNavContainer">
@@ -41,10 +42,21 @@
                         <p class="text-muted-foreground">
                             Review reschedule or special booking requests from faculty.
                         </p>
-                        <!-- Placeholder for faculty requests interface -->
                         <div class="mt-4 p-4 border rounded-md bg-gray-50">
-                            <h2 class="text-lg font-semibold">Faculty Requests Area</h2>
+                            <h2 class="text-lg font-semibold mb-2">Faculty Requests Area</h2>
                             <p>List of pending requests from faculty will be displayed here with options to approve or reject.</p>
+                            
+                            <div class="custom-card p-4 mt-3 bg-white shadow-sm">
+                                <h4 class="font-semibold text-md mb-1">Sample Faculty Request:</h4>
+                                <p class="text-sm"><strong>Faculty:</strong> Dr. Eleanor Vance (evance@example.com)</p>
+                                <p class="text-sm"><strong>Request Type:</strong> Special Equipment Allocation</p>
+                                <p class="text-sm"><strong>Details:</strong> Needs exclusive access to the High-Frequency Spectrometer in Physics Lab Alpha for advanced research on ${formatDate(new Date(new Date().setDate(new Date().getDate() + 5)))} from 1:00 PM to 4:00 PM.</p>
+                                <p class="text-sm"><strong>Status:</strong> <span class="font-medium text-yellow-600">Pending Review</span></p>
+                                <div class="mt-2">
+                                    <button class="button button-primary button-sm mr-2" onclick="alert('Simulating: Approving request for Dr. Vance...')">Approve</button>
+                                    <button class="button button-secondary button-sm" onclick="alert('Simulating: Rejecting request for Dr. Vance...')">Reject</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

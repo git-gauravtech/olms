@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -24,7 +25,7 @@
 
         <div class="main-content-wrapper">
             <header class="dashboard-header">
-                <button class="mobile-menu-button" id="mobileMenuButton">
+                <button class="mobile-menu-button" id="mobileMenuButton" type="button">
                     <i data-lucide="menu"></i>
                 </button>
                 <div class="user-nav" id="userNavContainer">
@@ -41,10 +42,26 @@
                         <p class="text-muted-foreground">
                             Monitor all lab bookings and manage scheduling conflicts.
                         </p>
-                        <!-- Placeholder for bookings overview interface -->
                         <div class="mt-4 p-4 border rounded-md bg-gray-50">
-                            <h2 class="text-lg font-semibold">Bookings Overview Area</h2>
+                            <h2 class="text-lg font-semibold mb-2">Bookings Overview Area</h2>
                             <p>Table or list of all bookings will be displayed here. Filters for date, lab, status, etc.</p>
+                            
+                            <div class="custom-card p-4 mt-3 bg-white shadow-sm">
+                                <h4 class="font-semibold text-md mb-1">Sample Booking:</h4>
+                                <p class="text-sm"><strong>Lab:</strong> Physics Lab Alpha</p>
+                                <p class="text-sm"><strong>Date:</strong> ${formatDate(new Date())} (Today)</p>
+                                <p class="text-sm"><strong>Time:</strong> 10:00 AM - 11:00 AM</p>
+                                <p class="text-sm"><strong>User:</strong> faculty1@example.com</p>
+                                <p class="text-sm"><strong>Status:</strong> <span class="font-medium text-green-600">Booked</span></p>
+                            </div>
+                             <div class="custom-card p-4 mt-3 bg-white shadow-sm">
+                                <h4 class="font-semibold text-md mb-1">Sample Pending Booking:</h4>
+                                <p class="text-sm"><strong>Lab:</strong> Computer Lab Gamma</p>
+                                <p class="text-sm"><strong>Date:</strong> ${formatDate(new Date(new Date().setDate(new Date().getDate() + 1)))} (Tomorrow)</p>
+                                <p class="text-sm"><strong>Time:</strong> 02:00 PM - 03:00 PM</p>
+                                <p class="text-sm"><strong>User:</strong> cr_user@example.com (For Batch: CSE Year 2)</p>
+                                <p class="text-sm"><strong>Status:</strong> <span class="font-medium text-yellow-600">Pending</span></p>
+                            </div>
                         </div>
                     </div>
                 </div>
