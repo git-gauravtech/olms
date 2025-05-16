@@ -75,13 +75,19 @@
 
                 <!-- Dialog for slot details -->
                 <div id="slotDetailDialog" class="dialog-overlay">
-                    <div class="dialog-content">
+                    <div class="dialog-content" style="max-width: 750px;"> <!-- Increased max-width -->
                         <div class="dialog-header">
                             <h2 id="dialogTitle" class="dialog-title">Slot Details</h2>
                             <p id="dialogDescription" class="dialog-description"></p>
                         </div>
-                        <div id="dialogBody" class="dialog-body">
-                            <!-- Content will be populated by JS -->
+                        <div id="dialogBody" class="dialog-body dialog-body-split">
+                            <div id="dialogSlotInfo" class="dialog-slot-info-left">
+                                <!-- Slot details will be populated here by JS -->
+                            </div>
+                            <div id="dialogLabLayoutVisualization" class="dialog-lab-layout-right">
+                                <h4 class="text-sm font-medium mb-2 text-muted-foreground">Lab Layout (Illustrative)</h4>
+                                <!-- Lab layout visualization will be populated here by JS -->
+                            </div>
                         </div>
                         <div class="dialog-footer">
                             <button id="dialogBookButton" class="button button-primary" style="display:none;">Book This Slot</button>

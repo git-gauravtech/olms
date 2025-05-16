@@ -10,7 +10,8 @@ function initializeLabGrid() {
     const slotDetailDialog = document.getElementById('slotDetailDialog');
     const dialogTitle = document.getElementById('dialogTitle');
     const dialogDescription = document.getElementById('dialogDescription');
-    const dialogBody = document.getElementById('dialogBody');
+    const dialogSlotInfoContainer = document.getElementById('dialogSlotInfo'); // Left side for details
+    const dialogLabLayoutContainer = document.getElementById('dialogLabLayoutVisualization'); // Right side for layout
     const dialogBookButton = document.getElementById('dialogBookButton');
     const dialogCloseButton = document.getElementById('dialogCloseButton');
 
@@ -149,12 +150,54 @@ function initializeLabGrid() {
         if (window.lucide) window.lucide.createIcons(); // For any icons used in dialogs
     }
 
+    function renderLabLayoutVisualization(labId) {
+        dialogLabLayoutContainer.innerHTML = '<h4 class="text-sm font-medium mb-2 text-muted-foreground">Lab Layout (Illustrative)</h4>'; // Reset with title
+
+        const lab = MOCK_LABS.find(l => l.id === labId);
+        const capacity = lab ? lab.capacity : 20; // Default if lab not found or capacity not set
+        const desksPerRow = 4; // Example: 4 desks per row
+        const numRows = Math.ceil(capacity / desksPerRow);
+
+        // Add a teacher's desk (optional visual element)
+        const teacherDesk = document.createElement('div');
+        teacherDesk.className = 'lab-layout-teacher-desk';
+        teacherDesk.textContent = 'T';
+        dialogLabLayoutContainer.appendChild(teacherDesk);
+        
+        const studentDesksContainer = document.createElement('div');
+        studentDesksContainer.className = 'lab-layout-container';
+
+
+        for (let i = 0; i < numRows; i++) {
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'lab-layout-row';
+            for (let j = 0; j < desksPerRow; j++) {
+                const deskIndex = i * desksPerRow + j;
+                if (deskIndex < capacity) {
+                    const deskDiv = document.createElement('div');
+                    deskDiv.className = 'lab-layout-desk';
+                    // deskDiv.textContent = `${deskIndex + 1}`; // Optional: desk number
+                    rowDiv.appendChild(deskDiv);
+                } else {
+                    // Optional: Add empty space if capacity not a multiple of desksPerRow
+                    const emptySpace = document.createElement('div');
+                    emptySpace.className = 'lab-layout-desk';
+                    emptySpace.style.visibility = 'hidden';
+                    rowDiv.appendChild(emptySpace);
+                }
+            }
+            studentDesksContainer.appendChild(rowDiv);
+        }
+        dialogLabLayoutContainer.appendChild(studentDesksContainer);
+    }
+
+
     function showSlotDetails(labId, date, timeSlot, booking) {
         const lab = MOCK_LABS.find(l => l.id === labId);
         dialogTitle.textContent = `Details for ${lab.name}`;
         dialogDescription.textContent = `Date: ${date}, Time: ${timeSlot.displayTime}`;
         
-        dialogBody.innerHTML = ''; // Clear previous details
+        dialogSlotInfoContainer.innerHTML = ''; // Clear previous details
         dialogBookButton.style.display = 'none'; // Hide by default
 
         const now = new Date();
@@ -163,29 +206,29 @@ function initializeLabGrid() {
         if (slotDateTime < now && !booking) {
              const pStatus = document.createElement('p');
             pStatus.innerHTML = `<strong>Status:</strong> Past (Unavailable for booking)`;
-            dialogBody.appendChild(pStatus);
+            dialogSlotInfoContainer.appendChild(pStatus);
         } else if (booking) {
             const pStatus = document.createElement('p');
             pStatus.innerHTML = `<strong>Status:</strong> <span class="font-bold text-lg">${booking.status.toUpperCase()}</span>`;
-            dialogBody.appendChild(pStatus);
+            dialogSlotInfoContainer.appendChild(pStatus);
 
             const pPurpose = document.createElement('p');
             pPurpose.innerHTML = `<strong>Purpose:</strong> ${booking.purpose || 'N/A'}`;
-            dialogBody.appendChild(pPurpose);
+            dialogSlotInfoContainer.appendChild(pPurpose);
 
             const pUser = document.createElement('p');
             pUser.innerHTML = `<strong>Booked By:</strong> ${booking.userId} (${booking.requestedByRole})`;
-            dialogBody.appendChild(pUser);
+            dialogSlotInfoContainer.appendChild(pUser);
 
             if (booking.batchIdentifier) {
                 const pBatch = document.createElement('p');
                 pBatch.innerHTML = `<strong>Batch/Class:</strong> ${booking.batchIdentifier}`;
-                dialogBody.appendChild(pBatch);
+                dialogSlotInfoContainer.appendChild(pBatch);
             }
         } else { // Available
             const pStatus = document.createElement('p');
             pStatus.innerHTML = `<strong>Status:</strong> <span class="font-bold text-lg text-green-600">Available</span>`;
-            dialogBody.appendChild(pStatus);
+            dialogSlotInfoContainer.appendChild(pStatus);
             
             const currentUserRole = getCurrentUserRole();
             // Allow Faculty and CR to see the book button
@@ -197,6 +240,8 @@ function initializeLabGrid() {
                  };
             }
         }
+        
+        renderLabLayoutVisualization(labId); // Render the lab layout visualization
         slotDetailDialog.classList.add('open');
     }
 

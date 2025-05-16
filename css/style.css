@@ -756,6 +756,54 @@ code {
   flex-wrap: wrap; /* Allow buttons to wrap on small screens */
 }
 
+/* Lab Slot Detail Dialog Enhancements */
+.dialog-body-split {
+    display: flex;
+    gap: 1.5rem; /* Space between details and layout */
+}
+.dialog-slot-info-left {
+    flex: 1; /* Takes up available space */
+}
+.dialog-lab-layout-right {
+    flex: 0 0 200px; /* Fixed width for the layout, adjust as needed */
+    border-left: 1px solid #eee;
+    padding-left: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.lab-layout-container {
+    display: grid;
+    gap: 0.5rem; /* Gap between desks */
+    width: 100%;
+    margin-top: 0.5rem;
+}
+.lab-layout-row {
+    display: flex;
+    justify-content: space-around; /* Distribute desks in a row */
+}
+.lab-layout-desk {
+    width: 20px; /* Size of the desk */
+    height: 30px;
+    background-color: #b0bec5; /* Desk color */
+    border: 1px solid #78909c;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.6rem;
+    color: white;
+}
+/* Style for teacher's desk (example) */
+.lab-layout-teacher-desk {
+    width: 40px;
+    height: 25px;
+    background-color: #78909c; /* Darker desk color */
+    border: 1px solid #546e7a;
+    border-radius: 3px;
+    margin-bottom: 1rem; /* Space above student desks */
+}
+
 
 /* Styles for dynamically rendered lists (e.g., labs, equipment) */
 .entity-list {
