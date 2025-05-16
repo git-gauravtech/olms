@@ -10,8 +10,8 @@ function initializeLabGrid() {
     const slotDetailDialog = document.getElementById('slotDetailDialog');
     const dialogTitle = document.getElementById('dialogTitle');
     const dialogDescription = document.getElementById('dialogDescription');
-    const dialogSlotInfoContainer = document.getElementById('dialogSlotInfo'); // Left side for details
-    const dialogLabLayoutContainer = document.getElementById('dialogLabLayoutVisualization'); // Right side for layout
+    const dialogSlotInfoContainer = document.getElementById('dialogSlotInfo'); 
+    const dialogLabLayoutVisualization = document.getElementById('dialogLabLayoutVisualization');
     const dialogBookButton = document.getElementById('dialogBookButton');
     const dialogCloseButton = document.getElementById('dialogCloseButton');
 
@@ -22,7 +22,7 @@ function initializeLabGrid() {
     MOCK_LABS.forEach(lab => {
         const option = document.createElement('option');
         option.value = lab.id;
-        option.textContent = lab.name;
+        option.textContent = `${lab.name} (Capacity: ${lab.capacity})`;
         labSelector.appendChild(option);
     });
     if (MOCK_LABS.length > 0) {
@@ -150,45 +150,66 @@ function initializeLabGrid() {
         if (window.lucide) window.lucide.createIcons(); // For any icons used in dialogs
     }
 
+    function renderDesk(number) {
+        const desk = document.createElement('div');
+        desk.className = 'lab-layout-desk';
+        // desk.textContent = number; // Optionally show desk number
+        return desk;
+    }
+
+    function createDeskSection(totalDesks, desksPerRow) {
+        const section = document.createElement('div');
+        section.className = 'dialog-lab-layout-section';
+        let desksCreated = 0;
+        while (desksCreated < totalDesks) {
+            const row = document.createElement('div');
+            row.className = 'lab-layout-row';
+            for (let i = 0; i < desksPerRow && desksCreated < totalDesks; i++) {
+                row.appendChild(renderDesk(desksCreated + 1));
+                desksCreated++;
+            }
+            section.appendChild(row);
+        }
+        return section;
+    }
+
     function renderLabLayoutVisualization(labId) {
-        dialogLabLayoutContainer.innerHTML = '<h4 class="text-sm font-medium mb-2 text-muted-foreground">Lab Layout (Illustrative)</h4>'; // Reset with title
+        dialogLabLayoutVisualization.innerHTML = ''; // Clear previous layout
 
         const lab = MOCK_LABS.find(l => l.id === labId);
-        const capacity = lab ? lab.capacity : 20; // Default if lab not found or capacity not set
-        const desksPerRow = 4; // Example: 4 desks per row
-        const numRows = Math.ceil(capacity / desksPerRow);
+        const capacity = lab ? lab.capacity : 0;
 
-        // Add a teacher's desk (optional visual element)
+        const title = document.createElement('h4');
+        title.className = 'text-sm font-medium mb-3 text-center text-muted-foreground';
+        title.textContent = `Illustrative Lab Layout (Example for ~70 Capacity)`;
+        dialogLabLayoutVisualization.appendChild(title);
+
+        // Teacher's Desk
         const teacherDesk = document.createElement('div');
         teacherDesk.className = 'lab-layout-teacher-desk';
-        teacherDesk.textContent = 'T';
-        dialogLabLayoutContainer.appendChild(teacherDesk);
+        teacherDesk.textContent = 'Teacher';
+        dialogLabLayoutVisualization.appendChild(teacherDesk);
+
+        const mainLayoutContainer = document.createElement('div');
+        mainLayoutContainer.className = 'dialog-lab-layout-container';
+
+        // Left Section: 25 desks, 3 per row
+        mainLayoutContainer.appendChild(createDeskSection(25, 3));
         
-        const studentDesksContainer = document.createElement('div');
-        studentDesksContainer.className = 'lab-layout-container';
+        // Middle Section: 20 desks, 2 per row
+        mainLayoutContainer.appendChild(createDeskSection(20, 2));
 
-
-        for (let i = 0; i < numRows; i++) {
-            const rowDiv = document.createElement('div');
-            rowDiv.className = 'lab-layout-row';
-            for (let j = 0; j < desksPerRow; j++) {
-                const deskIndex = i * desksPerRow + j;
-                if (deskIndex < capacity) {
-                    const deskDiv = document.createElement('div');
-                    deskDiv.className = 'lab-layout-desk';
-                    // deskDiv.textContent = `${deskIndex + 1}`; // Optional: desk number
-                    rowDiv.appendChild(deskDiv);
-                } else {
-                    // Optional: Add empty space if capacity not a multiple of desksPerRow
-                    const emptySpace = document.createElement('div');
-                    emptySpace.className = 'lab-layout-desk';
-                    emptySpace.style.visibility = 'hidden';
-                    rowDiv.appendChild(emptySpace);
-                }
-            }
-            studentDesksContainer.appendChild(rowDiv);
+        // Right Section: 25 desks, 3 per row
+        mainLayoutContainer.appendChild(createDeskSection(25, 3));
+        
+        dialogLabLayoutVisualization.appendChild(mainLayoutContainer);
+        
+        if (capacity !== 70 && capacity > 0) {
+            const note = document.createElement('p');
+            note.className = 'text-xs text-center text-muted-foreground mt-2';
+            note.textContent = `Note: This lab's actual capacity is ${capacity}. The layout shown is a fixed example.`;
+            dialogLabLayoutVisualization.appendChild(note);
         }
-        dialogLabLayoutContainer.appendChild(studentDesksContainer);
     }
 
 
@@ -241,7 +262,7 @@ function initializeLabGrid() {
             }
         }
         
-        renderLabLayoutVisualization(labId); // Render the lab layout visualization
+        renderLabLayoutVisualization(labId); // Render the new lab layout
         slotDetailDialog.classList.add('open');
     }
 

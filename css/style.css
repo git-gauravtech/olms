@@ -713,7 +713,7 @@ code {
 
 .dialog-body {
     margin-bottom: 1.5rem;
-    max-height: 60vh; /* Prevent modal from being too tall */
+    max-height: 70vh; /* Increased max-height for taller content */
     overflow-y: auto; /* Add scroll if content overflows */
 }
 .dialog-body p { /* General p inside dialog body */
@@ -756,35 +756,30 @@ code {
   flex-wrap: wrap; /* Allow buttons to wrap on small screens */
 }
 
-/* Lab Slot Detail Dialog Enhancements */
-.dialog-body-split {
+/* Lab Slot Detail Dialog Enhancements (Illustrative Layout) */
+.dialog-lab-layout-container {
+    display: flex; /* Main container for left, middle, right sections */
+    justify-content: space-around;
+    gap: 1rem; /* Gap between sections */
+    margin-top: 1rem;
+    padding: 0.5rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    background-color: #f9f9f9;
+}
+.dialog-lab-layout-section {
     display: flex;
-    gap: 1.5rem; /* Space between details and layout */
-}
-.dialog-slot-info-left {
-    flex: 1; /* Takes up available space */
-}
-.dialog-lab-layout-right {
-    flex: 0 0 200px; /* Fixed width for the layout, adjust as needed */
-    border-left: 1px solid #eee;
-    padding-left: 1.5rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-.lab-layout-container {
-    display: grid;
-    gap: 0.5rem; /* Gap between desks */
-    width: 100%;
-    margin-top: 0.5rem;
+    flex-direction: column; /* Desks stack vertically in rows */
+    align-items: center; /* Center rows horizontally if they don't fill width */
+    gap: 0.5rem; /* Gap between rows of desks */
 }
 .lab-layout-row {
     display: flex;
-    justify-content: space-around; /* Distribute desks in a row */
+    gap: 0.5rem; /* Gap between desks in a row */
 }
 .lab-layout-desk {
-    width: 20px; /* Size of the desk */
-    height: 30px;
+    width: 25px; /* Size of the desk */
+    height: 35px;
     background-color: #b0bec5; /* Desk color */
     border: 1px solid #78909c;
     border-radius: 3px;
@@ -793,15 +788,21 @@ code {
     justify-content: center;
     font-size: 0.6rem;
     color: white;
+    box-shadow: 1px 1px 2px rgba(0,0,0,0.1);
 }
-/* Style for teacher's desk (example) */
 .lab-layout-teacher-desk {
-    width: 40px;
-    height: 25px;
+    width: 50px;
+    height: 30px;
     background-color: #78909c; /* Darker desk color */
     border: 1px solid #546e7a;
     border-radius: 3px;
-    margin-bottom: 1rem; /* Space above student desks */
+    margin: 0 auto 1rem auto; /* Center and space below */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.7rem;
+    box-shadow: 1px 1px 3px rgba(0,0,0,0.2);
 }
 
 

@@ -14,7 +14,7 @@
             <div class="sidebar-header">
                 <a href="#" class="sidebar-header-link" id="dashboardHomeLink">
                     <i data-lucide="atom"></i>
-                    <span class="sidebar-title">Optimized Lab Management</span>
+                    <span class="sidebar-title">Optimized Lab Management System</span>
                 </a>
             </div>
             <ul class="sidebar-nav" id="sidebarNav">
@@ -75,17 +75,16 @@
 
                 <!-- Dialog for slot details -->
                 <div id="slotDetailDialog" class="dialog-overlay">
-                    <div class="dialog-content" style="max-width: 750px;"> <!-- Increased max-width -->
+                    <div class="dialog-content" style="max-width: 750px;">
                         <div class="dialog-header">
                             <h2 id="dialogTitle" class="dialog-title">Slot Details</h2>
                             <p id="dialogDescription" class="dialog-description"></p>
                         </div>
-                        <div id="dialogBody" class="dialog-body dialog-body-split">
-                            <div id="dialogSlotInfo" class="dialog-slot-info-left">
+                        <div id="dialogBody" class="dialog-body">
+                            <div id="dialogSlotInfo">
                                 <!-- Slot details will be populated here by JS -->
                             </div>
-                            <div id="dialogLabLayoutVisualization" class="dialog-lab-layout-right">
-                                <h4 class="text-sm font-medium mb-2 text-muted-foreground">Lab Layout (Illustrative)</h4>
+                            <div id="dialogLabLayoutVisualization" style="margin-top: 1.5rem; border-top: 1px solid #eee; padding-top: 1rem;">
                                 <!-- Lab layout visualization will be populated here by JS -->
                             </div>
                         </div>
