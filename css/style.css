@@ -16,19 +16,287 @@ code {
     monospace;
 }
 
-/* Auth Page Styles */
-.auth-page {
+/* --- New Login Page Styles --- */
+.login-page-background {
+    background-color: #E0E7FF; /* Light subtle blue background for the page */
+    display: flex;
+    min-height: 100vh;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.login-container {
+    display: flex;
+    width: 100%;
+    max-width: 900px; /* Max width of the entire login card */
+    background-color: #fff;
+    border-radius: 1.5rem; /* More rounded corners */
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+    overflow: hidden; /* Important for rounded corners on children */
+}
+
+.login-info-panel {
+    flex-basis: 45%; /* Left panel takes up 45% */
+    background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%); /* Blue gradient */
+    color: white;
+    padding: 3rem 2.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* Center content vertically */
+    position: relative;
+    overflow: hidden;
+}
+
+.login-info-content h2 {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.05em;
+}
+
+.login-info-content p {
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.85);
+    line-height: 1.5;
+}
+
+.sphere {
+    position: absolute;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.15); /* Semi-transparent white spheres */
+    opacity: 0.7;
+}
+
+.sphere1 {
+    width: 150px;
+    height: 150px;
+    bottom: -75px;
+    left: -75px;
+    background-color: rgba(147, 197, 253, 0.3); /* Lighter blue sphere */
+}
+
+.sphere2 {
+    width: 200px;
+    height: 200px;
+    top: -100px;
+    right: -100px;
+     background-color: rgba(96, 165, 250, 0.3);
+}
+.sphere3 {
+    width: 100px;
+    height: 100px;
+    bottom: 20px;
+    right: 20%;
+    background-color: rgba(219, 234, 254, 0.2);
+}
+
+
+.login-form-panel {
+    flex-basis: 55%; /* Right panel takes up 55% */
+    padding: 3rem 2.5rem; /* More padding */
+    background-color: #fff;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.login-form-panel h3 {
+    font-size: 1.75rem; /* Slightly smaller "Sign In" */
+    font-weight: 600;
+    margin-bottom: 2rem; /* More space below title */
+    color: #1F2937; /* Darker grey for title */
+}
+
+.modern-auth-form .input-group {
+    position: relative;
+    margin-bottom: 0.5rem; /* Reduced margin for error message placement */
+}
+.modern-auth-form .input-group .input-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9CA3AF; /* Icon color */
+    width: 18px;
+    height: 18px;
+}
+
+.modern-auth-form input[type="email"],
+.modern-auth-form input[type="password"],
+.modern-auth-form select {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.85rem 1rem 0.85rem 2.5rem; /* Padding for icon */
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: #374151;
+    background-color: #F9FAFB; /* Very light grey background for inputs */
+    border: 1px solid #D1D5DB; /* Softer border */
+    border-radius: 0.5rem; /* More rounded inputs */
+    transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+}
+.modern-auth-form select {
+    padding-right: 1rem; /* Ensure select arrow is visible */
+    appearance: none; /* Remove default select styling */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236B7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1.25em 1.25em;
+}
+
+
+.modern-auth-form input:focus,
+.modern-auth-form select:focus {
+  border-color: #2563EB; /* Blue focus border */
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, .25); /* Blue focus ring */
+}
+/* Error messages directly after input-group, before next input-group */
+.modern-auth-form .error-message {
+  color: #EF4444; /* Red for errors */
+  font-size: 0.8rem;
+  margin-top: 0.1rem;
+  margin-bottom: 0.75rem; /* Space before next element */
+  display: none; /* Hidden by default */
+  padding-left: 0.25rem;
+}
+.modern-auth-form .error-message.visible {
+    display: block;
+}
+
+
+.forgot-password-link {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.8rem;
+    color: #3B82F6; /* Blue link */
+    text-decoration: none;
+}
+.forgot-password-link:hover {
+    text-decoration: underline;
+}
+
+.modern-button {
+    padding: 0.85rem 1.25rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    border-radius: 0.5rem;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.modern-button.button-primary {
+    background-color: #2563EB; /* Primary blue button */
+    color: white;
+    margin-top: 1rem; /* Space above main button */
+}
+.modern-button.button-primary:hover {
+    background-color: #1D4ED8; /* Darker blue */
+}
+.modern-button.button-primary:disabled {
+    background-color: #93C5FD; /* Lighter blue for disabled */
+    cursor: not-allowed;
+}
+
+.form-separator {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    color: #9CA3AF;
+    font-size: 0.8rem;
+    margin: 1.25rem 0;
+}
+.form-separator::before,
+.form-separator::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid #E5E7EB;
+}
+.form-separator:not(:empty)::before {
+    margin-right: .5em;
+}
+.form-separator:not(:empty)::after {
+    margin-left: .5em;
+}
+
+.google-signin-button {
+    background-color: #fff;
+    color: #374151; /* Dark grey text */
+    border: 1px solid #D1D5DB; /* Grey border */
+    gap: 0.5rem;
+}
+.google-signin-button:hover {
+    background-color: #F9FAFB; /* Very light grey on hover */
+}
+.google-signin-button .svg-icon {
+    width: 18px;
+    height: 18px;
+}
+
+.modern-auth-switch {
+    margin-top: 1.5rem;
+    text-align: center;
+    font-size: 0.875rem;
+    color: #6B7281;
+}
+.modern-auth-switch a {
+    font-weight: 500;
+    color: #3B82F6; /* Blue link */
+    text-decoration: none;
+}
+.modern-auth-switch a:hover {
+    text-decoration: underline;
+}
+
+/* Responsive adjustments for login page */
+@media (max-width: 768px) {
+    .login-container {
+        flex-direction: column;
+        max-width: 450px; /* Stack on mobile, similar to old auth-card width */
+    }
+    .login-info-panel {
+        flex-basis: auto; /* Allow to shrink */
+        padding: 2rem 1.5rem;
+        border-radius: 1.5rem 1.5rem 0 0; /* Adjust rounding */
+    }
+     .login-info-panel h2 {
+        font-size: 2rem;
+    }
+    .login-info-content p {
+        font-size: 0.9rem;
+    }
+    .login-form-panel {
+        flex-basis: auto;
+        padding: 2rem 1.5rem;
+        border-radius: 0 0 1.5rem 1.5rem;
+    }
+    .sphere1, .sphere2, .sphere3 { /* Hide or simplify spheres on mobile if they cause issues */
+        display: none; 
+    }
+}
+
+
+/* --- Old Auth Page Styles (to be phased out or integrated if still used elsewhere) --- */
+/* Keep these for now if signup page still uses them, but login has new specific styles */
+.auth-page { /* General auth page container */
     display: flex;
     min-height: 100vh;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    /* Teal and subtle grey gradient */
     background: linear-gradient(to bottom right, rgba(20, 153, 122, 0.1), white, rgba(100, 116, 139, 0.05));
     padding: 1rem;
 }
 
-.auth-card {
+.auth-card { /* Card for signup or other simple auth forms */
     background-color: white;
     border: 1px solid #dee2e6;
     border-radius: 0.75rem;
@@ -36,7 +304,7 @@ code {
     margin-bottom: 1rem;
     padding: 2rem;
     width: 100%;
-    max-width: 450px;
+    max-width: 450px; /* Default width for simple auth cards */
 }
 
 .auth-header {
@@ -63,7 +331,7 @@ code {
     margin-bottom: 0;
 }
 
-.auth-form .form-group {
+.auth-form .form-group { /* Used by signup */
     margin-bottom: 1.5rem;
 }
 
@@ -96,7 +364,7 @@ code {
   box-shadow: 0 0 0 0.2rem rgba(20, 153, 122, .25); /* Teal focus ring */
 }
 
-.password-wrapper {
+.password-wrapper { /* Used by signup */
     position: relative;
     display: flex;
     align-items: center;
@@ -130,7 +398,7 @@ code {
 }
 
 
-.auth-switch-link {
+.auth-switch-link { /* Used by signup */
     margin-top: 1.5rem;
     text-align: center;
     font-size: 0.875rem;
@@ -138,7 +406,7 @@ code {
 }
 .auth-switch-link a {
     font-weight: 600;
-    color: #14997A; /* Teal */
+    color: #14997A; /* Teal for signup page link */
     text-decoration: none;
 }
 .auth-switch-link a:hover {
@@ -146,7 +414,7 @@ code {
 }
 
 
-/* Basic button styling */
+/* Basic button styling (can be base for .modern-button or separate) */
 .button {
   display: inline-flex;
   align-items: center;
@@ -165,7 +433,7 @@ code {
     width: 100%;
 }
 
-.button-primary {
+.button-primary { /* General primary button style, teal theme */
   background-color: #14997A; /* Teal */
   color: white;
 }
@@ -182,7 +450,7 @@ code {
     animation: spin 1s linear infinite;
 }
 
-.button-secondary {
+.button-secondary { /* General secondary button, grey theme */
   background-color: #5A6872; /* Bluish Grey */
   color: white;
 }
@@ -190,7 +458,7 @@ code {
   background-color: #4C5860; /* Darker Bluish Grey */
 }
 
-.button-outline {
+.button-outline { /* General outline button, teal theme */
   background-color: transparent;
   border-color: #14997A; /* Teal */
   color: #14997A; /* Teal */
@@ -199,6 +467,7 @@ code {
   background-color: rgba(20, 153, 122, 0.1); /* Light Teal background */
 }
 
+/* General error messages for forms other than login */
 .error-message {
   color: red;
   font-size: 0.875em;
