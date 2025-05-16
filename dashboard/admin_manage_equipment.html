@@ -42,21 +42,59 @@
                         <p class="text-muted-foreground">
                             Oversee laboratory equipment, inventory, status, and assignments.
                         </p>
-                        <div class="mt-4 p-4 border rounded-md bg-gray-50">
-                            <h2 class="text-lg font-semibold mb-2">Equipment Management Area</h2>
-                            <p>Equipment listing, add/edit/delete forms will be here.</p>
-                             <button class="button button-primary mt-2" onclick="alert('Simulating: Opening form to add new equipment...')">Add New Equipment</button>
+                         <button type="button" id="addNewEquipmentBtn" class="button button-primary mt-4 mb-4">
+                            <i data-lucide="plus-circle" class="mr-2"></i> Add New Equipment
+                        </button>
                              
-                            <div class="mt-4">
-                                <h4 class="font-medium">Existing Equipment (Example):</h4>
-                                <ul class="list-disc list-inside text-sm text-muted-foreground">
-                                    <li>Olympus Microscope X2000 - Status: Available</li>
-                                    <li>Tektronix TDS1000 - Status: Maintenance</li>
-                                </ul>
-                            </div>
+                        <div id="equipmentListContainer" class="mt-4">
+                            <!-- Equipment will be listed here by JS -->
+                            <p>Loading equipment...</p>
                         </div>
                     </div>
                 </div>
+
+                 <!-- Modal for Add/Edit Equipment -->
+                <div id="equipmentModal" class="dialog-overlay">
+                    <div class="dialog-content" style="max-width: 500px;">
+                        <form id="equipmentForm">
+                            <div class="dialog-header">
+                                <h2 id="equipmentModalTitle" class="dialog-title">Add New Equipment</h2>
+                                <button type="button" class="dialog-close-button" id="closeEquipmentModalBtn" aria-label="Close">
+                                    <i data-lucide="x"></i>
+                                </button>
+                            </div>
+                            <div class="dialog-body">
+                                <input type="hidden" id="equipmentId" name="equipmentId">
+                                <div class="form-group">
+                                    <label for="equipmentName">Equipment Name</label>
+                                    <input type="text" id="equipmentName" name="equipmentName" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="equipmentType">Type</label>
+                                    <input type="text" id="equipmentType" name="equipmentType" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="equipmentStatus">Status</label>
+                                    <select id="equipmentStatus" name="equipmentStatus" required>
+                                        <!-- Status options populated by JS -->
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="equipmentLabId">Assigned Lab (Optional)</label>
+                                    <select id="equipmentLabId" name="equipmentLabId">
+                                        <option value="">None</option>
+                                        <!-- Lab options populated by JS -->
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="dialog-footer">
+                                <button type="button" class="button button-secondary" id="cancelEquipmentModalBtn">Cancel</button>
+                                <button type="submit" class="button button-primary">Save Equipment</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
             </main>
         </div>
     </div>
@@ -64,12 +102,16 @@
     <script src="../js/constants.js"></script>
     <script src="../js/utils.js"></script>
     <script src="js/dashboard.js"></script>
+    <script src="js/admin_management.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             if (!roleGuard(USER_ROLES.ADMIN)) return;
             initializeDashboard();
+            initializeEquipmentManagementPage(); // From admin_management.js
             if (window.lucide) window.lucide.createIcons();
         });
     </script>
 </body>
 </html>
+
+    

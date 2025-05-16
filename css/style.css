@@ -6,8 +6,8 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #EFF3F5; /* New: Cooler Light Gray background */
-  color: #343F4B; /* New: Dark Slate Blue/Gray text color */
+  background-color: #EFF3F5; /* Cooler Light Gray background */
+  color: #343F4B; /* Dark Slate Blue/Gray text color */
   line-height: 1.6;
 }
 
@@ -23,7 +23,7 @@ code {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    /* New: Teal and subtle grey gradient */
+    /* Teal and subtle grey gradient */
     background: linear-gradient(to bottom right, rgba(20, 153, 122, 0.1), white, rgba(100, 116, 139, 0.05));
     padding: 1rem;
 }
@@ -47,7 +47,7 @@ code {
 .auth-icon {
     height: 3rem;
     width: 3rem;
-    color: #14997A; /* New: Teal */
+    color: #14997A; /* Teal */
     margin: 0 auto 1rem auto;
     display: block;
 }
@@ -59,7 +59,7 @@ code {
 }
 
 .auth-header p {
-    color: #6B7A88; /* New: Softer Grey for muted text */
+    color: #6B7A88; /* Softer Grey for muted text */
     margin-bottom: 0;
 }
 
@@ -91,9 +91,9 @@ code {
     transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
 }
 .auth-form input:focus, .auth-form select:focus {
-  border-color: #25c9a3; /* New: Lighter Teal for focus */
+  border-color: #25c9a3; /* Lighter Teal for focus */
   outline: 0;
-  box-shadow: 0 0 0 0.2rem rgba(20, 153, 122, .25); /* New: Teal focus ring */
+  box-shadow: 0 0 0 0.2rem rgba(20, 153, 122, .25); /* Teal focus ring */
 }
 
 .password-wrapper {
@@ -104,7 +104,7 @@ code {
 .password-wrapper input[type="password"],
 .password-wrapper input[type="text"] {
     flex-grow: 1;
-    padding-right: 3.5rem;
+    padding-right: 3.5rem; /* Ensure space for the toggle button */
 }
 .password-toggle {
     position: absolute;
@@ -119,12 +119,12 @@ code {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #6B7A88; /* New: Softer Grey */
+    color: #6B7A88; /* Softer Grey */
 }
 .password-toggle:hover {
-    color: #14997A; /* New: Teal */
+    color: #14997A; /* Teal */
 }
-.password-toggle i.lucide {
+.password-toggle i.lucide { /* Specific for lucide icons in toggle */
     width: 1.25rem;
     height: 1.25rem;
 }
@@ -134,11 +134,11 @@ code {
     margin-top: 1.5rem;
     text-align: center;
     font-size: 0.875rem;
-    color: #6B7A88; /* New: Softer Grey */
+    color: #6B7A88; /* Softer Grey */
 }
 .auth-switch-link a {
     font-weight: 600;
-    color: #14997A; /* New: Teal */
+    color: #14997A; /* Teal */
     text-decoration: none;
 }
 .auth-switch-link a:hover {
@@ -166,14 +166,14 @@ code {
 }
 
 .button-primary {
-  background-color: #14997A; /* New: Teal */
+  background-color: #14997A; /* Teal */
   color: white;
 }
 .button-primary:hover {
-  background-color: #107C63; /* New: Darker Teal */
+  background-color: #107C63; /* Darker Teal */
 }
 .button-primary:disabled {
-  background-color: #a0d8cb; /* New: Lighter, desaturated Teal */
+  background-color: #a0d8cb; /* Lighter, desaturated Teal */
   cursor: not-allowed;
 }
 .button-primary .lucide-loader-2,
@@ -183,20 +183,20 @@ code {
 }
 
 .button-secondary {
-  background-color: #5A6872; /* New: Bluish Grey */
+  background-color: #5A6872; /* Bluish Grey */
   color: white;
 }
 .button-secondary:hover {
-  background-color: #4C5860; /* New: Darker Bluish Grey */
+  background-color: #4C5860; /* Darker Bluish Grey */
 }
 
 .button-outline {
   background-color: transparent;
-  border-color: #14997A; /* New: Teal */
-  color: #14997A; /* New: Teal */
+  border-color: #14997A; /* Teal */
+  color: #14997A; /* Teal */
 }
 .button-outline:hover {
-  background-color: rgba(20, 153, 122, 0.1); /* New: Light Teal background */
+  background-color: rgba(20, 153, 122, 0.1); /* Light Teal background */
 }
 
 .error-message {
@@ -257,7 +257,7 @@ code {
 .sidebar-header-link .lucide-atom {
     height: 2rem;
     width: 2rem;
-    color: #14997A; /* New: Teal */
+    color: #14997A; /* Teal */
 }
 .sidebar-title {
     font-size: 1.1rem;
@@ -293,7 +293,7 @@ code {
     background-color: #e9ecef;
 }
 .sidebar-nav-link.active {
-    background-color: #14997A; /* New: Teal */
+    background-color: #14997A; /* Teal */
     color: white;
     font-weight: 500;
 }
@@ -328,7 +328,7 @@ code {
     border: none;
     cursor: pointer;
     padding: 0.5rem;
-    display: none;
+    display: none; /* Hidden by default, shown by JS for mobile */
 }
 .mobile-menu-button .lucide-menu {
     width: 24px;
@@ -341,8 +341,8 @@ code {
 }
 .user-avatar-button {
     cursor: pointer;
-    background: #14997A; /* New: Teal */
-    border: 2px solid #14997A; /* New: Teal */
+    background: #14997A; /* Teal */
+    border: 2px solid #14997A; /* Teal */
     padding: 0;
     border-radius: 50%;
     display: flex;
@@ -380,7 +380,7 @@ code {
     font-size: 0.875rem; font-weight: 500; line-height: 1.25; margin:0;
 }
 .user-nav-label p:last-child {
-    font-size: 0.75rem; line-height: 1.25; color: #6B7A88; margin:0; margin-top: 0.25rem; /* New: Softer Grey */
+    font-size: 0.75rem; line-height: 1.25; color: #6B7A88; margin:0; margin-top: 0.25rem; /* Softer Grey */
 }
 .user-nav-item {
     padding: 0.5rem 1rem;
@@ -388,7 +388,7 @@ code {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    color: #343F4B; /* New: Dark Slate Blue/Gray text color */
+    color: #343F4B; /* Dark Slate Blue/Gray text color */
     cursor: pointer;
     font-size: 0.875rem;
 }
@@ -408,7 +408,7 @@ code {
     flex: 1;
     padding: 1.5rem;
     overflow-y: auto;
-    background-color: #e0e6e9; /* New: Slightly darker page content background for contrast */
+    background-color: #e0e6e9; /* Slightly darker page content background for contrast */
 }
 
 /* Overlay for mobile sidebar */
@@ -446,7 +446,7 @@ code {
 .custom-card-header .lucide {
     height: 1.5rem;
     width: 1.5rem;
-    color: #14997A; /* New: Teal */
+    color: #14997A; /* Teal */
 }
 
 .custom-card-title {
@@ -457,7 +457,7 @@ code {
 
 .custom-card-description {
   font-size: 0.875rem;
-  color: #6B7A88; /* New: Softer Grey */
+  color: #6B7A88; /* Softer Grey */
   margin-top: 0.25rem;
 }
 
@@ -520,9 +520,7 @@ code {
 }
 
 /* Utility classes */
-.grid {
-    display: grid;
-}
+.grid { display: grid; }
 .gap-2 { gap: 0.5rem; }
 .gap-4 { gap: 1rem; }
 .gap-6 { gap: 1.5rem; }
@@ -545,7 +543,7 @@ code {
 .text-lg { font-size: 1.125rem; }
 .text-xl { font-size: 1.25rem; }
 .text-2xl { font-size: 1.5rem; }
-.text-muted-foreground { color: #6B7A88; } /* New: Softer Grey */
+.text-muted-foreground { color: #6B7A88; } /* Softer Grey */
 .mb-1 { margin-bottom: 0.25rem; }
 .mb-2 { margin-bottom: 0.5rem; }
 .mb-3 { margin-bottom: 0.75rem; }
@@ -556,6 +554,7 @@ code {
 .mt-4 { margin-top: 1rem; }
 .mt-6 { margin-top: 1.5rem; }
 .mt-8 { margin-top: 2rem; }
+.mr-1 { margin-right: 0.25rem; }
 .mr-2 { margin-right: 0.5rem; }
 .p-1 { padding: 0.25rem; }
 .p-4 { padding: 1rem; }
@@ -645,13 +644,13 @@ code {
     -webkit-box-orient: vertical;
 }
 
-.status-available { background-color: #d4edda; } /* Light green - keep as is for clarity */
-.status-booked { background-color: #f8d7da; } /* Light red - keep as is for clarity */
-.status-pending { background-color: #fff3cd; } /* Light yellow - keep as is for clarity */
+.status-available { background-color: #d4edda; } 
+.status-booked { background-color: #f8d7da; } 
+.status-pending { background-color: #fff3cd; } 
 .status-past { background-color: #e9ecef; cursor: not-allowed; opacity: 0.7; }
 
 
-/* Dialog Styles */
+/* Dialog Styles (General & Admin Management Modal) */
 .dialog-overlay {
   position: fixed;
   top: 0;
@@ -659,23 +658,29 @@ code {
   right: 0;
   bottom: 0;
   background-color: rgba(0,0,0,0.5);
-  display: none;
+  display: none; /* Hidden by default */
   align-items: center;
   justify-content: center;
-  z-index: 2000;
+  z-index: 2000; /* High z-index */
+  padding: 1rem; /* Padding for smaller screens */
 }
 .dialog-overlay.open {
-    display: flex;
+    display: flex; /* Shown when .open class is added */
 }
 .dialog-content {
   background-color: white;
   padding: 1.5rem;
   border-radius: 8px;
   min-width: 300px;
-  max-width: 500px;
+  max-width: 90%; /* Responsive max-width */
+  width: auto; /* Allow content to dictate width up to max-width */
   box-shadow: 0 0 10px rgba(0,0,0,0.25);
+  position: relative; /* For absolute positioning of close button */
 }
 .dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 1rem;
   padding-bottom: 1rem;
   border-bottom: 1px solid #eee;
@@ -685,33 +690,101 @@ code {
   font-weight: bold;
   margin: 0;
 }
-.dialog-description {
+.dialog-description { /* Used in lab availability dialog */
   font-size: 0.875rem;
   color: #555;
   margin-top: 0.25rem;
   margin-bottom: 0;
 }
+.dialog-close-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem;
+    color: #6B7A88;
+}
+.dialog-close-button:hover {
+    color: #14997A;
+}
+.dialog-close-button .lucide {
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
 .dialog-body {
     margin-bottom: 1.5rem;
+    max-height: 60vh; /* Prevent modal from being too tall */
+    overflow-y: auto; /* Add scroll if content overflows */
 }
-.dialog-body p {
+.dialog-body p { /* General p inside dialog body */
     margin: 0.5rem 0;
 }
+/* Styles for form elements inside dialog, reusing auth-form styles for consistency */
+.dialog-body .form-group {
+    margin-bottom: 1rem;
+}
+.dialog-body label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+.dialog-body input[type="text"],
+.dialog-body input[type="number"],
+.dialog-body select,
+.dialog-body textarea {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.75rem;
+    font-size: 1rem;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+}
+.dialog-body input:focus,
+.dialog-body select:focus,
+.dialog-body textarea:focus {
+  border-color: #25c9a3;
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem rgba(20, 153, 122, .25);
+}
+
+
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
-  flex-wrap: wrap;
+  flex-wrap: wrap; /* Allow buttons to wrap on small screens */
 }
+
+
+/* Styles for dynamically rendered lists (e.g., labs, equipment) */
+.entity-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.entity-list-item {
+    /* Using .custom-card styles already, so it will look like a card */
+    /* Add specific item styles if needed */
+}
+.entity-list-item h3 { /* Name of the lab/equipment */
+    color: #14997A; /* Teal */
+}
+.entity-actions .button-sm .lucide {
+    width: 1rem;
+    height: 1rem;
+}
+
 
 /* Specific text color overrides if needed, but generally rely on body color */
 .text-green-600 { color: #16a34a; }
 .text-yellow-600 { color: #ca8a04; }
-.text-gray-500 { color: #6B7A88; } /* New: Softer Grey */
+.text-gray-500 { color: #6B7A88; } /* Softer Grey */
 .text-gray-400 { color: #9ca3af; } /* Standard Tailwind Gray-400 */
+
 .button-sm {
     padding: 0.5rem 0.75rem;
     font-size: 0.875rem;
 }
 
-```
+    

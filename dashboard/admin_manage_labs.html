@@ -42,21 +42,50 @@
                         <p class="text-muted-foreground">
                             Add, edit, or delete lab details, capacities, and room assignments.
                         </p>
-                        <div class="mt-4 p-4 border rounded-md bg-gray-50">
-                            <h2 class="text-lg font-semibold mb-2">Lab Management Area</h2>
-                            <p>Lab listing, add/edit/delete forms will be here.</p>
-                            <button class="button button-primary mt-2" onclick="alert('Simulating: Opening form to add a new lab...')">Add New Lab</button>
-                            
-                            <div class="mt-4">
-                                <h4 class="font-medium">Existing Labs (Example):</h4>
-                                <ul class="list-disc list-inside text-sm text-muted-foreground">
-                                    <li>Physics Lab Alpha - Capacity: 20 - Room P-101</li>
-                                    <li>Computer Lab Gamma - Capacity: 30 - Room CS-302</li>
-                                </ul>
-                            </div>
+                        <button type="button" id="addNewLabBtn" class="button button-primary mt-4 mb-4">
+                            <i data-lucide="plus-circle" class="mr-2"></i> Add New Lab
+                        </button>
+                        
+                        <div id="labsListContainer" class="mt-4">
+                            <!-- Labs will be listed here by JS -->
+                            <p>Loading labs...</p>
                         </div>
                     </div>
                 </div>
+
+                <!-- Modal for Add/Edit Lab -->
+                <div id="labModal" class="dialog-overlay">
+                    <div class="dialog-content" style="max-width: 500px;">
+                        <form id="labForm">
+                            <div class="dialog-header">
+                                <h2 id="labModalTitle" class="dialog-title">Add New Lab</h2>
+                                <button type="button" class="dialog-close-button" id="closeLabModalBtn" aria-label="Close">
+                                    <i data-lucide="x"></i>
+                                </button>
+                            </div>
+                            <div class="dialog-body">
+                                <input type="hidden" id="labId" name="labId">
+                                <div class="form-group">
+                                    <label for="labName">Lab Name</label>
+                                    <input type="text" id="labName" name="labName" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="labCapacity">Capacity</label>
+                                    <input type="number" id="labCapacity" name="labCapacity" required min="1">
+                                </div>
+                                <div class="form-group">
+                                    <label for="labRoomNumber">Room Number</label>
+                                    <input type="text" id="labRoomNumber" name="labRoomNumber" required>
+                                </div>
+                            </div>
+                            <div class="dialog-footer">
+                                <button type="button" class="button button-secondary" id="cancelLabModalBtn">Cancel</button>
+                                <button type="submit" class="button button-primary">Save Lab</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
             </main>
         </div>
     </div>
@@ -64,12 +93,16 @@
     <script src="../js/constants.js"></script>
     <script src="../js/utils.js"></script>
     <script src="js/dashboard.js"></script>
+    <script src="js/admin_management.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             if (!roleGuard(USER_ROLES.ADMIN)) return;
             initializeDashboard();
+            initializeLabManagementPage(); // From admin_management.js
             if (window.lucide) window.lucide.createIcons();
         });
     </script>
 </body>
 </html>
+
+    

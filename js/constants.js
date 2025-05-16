@@ -8,8 +8,6 @@ const USER_ROLES = {
 
 const ROLES_ARRAY = Object.values(USER_ROLES);
 
-// Defines the navigation links for the sidebar for each role.
-// Ensure href points to the correct HTML file within the dashboard/ directory.
 const NAV_LINKS = {
   [USER_ROLES.ADMIN]: [
     { href: 'admin.html', label: 'Admin Dashboard', icon: 'layout-dashboard' },
@@ -21,7 +19,7 @@ const NAV_LINKS = {
   ],
   [USER_ROLES.FACULTY]: [
     { href: 'faculty.html', label: 'Faculty Dashboard', icon: 'layout-dashboard' },
-    { href: 'labs.html', label: 'Lab Availability', icon: 'flask-conical' }, // Common page
+    { href: 'labs.html', label: 'Lab Availability', icon: 'flask-conical' },
     { href: 'book_slot.html', label: 'Book a Slot', icon: 'calendar-plus' },
     { href: 'faculty_my_bookings.html', label: 'My Bookings', icon: 'calendar-check' },
     { href: 'faculty_cr_requests.html', label: 'CR Booking Requests', icon: 'file-check' },
@@ -32,15 +30,15 @@ const NAV_LINKS = {
   ],
   [USER_ROLES.CR]: [
     { href: 'cr.html', label: 'CR Dashboard', icon: 'layout-dashboard' },
-    { href: 'labs.html', label: 'Lab Availability', icon: 'flask-conical' }, // Common page
-    { href: 'student_my_bookings.html', label: 'View My Schedule', icon: 'calendar-check' }, // Shared with student
+    { href: 'labs.html', label: 'Lab Availability', icon: 'flask-conical' },
+    { href: 'student_my_bookings.html', label: 'View My Schedule', icon: 'calendar-check' },
     { href: 'cr_request_class_booking.html', label: 'Request Class Slot', icon: 'user-plus' },
   ],
 };
 
-const COMMON_NAV_LINKS = []; // Profile/Logout handled by user-nav in HTML template
+const COMMON_NAV_LINKS = [];
 
-const MOCK_LABS = [
+const MOCK_LABS_INITIAL = [
   { id: 'physics_lab_alpha', name: 'Physics Lab Alpha', capacity: 20, roomNumber: 'P-101' },
   { id: 'chemistry_lab_beta', name: 'Chemistry Lab Beta', capacity: 15, roomNumber: 'C-205' },
   { id: 'computer_lab_gamma', name: 'Computer Lab Gamma', capacity: 30, roomNumber: 'CS-302' },
@@ -49,13 +47,45 @@ const MOCK_LABS = [
   { id: 'robotics_lab_zeta', name: 'Robotics Lab Zeta', capacity: 12, roomNumber: 'R-401'},
 ];
 
-const MOCK_EQUIPMENT = [
+const MOCK_EQUIPMENT_INITIAL = [
   { id: 'eq_microscope_01', name: 'Olympus Microscope X2000', type: 'Microscope', labId: 'chemistry_lab_beta', status: 'available' },
   { id: 'eq_oscilloscope_01', name: 'Tektronix TDS1000', type: 'Oscilloscope', labId: 'electronics_lab_delta', status: 'available' },
   { id: 'eq_pc_high_01', name: 'High-Performance PC Dell', type: 'Computer', labId: 'computer_lab_gamma', status: 'in-use' },
-  { id: 'eq_projector_01', name: 'Epson Projector 5000', type: 'Projector', status: 'available' }, // General pool
+  { id: 'eq_projector_01', name: 'Epson Projector 5000', type: 'Projector', status: 'available' },
   { id: 'eq_spectrometer_01', name: 'ThermoFisher Spectrometer', type: 'Spectrometer', labId: 'physics_lab_alpha', status: 'maintenance'},
 ];
+const EQUIPMENT_STATUSES = ['available', 'in-use', 'maintenance', 'broken'];
+
+
+const MOCK_LABS_STORAGE_KEY = 'adminManagedLabs';
+const MOCK_EQUIPMENT_STORAGE_KEY = 'adminManagedEquipment';
+
+function loadLabs() {
+    const storedLabs = localStorage.getItem(MOCK_LABS_STORAGE_KEY);
+    if (storedLabs) {
+        return JSON.parse(storedLabs);
+    }
+    localStorage.setItem(MOCK_LABS_STORAGE_KEY, JSON.stringify(MOCK_LABS_INITIAL)); // Store initial if not present
+    return MOCK_LABS_INITIAL;
+}
+
+function saveLabs(labs) {
+    localStorage.setItem(MOCK_LABS_STORAGE_KEY, JSON.stringify(labs));
+}
+
+function loadEquipment() {
+    const storedEquipment = localStorage.getItem(MOCK_EQUIPMENT_STORAGE_KEY);
+    if (storedEquipment) {
+        return JSON.parse(storedEquipment);
+    }
+    localStorage.setItem(MOCK_EQUIPMENT_STORAGE_KEY, JSON.stringify(MOCK_EQUIPMENT_INITIAL));
+    return MOCK_EQUIPMENT_INITIAL;
+}
+
+function saveEquipment(equipment) {
+    localStorage.setItem(MOCK_EQUIPMENT_STORAGE_KEY, JSON.stringify(equipment));
+}
+
 
 const MOCK_TIME_SLOTS = [
   { id: 'ts_0800_0900', startTime: '08:00', endTime: '09:00', displayTime: '08:00 AM - 09:00 AM' },
@@ -76,7 +106,6 @@ tomorrow.setDate(today.getDate() + 1);
 const yesterday = new Date(today);
 yesterday.setDate(today.getDate() - 1);
 
-// Helper to format date as YYYY-MM-DD
 function formatDate(date) {
     const d = new Date(date);
     let month = '' + (d.getMonth() + 1);
@@ -87,9 +116,8 @@ function formatDate(date) {
     return [year, month, day].join('-');
 }
 
-
 const MOCK_BOOKINGS_STORAGE_KEY = 'mockBookings';
-let MOCK_BOOKINGS = [];
+let MOCK_BOOKINGS = []; // This will be populated by initializeMockBookings
 
 function initializeMockBookings() {
     const storedBookings = localStorage.getItem(MOCK_BOOKINGS_STORAGE_KEY);
@@ -97,11 +125,11 @@ function initializeMockBookings() {
         MOCK_BOOKINGS = JSON.parse(storedBookings);
     } else {
         MOCK_BOOKINGS = [
-            { id: 'b1', labId: 'physics_lab_alpha', date: formatDate(today), timeSlotId: 'ts_0900_1000', userId: 'student1', purpose: 'Physics Experiment A', equipmentIds: ['eq_spectrometer_01'], status: 'booked', requestedByRole: USER_ROLES.STUDENT},
-            { id: 'b2', labId: 'physics_lab_alpha', date: formatDate(today), timeSlotId: 'ts_1000_1100', userId: 'student2', purpose: 'Quantum Study', equipmentIds: [], status: 'pending', requestedByRole: USER_ROLES.STUDENT},
-            { id: 'b3', labId: 'chemistry_lab_beta', date: formatDate(tomorrow), timeSlotId: 'ts_1400_1500', userId: 'faculty1', purpose: 'Chem 101 Class', equipmentIds: ['eq_microscope_01'], status: 'booked', requestedByRole: USER_ROLES.FACULTY},
-            { id: 'b4', labId: 'computer_lab_gamma', date: formatDate(new Date(new Date().setDate(new Date().getDate() + 2))), timeSlotId: 'ts_1100_1200', userId: 'cr_user_1', purpose: 'AI Project Work', equipmentIds: ['eq_pc_high_01'], status: 'pending', batchIdentifier: 'CSE Year 2 - Section A', requestedByRole: USER_ROLES.CR },
-            { id: 'b5', labId: 'electronics_lab_delta', date: formatDate(yesterday), timeSlotId: 'ts_1500_1600', userId: 'student1', purpose: 'Circuit Design (Completed)', equipmentIds: ['eq_oscilloscope_01'], status: 'booked', requestedByRole: USER_ROLES.STUDENT },
+            { id: 'b1', labId: 'physics_lab_alpha', date: formatDate(today), timeSlotId: 'ts_0900_1000', userId: 'student1@example.com', purpose: 'Physics Experiment A', equipmentIds: ['eq_spectrometer_01'], status: 'booked', requestedByRole: USER_ROLES.STUDENT},
+            { id: 'b2', labId: 'physics_lab_alpha', date: formatDate(today), timeSlotId: 'ts_1000_1100', userId: 'student2@example.com', purpose: 'Quantum Study', equipmentIds: [], status: 'pending', requestedByRole: USER_ROLES.STUDENT},
+            { id: 'b3', labId: 'chemistry_lab_beta', date: formatDate(tomorrow), timeSlotId: 'ts_1400_1500', userId: 'faculty1@example.com', purpose: 'Chem 101 Class', equipmentIds: ['eq_microscope_01'], status: 'booked', requestedByRole: USER_ROLES.FACULTY},
+            { id: 'b4', labId: 'computer_lab_gamma', date: formatDate(new Date(new Date().setDate(new Date().getDate() + 2))), timeSlotId: 'ts_1100_1200', userId: 'cr_user@example.com', purpose: 'AI Project Work', equipmentIds: ['eq_pc_high_01'], status: 'pending', batchIdentifier: 'CSE Year 2 - Section A', requestedByRole: USER_ROLES.CR },
+            { id: 'b5', labId: 'electronics_lab_delta', date: formatDate(yesterday), timeSlotId: 'ts_1500_1600', userId: 'student1@example.com', purpose: 'Circuit Design (Completed)', equipmentIds: ['eq_oscilloscope_01'], status: 'booked', requestedByRole: USER_ROLES.STUDENT },
         ];
         saveMockBookings();
     }
@@ -131,16 +159,22 @@ const DEPARTMENTS = [
   'Other',
 ];
 
-// Make constants available globally if not using modules
 window.USER_ROLES = USER_ROLES;
 window.ROLES_ARRAY = ROLES_ARRAY;
 window.NAV_LINKS = NAV_LINKS;
 window.COMMON_NAV_LINKS = COMMON_NAV_LINKS;
-window.MOCK_LABS = MOCK_LABS;
-window.MOCK_EQUIPMENT = MOCK_EQUIPMENT;
+window.MOCK_LABS = loadLabs(); // Load labs from localStorage or initial data
+window.MOCK_EQUIPMENT = loadEquipment(); // Load equipment
+window.EQUIPMENT_STATUSES = EQUIPMENT_STATUSES;
+window.saveLabs = saveLabs; // Expose save functions
+window.saveEquipment = saveEquipment;
 window.MOCK_TIME_SLOTS = MOCK_TIME_SLOTS;
 window.MOCK_BOOKINGS = MOCK_BOOKINGS;
 window.saveMockBookings = saveMockBookings;
 window.DAYS_OF_WEEK = DAYS_OF_WEEK;
 window.DEPARTMENTS = DEPARTMENTS;
-window.formatDate = formatDate; // Expose formatDate
+window.formatDate = formatDate;
+window.loadLabs = loadLabs; // Expose load functions
+window.loadEquipment = loadEquipment;
+
+    
