@@ -160,11 +160,14 @@ function initializeLabGrid() {
     function createDeskSection(totalDesks, desksPerRow) {
         const section = document.createElement('div');
         section.className = 'dialog-lab-layout-section';
+        if (totalDesks <= 0) return section; // Return empty section if no desks or negative
+
         let desksCreated = 0;
         while (desksCreated < totalDesks) {
             const row = document.createElement('div');
             row.className = 'lab-layout-row';
-            for (let i = 0; i < desksPerRow && desksCreated < totalDesks; i++) {
+            const desksInThisRow = Math.min(desksPerRow, totalDesks - desksCreated);
+            for (let i = 0; i < desksInThisRow; i++) {
                 row.appendChild(renderDesk(desksCreated + 1));
                 desksCreated++;
             }
@@ -181,7 +184,7 @@ function initializeLabGrid() {
 
         const title = document.createElement('h4');
         title.className = 'text-sm font-medium mb-3 text-center text-muted-foreground';
-        title.textContent = `Illustrative Lab Layout (Example for ~70 Capacity)`;
+        title.textContent = `Illustrative Lab Layout for ${capacity} Desks`;
         dialogLabLayoutVisualization.appendChild(title);
 
         // Teacher's Desk
@@ -190,26 +193,53 @@ function initializeLabGrid() {
         teacherDesk.textContent = 'Teacher';
         dialogLabLayoutVisualization.appendChild(teacherDesk);
 
+        if (capacity === 0) {
+            const noDesksMsg = document.createElement('p');
+            noDesksMsg.className = 'text-xs text-center text-muted-foreground mt-2';
+            noDesksMsg.textContent = 'This lab has no student desks.';
+            dialogLabLayoutVisualization.appendChild(noDesksMsg);
+            return;
+        }
+        
         const mainLayoutContainer = document.createElement('div');
         mainLayoutContainer.className = 'dialog-lab-layout-container';
 
-        // Left Section: 25 desks, 3 per row
-        mainLayoutContainer.appendChild(createDeskSection(25, 3));
-        
-        // Middle Section: 20 desks, 2 per row
-        mainLayoutContainer.appendChild(createDeskSection(20, 2));
+        // Proportional distribution based on a 70-capacity model (25-20-25)
+        const baseTotal = 70;
+        const baseLeft = 25;
+        const baseMiddle = 20;
+        // const baseRight = 25; // Derived
 
-        // Right Section: 25 desks, 3 per row
-        mainLayoutContainer.appendChild(createDeskSection(25, 3));
+        let numLeftDesks = Math.round(capacity * (baseLeft / baseTotal));
+        let numMiddleDesks = Math.round(capacity * (baseMiddle / baseTotal));
+        // Ensure the sum matches capacity by assigning remainder to the right section
+        let numRightDesks = capacity - numLeftDesks - numMiddleDesks;
+
+        // Handle potential negative numRightDesks if capacity is very small and rounding pushes sum(left, middle) > capacity
+        if (numRightDesks < 0) {
+            // If right becomes negative, try to take from middle, then left.
+            // This is a simple correction; more sophisticated distribution might be needed for edge cases.
+            numMiddleDesks += numRightDesks; // numRightDesks is negative
+            numRightDesks = 0;
+            if (numMiddleDesks < 0) {
+                numLeftDesks += numMiddleDesks;
+                numMiddleDesks = 0;
+            }
+            // Ensure left is not negative (shouldn't happen if capacity >=0)
+            if (numLeftDesks < 0) numLeftDesks = 0;
+        }
+
+
+        // Left Section: 3 desks per row
+        mainLayoutContainer.appendChild(createDeskSection(numLeftDesks, 3));
+        
+        // Middle Section: 2 desks per row
+        mainLayoutContainer.appendChild(createDeskSection(numMiddleDesks, 2));
+
+        // Right Section: 3 desks per row
+        mainLayoutContainer.appendChild(createDeskSection(numRightDesks, 3));
         
         dialogLabLayoutVisualization.appendChild(mainLayoutContainer);
-        
-        if (capacity !== 70 && capacity > 0) {
-            const note = document.createElement('p');
-            note.className = 'text-xs text-center text-muted-foreground mt-2';
-            note.textContent = `Note: This lab's actual capacity is ${capacity}. The layout shown is a fixed example.`;
-            dialogLabLayoutVisualization.appendChild(note);
-        }
     }
 
 
