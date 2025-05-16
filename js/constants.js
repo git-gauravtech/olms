@@ -1,4 +1,5 @@
 
+
 const USER_ROLES = {
   ADMIN: 'Admin',
   FACULTY: 'Faculty',
@@ -13,6 +14,7 @@ const NAV_LINKS = {
     { href: 'admin.html', label: 'Admin Dashboard', icon: 'layout-dashboard' },
     { href: 'admin_manage_labs.html', label: 'Manage Labs', icon: 'settings-2' },
     { href: 'admin_manage_equipment.html', label: 'Manage Equipment', icon: 'wrench' },
+    { href: 'labs.html', label: 'Lab Availability', icon: 'flask-conical' }, // Added for Admin
     { href: 'admin_view_bookings.html', label: 'View All Bookings', icon: 'calendar-days' },
     { href: 'admin_faculty_requests.html', label: 'Faculty Requests', icon: 'clipboard-list' },
     { href: 'admin_run_algorithms.html', label: 'Run Algorithms', icon: 'brain-circuit' },
