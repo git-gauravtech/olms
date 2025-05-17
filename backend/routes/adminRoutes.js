@@ -65,5 +65,24 @@ router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
     }
 });
 
-module.exports = router;
+// @route   GET api/admin/users
+// @desc    Get all users
+// @access  Private (Admin only)
+router.get('/users', [auth, isAdmin], async (req, res) => {
+    try {
+        // Exclude passwordHash from the selection for security
+        const [users] = await pool.query('SELECT id, fullName, email, role, department, createdAt FROM users ORDER BY fullName ASC');
+        res.json(users);
+    } catch (err)
+        console.error('Error fetching users in /api/admin/users:', err.message);
+        res.status(500).send('Server Error: Could not fetch users');
+    }
+});
 
+// Placeholder routes for future User Management actions (PUT, DELETE, POST for new user by admin)
+// router.put('/users/:userId', [auth, isAdmin], async (req, res) => { /* ... */ });
+// router.delete('/users/:userId', [auth, isAdmin], async (req, res) => { /* ... */ });
+// router.post('/users', [auth, isAdmin], async (req, res) => { /* ... */ });
+
+
+module.exports = router;

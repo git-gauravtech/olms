@@ -41,8 +41,8 @@
                         <p class="text-muted-foreground mb-6">
                             Manage user accounts, roles, and permissions within the system.
                         </p>
-                        <button type="button" class="button button-primary mb-4" onclick="alert('Placeholder: Open form to add new user.')">
-                            <i data-lucide="user-plus" class="mr-2"></i> Add New User
+                        <button type="button" id="addNewUserBtn" class="button button-primary mb-4">
+                            <i data-lucide="user-plus" class="mr-2"></i> Add New User (Placeholder)
                         </button>
 
                         <div class="overflow-x-auto">
@@ -56,39 +56,9 @@
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-gray-200">
-                                    <!-- Placeholder User Data -->
-                                    <tr>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Dr. Albus Dumbledore</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">headmaster@hogwarts.ac.uk</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Admin</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Administration</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <button class="button button-outline button-sm mr-2" onclick="alert('Placeholder: Edit user Albus D.')"><i data-lucide="edit-2" class="h-4 w-4"></i></button>
-                                            <button class="button button-secondary button-sm" onclick="alert('Placeholder: Delete user Albus D.')"><i data-lucide="trash-2" class="h-4 w-4"></i></button>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Prof. Minerva McGonagall</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">minerva.m@hogwarts.ac.uk</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Faculty</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Transfiguration</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <button class="button button-outline button-sm mr-2" onclick="alert('Placeholder: Edit user Minerva M.')"><i data-lucide="edit-2" class="h-4 w-4"></i></button>
-                                            <button class="button button-secondary button-sm" onclick="alert('Placeholder: Delete user Minerva M.')"><i data-lucide="trash-2" class="h-4 w-4"></i></button>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Hermione Granger</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">h.granger@student.hogwarts.ac.uk</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Student</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Gryffindor</td>
-                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <button class="button button-outline button-sm mr-2" onclick="alert('Placeholder: Edit user Hermione G.')"><i data-lucide="edit-2" class="h-4 w-4"></i></button>
-                                            <button class="button button-secondary button-sm" onclick="alert('Placeholder: Delete user Hermione G.')"><i data-lucide="trash-2" class="h-4 w-4"></i></button>
-                                        </td>
-                                    </tr>
-                                    <!-- More users can be added here -->
+                                <tbody id="userManagementTableBody" class="divide-y divide-gray-200">
+                                    <!-- User rows will be populated by JS -->
+                                    <tr><td colspan="5" class="text-center p-4">Loading users...</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -102,10 +72,83 @@
     <script src="../js/utils.js"></script>
     <script src="js/dashboard.js"></script>
     <script>
+        async function loadAndRenderUsers() {
+            const tableBody = document.getElementById('userManagementTableBody');
+            const token = localStorage.getItem('token');
+            if (!tableBody || !token) {
+                console.error('User table body or token not found for User Management page.');
+                if (tableBody) tableBody.innerHTML = '<tr><td colspan="5" class="text-center p-4 text-red-500">Error: Could not initialize page.</td></tr>';
+                return;
+            }
+
+            tableBody.innerHTML = '<tr><td colspan="5" class="text-center p-4">Loading users...</td></tr>';
+
+            try {
+                const response = await fetch(`${window.API_BASE_URL}/admin/users`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ msg: 'Failed to fetch users and parse error' }));
+                    throw new Error(errorData.msg || `Failed to fetch users: ${response.status}`);
+                }
+                const users = await response.json();
+
+                if (users.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="5" class="text-center p-4">No users found in the system.</td></tr>';
+                    return;
+                }
+
+                tableBody.innerHTML = ''; // Clear loading message
+                users.forEach(user => {
+                    const row = tableBody.insertRow();
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${user.fullName}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${user.email}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${user.role}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${user.department || 'N/A'}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <button type="button" class="button button-outline button-sm mr-2" onclick="editUser(${user.id})"><i data-lucide="edit-2" class="h-4 w-4"></i> Edit</button>
+                            <button type="button" class="button button-secondary button-sm" onclick="deleteUser(${user.id})"><i data-lucide="trash-2" class="h-4 w-4"></i> Delete</button>
+                        </td>
+                    `;
+                });
+                if (window.lucide) window.lucide.createIcons();
+
+            } catch (error) {
+                console.error('Error fetching or rendering users:', error);
+                tableBody.innerHTML = `<tr><td colspan="5" class="text-center p-4 text-red-500">Error loading users: ${error.message}</td></tr>`;
+            }
+        }
+
+        // Placeholder functions for edit/delete actions
+        function editUser(userId) {
+            alert('Placeholder: Edit user functionality for ID ' + userId + ' is not fully implemented. This would typically open a modal form.');
+        }
+
+        function deleteUser(userId) {
+            if (confirm('Are you sure you want to delete user with ID ' + userId + '? This is a placeholder action and will not actually delete the user.')) {
+                alert('Placeholder: Delete user functionality for ID ' + userId + ' is not fully implemented. This would call a DELETE API endpoint.');
+                // In a full implementation:
+                // fetch(`${window.API_BASE_URL}/admin/users/${userId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }})
+                // .then(response => { if(response.ok) loadAndRenderUsers(); else alert('Failed to delete user.'); });
+            }
+        }
+        
+        const addNewUserBtn = document.getElementById('addNewUserBtn');
+        if(addNewUserBtn) {
+            addNewUserBtn.addEventListener('click', () => {
+                alert('Placeholder: Add new user functionality is not fully implemented. This would typically open a modal form.');
+            });
+        }
+
+
         document.addEventListener('DOMContentLoaded', () => {
             if (!window.roleGuard(window.USER_ROLES.ADMIN)) return;
             window.initializeDashboard();
             window.setDashboardHomeLink();
+            loadAndRenderUsers(); 
             if (window.lucide) window.lucide.createIcons();
         });
     </script>
