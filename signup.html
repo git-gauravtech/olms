@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign Up - Optimized Lab Management System</title>
     <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="https://unpkg.com/lucide-static@latest/font/lucide.css">
+    <!-- <link rel="stylesheet" href="https://unpkg.com/lucide-static@latest/font/lucide.css"> Removed as we use JS version -->
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
@@ -53,7 +53,7 @@
                         <option value="Student">Student</option>
                         <option value="Admin">Admin</option>
                         <option value="Faculty">Faculty</option>
-                        <option value="Assistant">Assistant</option> <!-- Changed from CR -->
+                        <option value="Assistant">Assistant</option>
                     </select>
                     <p class="error-message" id="roleError"></p>
                 </div>
@@ -74,22 +74,31 @@
         </div>
     </main>
     <script src="js/constants.js"></script>
+    <script src="js/utils.js"></script>
     <script src="js/auth.js"></script>
     <script>
-        // Initialize Lucide icons
-        if (window.lucide) {
-            window.lucide.createIcons();
-        }
-        // Populate departments
-        const departmentSelect = document.getElementById('department');
-        if (departmentSelect && window.DEPARTMENTS) {
-            window.DEPARTMENTS.forEach(dept => {
-                const option = document.createElement('option');
-                option.value = dept;
-                option.textContent = dept;
-                departmentSelect.appendChild(option);
-            });
-        }
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("Signup page DOM fully loaded and parsed.");
+            // Populate departments (already handled in auth.js if signupForm exists, but can be duplicated for clarity)
+            const departmentSelect = document.getElementById('department');
+            if (departmentSelect && window.DEPARTMENTS) {
+                 // Clear existing options first to avoid duplicates if auth.js also runs this
+                departmentSelect.innerHTML = '<option value="">Select your department</option>';
+                window.DEPARTMENTS.forEach(dept => {
+                    const option = document.createElement('option');
+                    option.value = dept;
+                    option.textContent = dept;
+                    departmentSelect.appendChild(option);
+                });
+            }
+            
+            if (window.lucide) {
+                window.lucide.createIcons();
+                 console.log("Lucide icons created on signup page.");
+            } else {
+                console.warn("Lucide library not found on signup page.");
+            }
+        });
     </script>
 </body>
 </html>

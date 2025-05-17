@@ -11,23 +11,41 @@ function getCurrentUserRole() {
 
 function roleGuard(expectedRoles) {
     const currentRole = getCurrentUserRole();
+    console.log('[roleGuard] Current role from localStorage:', currentRole);
+    console.log('[roleGuard] Expected roles:', expectedRoles);
+    console.log('[roleGuard] window.USER_ROLES available:', window.USER_ROLES);
+
+
     if (!currentRole) {
-        window.location.href = '/index.html'; // Or your login page
+        console.log('[roleGuard] No role found, redirecting to login.');
+        window.location.href = '../index.html'; // Adjusted path for dashboard pages
         return false;
     }
+
+    if (!window.USER_ROLES) {
+        console.error('[roleGuard] CRITICAL ERROR: window.USER_ROLES is not defined. Cannot perform role check.');
+        alert('Critical system error: Role definitions missing. Please contact support.');
+        window.location.href = '../index.html'; // Redirect to login
+        return false;
+    }
+
     const rolesToCheck = Array.isArray(expectedRoles) ? expectedRoles : [expectedRoles];
     if (!rolesToCheck.includes(currentRole)) {
+        console.log(`[roleGuard] Access Denied. Role "${currentRole}" not in expected roles. Redirecting.`);
         alert('Access Denied. You do not have permission to view this page.');
-        // Redirect to a general page or login
+        
         const roleDashboardMap = {
-            [USER_ROLES.ADMIN]: '/dashboard/admin.html',
-            [USER_ROLES.FACULTY]: '/dashboard/faculty.html',
-            [USER_ROLES.STUDENT]: '/dashboard/student.html',
-            [USER_ROLES.CR]: '/dashboard/cr.html',
+            [window.USER_ROLES.ADMIN]: '../dashboard/admin.html',
+            [window.USER_ROLES.FACULTY]: '../dashboard/faculty.html',
+            [window.USER_ROLES.STUDENT]: '../dashboard/student.html',
+            [window.USER_ROLES.ASSISTANT]: '../dashboard/assistant.html',
         };
-        window.location.href = roleDashboardMap[currentRole] || '/index.html';
+        // Make sure to use window.USER_ROLES here if it's the source of truth.
+        // The keys in roleDashboardMap should match the values in window.USER_ROLES.
+        window.location.href = roleDashboardMap[currentRole] || '../index.html';
         return false;
     }
+    console.log('[roleGuard] Access GRANTED for role:', currentRole);
     return true;
 }
 

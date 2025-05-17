@@ -58,13 +58,13 @@ function handleLogin(event) {
     }
 
     // Ensure USER_ROLES is available
-    const currentUserRoles = window.USER_ROLES || USER_ROLES; // Fallback if window.USER_ROLES isn't set, though it should be
+    const currentUserRoles = window.USER_ROLES;
     if (!currentUserRoles) {
-        console.error("USER_ROLES object is not defined. Make sure constants.js is loaded before auth.js.");
+        console.error("CRITICAL ERROR: USER_ROLES object is not defined in window. Make sure constants.js is loaded before auth.js and defines window.USER_ROLES.");
         showError('roleError', 'System error: Roles not defined. Please contact support.');
         return;
     }
-    console.log("USER_ROLES for comparison:", currentUserRoles); // Debug log
+    console.log("USER_ROLES for comparison in login:", currentUserRoles); // Debug log
 
     localStorage.setItem('userRole', role);
     localStorage.setItem('userEmail', email);
@@ -77,33 +77,34 @@ function handleLogin(event) {
     let redirected = false;
     switch (role) {
         case currentUserRoles.ADMIN:
-            console.log("Redirecting to Admin dashboard..."); // Debug log
+            console.log("Redirecting to Admin dashboard...");
             window.location.href = 'dashboard/admin.html';
             redirected = true;
             break;
         case currentUserRoles.FACULTY:
-            console.log("Redirecting to Faculty dashboard..."); // Debug log
+            console.log("Redirecting to Faculty dashboard...");
             window.location.href = 'dashboard/faculty.html';
             redirected = true;
             break;
         case currentUserRoles.STUDENT:
-            console.log("Redirecting to Student dashboard..."); // Debug log
+            console.log("Redirecting to Student dashboard...");
             window.location.href = 'dashboard/student.html';
             redirected = true;
             break;
         case currentUserRoles.ASSISTANT:
-            console.log("Redirecting to Assistant dashboard..."); // Debug log
+            console.log("Redirecting to Assistant dashboard...");
             window.location.href = 'dashboard/assistant.html';
             redirected = true;
             break;
         default:
-            console.error("Login: No matching role for redirection. Role provided:", role); // Debug log
+            console.error("Login: No matching role for redirection. Role provided:", role, "Expected roles:", currentUserRoles);
             showError('roleError', 'Invalid role selected. Cannot redirect.');
     }
+
     if(redirected){
         console.log("Redirection was attempted to:", window.location.href);
     } else {
-        console.error("Redirection was NOT attempted. Check switch/case logic and role value.");
+        console.error("Redirection was NOT attempted. Check switch/case logic and role value. Role was:", role);
     }
 }
 
@@ -153,9 +154,9 @@ function handleSignup(event) {
         return;
     }
     // Ensure USER_ROLES is available for signup redirection logic too
-    const currentUserRoles = window.USER_ROLES || USER_ROLES;
+    const currentUserRoles = window.USER_ROLES;
     if (!currentUserRoles) {
-        console.error("USER_ROLES object is not defined for signup. Make sure constants.js is loaded before auth.js.");
+        console.error("CRITICAL ERROR: USER_ROLES object is not defined for signup. Make sure constants.js is loaded before auth.js.");
         signupButton.disabled = false;
         signupButton.innerHTML = 'Create Account';
         if (window.lucide) window.lucide.createIcons();
@@ -172,8 +173,7 @@ function handleSignup(event) {
         alert(`Account Created! Welcome, ${fullName}! Your account as ${role} has been successfully created.`);
         signupButton.disabled = false;
         signupButton.innerHTML = 'Create Account';
-        if (window.lucide) window.lucide.createIcons();
-
+        // No need to call lucide.createIcons() here again unless the button content changed and had an icon
 
         switch (role) {
             case currentUserRoles.ADMIN:
@@ -189,7 +189,8 @@ function handleSignup(event) {
                 window.location.href = 'dashboard/assistant.html';
                 break;
             default:
-                window.location.href = 'index.html';
+                console.error("Signup: No matching role for redirection. Role was:", role);
+                window.location.href = 'index.html'; // Fallback to login
         }
     }, 1500);
 }

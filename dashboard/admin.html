@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,14 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - Optimized Lab Management System</title>
     <link rel="stylesheet" href="../css/style.css">
-    <link rel="stylesheet" href="https://unpkg.com/lucide-static@latest/font/lucide.css">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
     <div class="dashboard-layout">
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <a href="overview.html" class="sidebar-header-link">
+                <a href="admin.html" class="sidebar-header-link">
                     <i data-lucide="atom"></i>
                     <span class="sidebar-title">Optimized Lab Management</span>
                 </a>
@@ -26,7 +24,7 @@
 
         <div class="main-content-wrapper">
             <header class="dashboard-header">
-                <button class="mobile-menu-button" id="mobileMenuButton">
+                <button type="button" class="mobile-menu-button" id="mobileMenuButton">
                     <i data-lucide="menu"></i>
                 </button>
                 <div class="user-nav" id="userNavContainer">
@@ -61,9 +59,15 @@
     <script src="js/dashboard.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            if (!roleGuard(USER_ROLES.ADMIN)) return;
+            console.log("Admin dashboard DOM fully loaded and parsed.");
+            if (!roleGuard(USER_ROLES.ADMIN)) {
+                console.log("Admin role guard failed. User does not have Admin role.");
+                return;
+            }
             
             initializeDashboard(); // From dashboard.js
+            console.log("Dashboard initialized for Admin.");
+
 
             const featureCardsContainer = document.getElementById('featureCardsContainer');
             const adminFeatures = [
@@ -80,11 +84,18 @@
                 adminFeatures.forEach(feature => {
                     featureCardsContainer.appendChild(createFeatureCard(feature));
                 });
+                 console.log("Admin feature cards populated.");
+            } else {
+                console.error("featureCardsContainer not found on admin.html");
             }
-             if (window.lucide) window.lucide.createIcons();
+
+             if (window.lucide) {
+                window.lucide.createIcons();
+                console.log("Lucide icons created on admin dashboard.");
+            } else {
+                console.warn("Lucide library not found on admin dashboard.");
+            }
         });
     </script>
 </body>
 </html>
-
-    

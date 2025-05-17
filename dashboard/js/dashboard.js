@@ -1,9 +1,23 @@
 
-
 function initializeDashboard() {
+    console.log('[dashboard.js] Initializing dashboard...');
     const currentRole = getCurrentUserRole();
+    console.log('[dashboard.js] Current user role from localStorage:', currentRole);
+    console.log('[dashboard.js] window.USER_ROLES available:', window.USER_ROLES);
+    console.log('[dashboard.js] window.NAV_LINKS available:', window.NAV_LINKS);
+
+
     if (!currentRole) {
+        console.log('[dashboard.js] No role found in initializeDashboard, redirecting to login.');
         window.location.href = '../index.html'; 
+        return;
+    }
+
+    if (!window.USER_ROLES || !window.NAV_LINKS) {
+        console.error("[dashboard.js] CRITICAL ERROR: USER_ROLES or NAV_LINKS not defined on window. Ensure constants.js is loaded first and correctly defines these.");
+        alert("Dashboard cannot be initialized due to a system error. Please contact support.");
+        // Optionally redirect to login or show a static error message
+        // window.location.href = '../index.html';
         return;
     }
 
@@ -14,20 +28,31 @@ function initializeDashboard() {
     setDashboardHomeLink(); 
 
     if (window.lucide) {
+        console.log('[dashboard.js] Calling lucide.createIcons() at the end of initializeDashboard.');
         window.lucide.createIcons();
+    } else {
+        console.warn('[dashboard.js] Lucide library not found on window.');
     }
 }
 
 function setDashboardHomeLink() {
     const dashboardHomeLink = document.getElementById('dashboardHomeLink');
-    if (!dashboardHomeLink) return;
+    if (!dashboardHomeLink) {
+        console.warn('[dashboard.js] dashboardHomeLink element not found.');
+        return;
+    }
 
     const role = getCurrentUserRole();
+    if (!role || !window.USER_ROLES) {
+        console.warn('[dashboard.js] Cannot set home link: role or USER_ROLES missing.');
+        dashboardHomeLink.href = '../index.html'; // Fallback
+        return;
+    }
     const homePageMap = {
-        [USER_ROLES.ADMIN]: 'admin.html',
-        [USER_ROLES.FACULTY]: 'faculty.html',
-        [USER_ROLES.STUDENT]: 'student.html',
-        [USER_ROLES.ASSISTANT]: 'assistant.html' // Changed from CR
+        [window.USER_ROLES.ADMIN]: 'admin.html',
+        [window.USER_ROLES.FACULTY]: 'faculty.html',
+        [window.USER_ROLES.STUDENT]: 'student.html',
+        [window.USER_ROLES.ASSISTANT]: 'assistant.html'
     };
     dashboardHomeLink.href = homePageMap[role] || '../index.html';
 }
@@ -35,16 +60,25 @@ function setDashboardHomeLink() {
 
 function populateSidebarNav(role) {
     const sidebarNav = document.getElementById('sidebarNav');
-    if (!sidebarNav) return;
+    if (!sidebarNav) {
+        console.warn('[dashboard.js] sidebarNav element not found.');
+        return;
+    }
 
     sidebarNav.innerHTML = ''; 
 
-    const links = NAV_LINKS[role] || COMMON_NAV_LINKS;
+    const links = window.NAV_LINKS[role] || window.COMMON_NAV_LINKS;
+    if (!links) {
+        console.warn(`[dashboard.js] No NAV_LINKS found for role: ${role}`);
+        return;
+    }
+
     links.forEach(link => {
         const li = document.createElement('li');
         li.className = 'sidebar-nav-item';
         
         const a = document.createElement('a');
+        // For dashboard pages, hrefs are relative to the dashboard/ directory
         a.href = link.href.startsWith('http') ? link.href : `${link.href}`; 
         a.className = 'sidebar-nav-link';
         a.title = link.label;
@@ -62,7 +96,10 @@ function populateSidebarNav(role) {
 
 function populateUserNav(role) {
     const userNavContainer = document.getElementById('userNavContainer');
-    if (!userNavContainer) return;
+    if (!userNavContainer) {
+        console.warn('[dashboard.js] userNavContainer element not found.');
+        return;
+    }
 
     const email = localStorage.getItem('userEmail') || 'user@example.com';
     const name = localStorage.getItem('userName') || email.split('@')[0] || role; 
@@ -86,27 +123,35 @@ function populateUserNav(role) {
             </div>
         </div>
     `;
-    if (window.lucide) {
-        window.lucide.createIcons();
-    }
+    // Icons here are dynamically added, so lucide.createIcons() in initializeDashboard should cover them.
 
     const userAvatarButton = document.getElementById('userAvatarButton');
     const userNavDropdown = document.getElementById('userNavDropdown');
     const logoutButton = document.getElementById('logoutButton');
 
-    userAvatarButton.addEventListener('click', () => {
-        userNavDropdown.classList.toggle('open');
-    });
+    if (userAvatarButton && userNavDropdown) {
+        userAvatarButton.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent click from closing immediately if event bubbles to document
+            userNavDropdown.classList.toggle('open');
+        });
+    } else {
+        console.warn('[dashboard.js] User avatar button or dropdown not found for event listener attachment.');
+    }
 
-    logoutButton.addEventListener('click', () => {
-        localStorage.removeItem('userRole');
-        localStorage.removeItem('userEmail');
-        localStorage.removeItem('userName');
-        window.location.href = '../index.html'; 
-    });
+    if (logoutButton) {
+        logoutButton.addEventListener('click', () => {
+            localStorage.removeItem('userRole');
+            localStorage.removeItem('userEmail');
+            localStorage.removeItem('userName');
+            localStorage.removeItem('userDepartment'); // Ensure department is cleared
+            window.location.href = '../index.html'; 
+        });
+    } else {
+         console.warn('[dashboard.js] Logout button not found.');
+    }
 
     document.addEventListener('click', (event) => {
-        if (userNavDropdown && !userNavContainer.contains(event.target) && userNavDropdown.classList.contains('open')) {
+        if (userNavDropdown && userNavContainer && !userNavContainer.contains(event.target) && userNavDropdown.classList.contains('open')) {
             userNavDropdown.classList.remove('open');
         }
     });
@@ -120,7 +165,7 @@ function setupMobileSidebar() {
     if (menuButton && sidebar && overlay) {
         if(isMobile()){
             menuButton.style.display = 'block';
-            sidebar.classList.remove('open');
+            sidebar.classList.remove('open'); // Start closed on mobile
             overlay.classList.remove('open');
         } else {
             sidebar.classList.add('open'); 
@@ -136,15 +181,18 @@ function setupMobileSidebar() {
             sidebar.classList.remove('open');
             overlay.classList.remove('open');
         });
+    } else {
+        // console.warn('[dashboard.js] Mobile sidebar elements (button, sidebar, or overlay) not all found.');
     }
      window.addEventListener('resize', () => {
         if (menuButton && sidebar && overlay) {
             if (isMobile()) {
                 menuButton.style.display = 'block';
+                 // Don't force sidebar closed on resize, user might have opened it
             } else { 
                 menuButton.style.display = 'none';
-                sidebar.classList.add('open');
-                overlay.classList.remove('open');
+                sidebar.classList.add('open'); // Ensure open on desktop
+                overlay.classList.remove('open'); // Ensure overlay closed on desktop
             }
         }
     });
