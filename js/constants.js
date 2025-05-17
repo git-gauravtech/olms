@@ -93,19 +93,28 @@ function saveEquipment(equipment) {
 let ALL_LAB_SEAT_STATUSES_CACHE; 
 
 function loadLabSeatStatuses() {
-    // If cache is already populated, return it.
-    if (ALL_LAB_SEAT_STATUSES_CACHE && Object.keys(ALL_LAB_SEAT_STATUSES_CACHE).length > 0) {
+    // If cache is already populated and this function is called without intent to force reload (e.g. no args), return it.
+    if (ALL_LAB_SEAT_STATUSES_CACHE && Object.keys(ALL_LAB_SEAT_STATUSES_CACHE).length > 0 && arguments.length === 0) {
       return ALL_LAB_SEAT_STATUSES_CACHE;
     }
-    // Otherwise, load from localStorage.
-    const storedStatuses = localStorage.getItem(LAB_SEAT_STATUSES_STORAGE_KEY);
-    ALL_LAB_SEAT_STATUSES_CACHE = storedStatuses ? JSON.parse(storedStatuses) : {};
+    
+    try {
+        const storedStatuses = localStorage.getItem(LAB_SEAT_STATUSES_STORAGE_KEY);
+        ALL_LAB_SEAT_STATUSES_CACHE = storedStatuses ? JSON.parse(storedStatuses) : {};
+    } catch (e) {
+        console.error("Error parsing labSeatStatuses from localStorage:", e);
+        ALL_LAB_SEAT_STATUSES_CACHE = {}; // Reset to empty if parsing fails
+    }
     return ALL_LAB_SEAT_STATUSES_CACHE;
 }
 
-function saveLabSeatStatuses(statuses) { // Function now accepts the statuses object
-    ALL_LAB_SEAT_STATUSES_CACHE = statuses; // Update the cache
-    localStorage.setItem(LAB_SEAT_STATUSES_STORAGE_KEY, JSON.stringify(statuses));
+function saveLabSeatStatuses(statuses) { 
+    ALL_LAB_SEAT_STATUSES_CACHE = statuses; 
+    try {
+        localStorage.setItem(LAB_SEAT_STATUSES_STORAGE_KEY, JSON.stringify(statuses));
+    } catch (e) {
+        console.error("Error saving labSeatStatuses to localStorage:", e);
+    }
 }
 
 
@@ -130,8 +139,9 @@ dayAfterTomorrow.setDate(today.getDate() + 2);
 const yesterday = new Date(today);
 yesterday.setDate(today.getDate() - 1);
 
-function formatDate(dateInput) { // Accepts date object or string
-    const d = new Date(dateInput);
+function formatDate(dateInput) { 
+    if (!dateInput) return '';
+    const d = new Date(dateInput); // Handles date objects and valid date strings
     let month = '' + (d.getMonth() + 1);
     let day = '' + d.getDate();
     const year = d.getFullYear();
@@ -153,11 +163,13 @@ function initializeMockBookings() {
             { id: 'b3', labId: 'chemistry_lab_beta', date: formatDate(tomorrow), timeSlotId: 'ts_1400_1500', userId: 'faculty1@example.com', purpose: 'Chem 101 Class', equipmentIds: ['eq_microscope_01'], status: 'booked', requestedByRole: USER_ROLES.FACULTY},
             { id: 'b4_assistant_pending_old', labId: 'computer_lab_gamma', date: formatDate(dayAfterTomorrow), timeSlotId: 'ts_1100_1200', userId: 'assistant@example.com', purpose: 'AI Project Work', equipmentIds: ['eq_pc_high_01'], status: 'pending', batchIdentifier: 'CSE Year 2 - Section A', requestedByRole: USER_ROLES.ASSISTANT },
             { id: 'b5_assistant_booked', labId: 'robotics_lab_zeta', date: formatDate(today), timeSlotId: 'ts_1000_1100', userId: 'assistant@example.com', purpose: 'Robotics Prep', equipmentIds: [], status: 'booked', batchIdentifier: 'Robotics Club', requestedByRole: USER_ROLES.ASSISTANT },
-            { id: 'b5', labId: 'electronics_lab_delta', date: formatDate(yesterday), timeSlotId: 'ts_1500_1600', userId: 'student1@example.com', purpose: 'Circuit Design (Completed)', equipmentIds: ['eq_oscilloscope_01'], status: 'booked', requestedByRole: USER_ROLES.STUDENT },
-            // More dummy data for assistant requests
+            { id: 'b5_past', labId: 'electronics_lab_delta', date: formatDate(yesterday), timeSlotId: 'ts_1500_1600', userId: 'student1@example.com', purpose: 'Circuit Design (Completed)', equipmentIds: ['eq_oscilloscope_01'], status: 'booked', requestedByRole: USER_ROLES.STUDENT },
+            
             { id: 'b6_assistant_pending_new_1', labId: 'physics_lab_alpha', date: formatDate(tomorrow), timeSlotId: 'ts_1300_1400', userId: 'assistant_new@example.com', purpose: 'Special Physics Tutoring', equipmentIds: ['eq_spectrometer_01'], status: 'pending', batchIdentifier: 'Physics Honors Group', requestedByRole: USER_ROLES.ASSISTANT },
             { id: 'b7_assistant_pending_new_2', labId: 'computer_lab_gamma', date: formatDate(dayAfterTomorrow), timeSlotId: 'ts_1500_1600', userId: 'assistant@example.com', purpose: 'Data Structures Workshop', equipmentIds: ['eq_pc_high_01', 'eq_projector_01'], status: 'pending', batchIdentifier: 'IT Year 1 - Section B', requestedByRole: USER_ROLES.ASSISTANT },
             { id: 'b8_assistant_pending_new_3', labId: 'chemistry_lab_beta', date: formatDate(tomorrow), timeSlotId: 'ts_0800_0900', userId: 'another_assistant@example.com', purpose: 'Organic Chem Practicals', equipmentIds: [], status: 'pending', batchIdentifier: 'Chemistry Advanced', requestedByRole: USER_ROLES.ASSISTANT },
+            { id: 'b9_assistant_pending_no_equip', labId: 'biology_lab_epsilon', date: formatDate(dayAfterTomorrow), timeSlotId: 'ts_0900_1000', userId: 'assistant@example.com', purpose: 'Microbiology Prep', equipmentIds: [], status: 'pending', batchIdentifier: 'Biology Majors', requestedByRole: USER_ROLES.ASSISTANT },
+            { id: 'b10_assistant_pending_comp_lab', labId: 'computer_lab_gamma', date: formatDate(tomorrow), timeSlotId: 'ts_1600_1700', userId: 'assistant_new@example.com', purpose: 'Programming Basics', equipmentIds: ['eq_projector_01'], status: 'pending', batchIdentifier: 'Intro to CS', requestedByRole: USER_ROLES.ASSISTANT },
 
         ];
         saveMockBookings();
@@ -209,3 +221,4 @@ window.loadEquipment = loadEquipment; // Make loadEquipment globally available
 window.LAB_SEAT_STATUSES_STORAGE_KEY = LAB_SEAT_STATUSES_STORAGE_KEY;
 window.loadLabSeatStatuses = loadLabSeatStatuses; // Expose for other scripts
 window.saveLabSeatStatuses = saveLabSeatStatuses; // Expose for other scripts
+

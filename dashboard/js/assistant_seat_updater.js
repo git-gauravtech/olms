@@ -33,7 +33,7 @@ function initializeSeatUpdaterPage() {
 // Reads from the module-level cache
 function getSeatStatus(labId, seatIndex) {
     // Ensure seatIndex is a string for consistent key access
-    const status = ALL_LAB_SEAT_STATUSES[labId]?.[seatIndex.toString()] || 'working'; // Default to 'working'
+    const status = ALL_LAB_SEAT_STATUSES[labId]?.[String(seatIndex)] || 'working'; // Default to 'working'
     return status;
 }
 
@@ -44,7 +44,7 @@ function setSeatStatus(labId, seatIndex, status) {
         ALL_LAB_SEAT_STATUSES[labId] = {};
     }
     // Ensure seatIndex is a string for consistent key access
-    ALL_LAB_SEAT_STATUSES[labId][seatIndex.toString()] = status;
+    ALL_LAB_SEAT_STATUSES[labId][String(seatIndex)] = status;
     window.saveLabSeatStatuses(ALL_LAB_SEAT_STATUSES); // Pass the entire updated object to be saved in constants.js
 }
 
@@ -113,13 +113,13 @@ function renderInteractiveLabLayout(labId, container) {
                 deskDiv.className = 'lab-layout-desk interactive-seat';
                 deskDiv.setAttribute('data-seat-index', currentSeatIndexStr);
 
-                const icon = document.createElement('i');
+                const icon = document.createElement('i'); // Create the <i> tag for Lucide
                 icon.setAttribute('data-lucide', 'armchair');
-                const currentStatus = getSeatStatus(labId, currentSeatIndexStr);
-                icon.classList.add(currentStatus === 'not-working' ? 'system-not-working' : 'system-working');
-
+                // Initial status application will be handled by Lucide after it creates the SVG
+                // and then potentially by a re-style if needed, but handleSeatClick will manage active changes.
+                
                 deskDiv.appendChild(icon);
-                deskDiv.addEventListener('click', () => handleSeatClick(labId, currentSeatIndexStr, deskDiv)); // Pass deskDiv for direct icon manipulation
+                deskDiv.addEventListener('click', () => handleSeatClick(labId, currentSeatIndexStr, deskDiv));
                 row.appendChild(deskDiv);
                 
                 desksRenderedInSec++;
@@ -135,21 +135,40 @@ function renderInteractiveLabLayout(labId, container) {
     mainLayoutContainer.appendChild(createInteractiveDeskSection(numRightDesks, 3));
 
     container.appendChild(mainLayoutContainer);
-    if (window.lucide) window.lucide.createIcons();
+    if (window.lucide) {
+        window.lucide.createIcons(); // Create icons from <i> tags
+        // After icons are created, apply initial styles based on saved status
+        const allSeatDivs = mainLayoutContainer.querySelectorAll('.interactive-seat');
+        allSeatDivs.forEach(seatDiv => {
+            const seatIdx = seatDiv.getAttribute('data-seat-index');
+            const initialStatus = getSeatStatus(labId, seatIdx);
+            const svgIcon = seatDiv.querySelector('svg.lucide-armchair');
+            if (svgIcon) {
+                svgIcon.classList.add(initialStatus === 'not-working' ? 'system-not-working' : 'system-working');
+            }
+        });
+    }
 }
 
 function handleSeatClick(labId, seatIndexStr, seatContainerElement) {
-    const iconElement = seatContainerElement.querySelector('i[data-lucide="armchair"]');
+    // After lucide.createIcons(), the <i> tag is replaced by an <svg>
+    // So, we need to target the SVG element for class manipulation.
+    const iconElement = seatContainerElement.querySelector('svg.lucide-armchair'); 
+
     if (!iconElement) {
-        console.error("Armchair icon not found within the seat container:", seatContainerElement);
+        console.error("Armchair SVG icon not found within the seat container:", seatContainerElement);
+        // As a fallback, it's possible the click happened before SVG replacement or some other edge case
+        const iTag = seatContainerElement.querySelector('i[data-lucide="armchair"]');
+        if(iTag) console.error("Found <i> tag instead:", iTag);
         return;
     }
 
     const currentStatus = getSeatStatus(labId, seatIndexStr);
     const newStatus = currentStatus === 'working' ? 'not-working' : 'working';
 
-    setSeatStatus(labId, seatIndexStr, newStatus);
+    setSeatStatus(labId, seatIndexStr, newStatus); // This saves to localStorage
 
+    // Update visual style
     iconElement.classList.remove('system-working', 'system-not-working');
     iconElement.classList.add(newStatus === 'not-working' ? 'system-not-working' : 'system-working');
 
