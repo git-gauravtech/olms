@@ -1,4 +1,6 @@
 
+const API_BASE_URL_BOOKING = '/api'; // Relative path
+
 async function initializeBookingForm() {
     const bookingForm = document.getElementById('bookingForm');
     const labIdSelect = document.getElementById('labId');
@@ -8,16 +10,16 @@ async function initializeBookingForm() {
     const batchIdentifierGroup = document.getElementById('batchIdentifierGroup');
     const batchIdentifierInput = document.getElementById('batchIdentifier');
     const formSubmissionMessageEl = document.getElementById('formSubmissionMessage'); 
-    // const checkAvailabilityBtn = document.getElementById('checkAvailabilityBtn'); // Removed
+    const token = localStorage.getItem('token');
 
     const currentUserRole = getCurrentUserRole();
     if (!currentUserRole) {
-        console.error("User role not found. Cannot initialize booking form.");
+        // console.error("User role not found. Cannot initialize booking form.");
         if(formSubmissionMessageEl) showFormSubmissionMessage('Error: User role not found. Cannot initialize form.', true, formSubmissionMessageEl);
         return;
     }
 
-    if (currentUserRole === USER_ROLES.ASSISTANT) {
+    if (currentUserRole === USER_ROLES_OBJ.ASSISTANT) {
         if (batchIdentifierGroup) batchIdentifierGroup.style.display = 'block'; 
         if (batchIdentifierInput) batchIdentifierInput.required = true;
     } else {
@@ -28,7 +30,7 @@ async function initializeBookingForm() {
         // Populate Labs
         if (labIdSelect) {
             labIdSelect.innerHTML = '<option value="">Loading labs...</option>';
-            const labsResponse = await fetch('/api/labs', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+            const labsResponse = await fetch(`${API_BASE_URL_BOOKING}/labs`, { headers: { 'Authorization': `Bearer ${token}` } });
             if (!labsResponse.ok) throw new Error('Failed to fetch labs');
             const labs = await labsResponse.json();
             labIdSelect.innerHTML = '<option value="">Select Lab</option>';
@@ -41,9 +43,9 @@ async function initializeBookingForm() {
         }
 
         // Populate Time Slots (from constants.js as they are fixed)
-        if (timeSlotIdSelect && window.MOCK_TIME_SLOTS) {
+        if (timeSlotIdSelect && window.MOCK_TIME_SLOTS_CONST) {
             timeSlotIdSelect.innerHTML = '<option value="">Select Time Slot</option>';
-            window.MOCK_TIME_SLOTS.forEach(slot => {
+            window.MOCK_TIME_SLOTS_CONST.forEach(slot => {
                 const option = document.createElement('option');
                 option.value = slot.id;
                 option.textContent = slot.displayTime;
@@ -54,7 +56,7 @@ async function initializeBookingForm() {
         // Populate Equipment
         if (equipmentCheckboxesContainer) {
             equipmentCheckboxesContainer.innerHTML = '<p>Loading equipment...</p>';
-            const equipmentResponse = await fetch('/api/equipment?status=available', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+            const equipmentResponse = await fetch(`${API_BASE_URL_BOOKING}/equipment?status=available`, { headers: { 'Authorization': `Bearer ${token}` } });
             if (!equipmentResponse.ok) throw new Error('Failed to fetch equipment');
             const availableEquipment = await equipmentResponse.json();
             equipmentCheckboxesContainer.innerHTML = '';
@@ -69,11 +71,13 @@ async function initializeBookingForm() {
                     checkbox.id = `equip_${equipment.id}`;
                     checkbox.value = equipment.id;
                     checkbox.name = 'equipment';
-                    checkbox.className = 'mr-2';
+                    checkbox.className = 'mr-2 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500';
+
 
                     const label = document.createElement('label');
                     label.htmlFor = `equip_${equipment.id}`;
                     label.textContent = equipment.name;
+                    label.className = "text-sm";
                     
                     div.appendChild(checkbox);
                     div.appendChild(label);
@@ -82,7 +86,7 @@ async function initializeBookingForm() {
             }
         }
     } catch (error) {
-        console.error("Error initializing booking form dropdowns:", error);
+        // console.error("Error initializing booking form dropdowns:", error);
         if(formSubmissionMessageEl) showFormSubmissionMessage(`Error initializing form: ${error.message}`, true, formSubmissionMessageEl);
     }
 
@@ -94,13 +98,13 @@ async function initializeBookingForm() {
 
 
     if (bookingDateInput) {
-      bookingDateInput.min = formatDate(new Date());
+      bookingDateInput.min = formatDateForInput(new Date());
     }
 
     if (bookingForm) {
         bookingForm.addEventListener('submit', async function(event) {
             event.preventDefault();
-            console.log("Booking form submitted by role:", currentUserRole);
+            // console.log("Booking form submitted by role:", currentUserRole);
             clearFormErrors(bookingForm);
             if(formSubmissionMessageEl) showFormSubmissionMessage('', false, formSubmissionMessageEl); 
 
@@ -112,7 +116,7 @@ async function initializeBookingForm() {
             const purposeInput = document.getElementById('purpose');
             const purpose = purposeInput ? purposeInput.value.trim() : '';
             const selectedEquipment = Array.from(document.querySelectorAll('input[name="equipment"]:checked'))
-                                         .map(cb => parseInt(cb.value)); // Ensure IDs are numbers if backend expects
+                                         .map(cb => parseInt(cb.value)); 
             
             let isValid = true;
             if (!labId) { showError('labIdError', 'Lab selection is required.'); isValid = false; }
@@ -121,25 +125,26 @@ async function initializeBookingForm() {
             if (!purpose) { showError('purposeError', 'Purpose is required.'); isValid = false; }
 
             const batchId = batchIdentifierInput ? batchIdentifierInput.value.trim() : '';
-            if (currentUserRole === USER_ROLES.ASSISTANT && !batchId) { // Using USER_ROLES from constants
+            if (currentUserRole === USER_ROLES_OBJ.ASSISTANT && !batchId) { 
                 showError('batchIdentifierError', 'Batch/Class Name is required for Assistant bookings.');
                 isValid = false;
             }
             
             if (!isValid) {
-                console.log("Form validation failed.");
+                // console.log("Form validation failed.");
                 return;
             }
             
             const bookingData = {
                 labId: parseInt(labId),
                 date: bookingDate,
-                timeSlotId: timeSlotId,
+                timeSlotId: timeSlotId, // Ensure this is the string ID from MOCK_TIME_SLOTS_CONST
                 purpose: purpose,
-                equipmentIds: selectedEquipment,
-                batchIdentifier: currentUserRole === USER_ROLES.ASSISTANT ? batchId : null,
+                equipmentIds: selectedEquipment, // This should be an array of numbers (IDs)
+                batchIdentifier: currentUserRole === USER_ROLES_OBJ.ASSISTANT ? batchId : null,
+                // requestedByRole is set by the backend based on JWT
             };
-            console.log("New booking data to send:", JSON.parse(JSON.stringify(bookingData)));
+            // console.log("New booking data to send:", JSON.parse(JSON.stringify(bookingData)));
 
             const submitButton = bookingForm.querySelector('button[type="submit"]');
             const originalButtonHtml = submitButton.innerHTML;
@@ -149,11 +154,11 @@ async function initializeBookingForm() {
 
 
             try {
-                const response = await fetch('/api/bookings', {
+                const response = await fetch(`${API_BASE_URL_BOOKING}/bookings`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        'Authorization': `Bearer ${token}`
                     },
                     body: JSON.stringify(bookingData)
                 });
@@ -161,18 +166,19 @@ async function initializeBookingForm() {
                 const result = await response.json();
 
                 if (response.ok) {
-                    const successMessage = currentUserRole === USER_ROLES.FACULTY 
-                        ? `Booking for ${result.purpose} (Lab: ${result.labName}) confirmed successfully!`
-                        : (currentUserRole === USER_ROLES.ASSISTANT 
-                            ? `Booking request for ${result.purpose} (Lab: ${result.labName}, Status: PENDING) submitted successfully!`
-                            : `Booking for ${result.purpose} (Lab: ${result.labName}) confirmed successfully!`);
+                    const labNameFromResult = result.labName || (labs.find(l => l.id == labId)?.name || 'Selected Lab');
+                    const successMessage = currentUserRole === USER_ROLES_OBJ.FACULTY 
+                        ? `Booking for "${result.purpose}" (Lab: ${labNameFromResult}, Status: ${result.status.toUpperCase()}) confirmed successfully!`
+                        : (currentUserRole === USER_ROLES_OBJ.ASSISTANT 
+                            ? `Booking request for "${result.purpose}" (Lab: ${labNameFromResult}, Status: ${result.status.toUpperCase()}) submitted successfully!`
+                            : `Booking for "${result.purpose}" (Lab: ${labNameFromResult}, Status: ${result.status.toUpperCase()}) confirmed successfully!`);
                     showFormSubmissionMessage(successMessage, false, formSubmissionMessageEl);
                     bookingForm.reset(); 
-                    if (currentUserRole === USER_ROLES.ASSISTANT && batchIdentifierInput) {
+                    if (currentUserRole === USER_ROLES_OBJ.ASSISTANT && batchIdentifierInput) {
                         batchIdentifierInput.value = ''; 
                     }
-                    if (bookingDateInput) bookingDateInput.min = formatDate(new Date()); 
-                    // Clear query params
+                    if (bookingDateInput) bookingDateInput.min = formatDateForInput(new Date()); 
+                    
                     if (history.pushState) {
                         const newURL = window.location.pathname; 
                         history.pushState({path:newURL}, '', newURL);
@@ -182,7 +188,7 @@ async function initializeBookingForm() {
                 }
 
             } catch (error) {
-                console.error("Error submitting booking:", error);
+                // console.error("Error submitting booking:", error);
                 showFormSubmissionMessage(`Error: Could not submit booking. ${error.message}`, true, formSubmissionMessageEl);
             } finally {
                 submitButton.disabled = false;
@@ -218,13 +224,22 @@ async function initializeBookingForm() {
         if (element) {
             element.textContent = message; 
             if (message) { 
-                element.style.color = isError ? '#dc3545' : '#28a745'; // Standard red/green
-                element.className = isError ? 'error-message visible' : 'success-message visible';
+                element.className = isError ? 'error-message visible' : 'success-message visible'; // relies on CSS for color
                 element.style.display = 'block';
             } else { 
                 element.style.display = 'none';
                 element.textContent = ''; 
             }
         }
+    }
+    // Helper to format date for <input type="date">
+    function formatDateForInput(date) {
+        const d = new Date(date);
+        let month = '' + (d.getMonth() + 1);
+        let day = '' + d.getDate();
+        const year = d.getFullYear();
+        if (month.length < 2) month = '0' + month;
+        if (day.length < 2) day = '0' + day;
+        return [year, month, day].join('-');
     }
 }

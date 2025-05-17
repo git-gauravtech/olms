@@ -6,21 +6,24 @@ const { auth, isAdmin } = require('../middleware/authMiddleware');
 
 // @route   GET api/equipment
 // @desc    Get all equipment, optionally filter by labId or status
-// @access  Public (or protected)
+// @access  Public (or protected for specific views if needed)
 router.get('/', async (req, res) => {
     const { labId, status } = req.query;
     let query = 'SELECT e.*, l.name as labName FROM equipment e LEFT JOIN labs l ON e.labId = l.id';
     const queryParams = [];
+    let conditions = [];
 
-    if (labId && status) {
-        query += ' WHERE e.labId = ? AND e.status = ?';
-        queryParams.push(labId, status);
-    } else if (labId) {
-        query += ' WHERE e.labId = ?';
+    if (labId) {
+        conditions.push('e.labId = ?');
         queryParams.push(labId);
-    } else if (status) {
-        query += ' WHERE e.status = ?';
+    }
+    if (status) {
+        conditions.push('e.status = ?');
         queryParams.push(status);
+    }
+
+    if (conditions.length > 0) {
+        query += ' WHERE ' + conditions.join(' AND ');
     }
     query += ' ORDER BY e.name ASC';
 
@@ -72,8 +75,8 @@ router.post('/', [auth, isAdmin], async (req, res) => {
             status, 
             labId: labId ? parseInt(labId) : null 
         };
-        if (labId && isNaN(newEquipment.labId)) {
-            return res.status(400).json({ msg: 'Invalid labId format' });
+        if (labId && isNaN(newEquipment.labId)) { // Check if labId is provided and is a number
+            return res.status(400).json({ msg: 'Invalid labId format. Must be a number or null.' });
         }
 
         const [result] = await pool.query('INSERT INTO equipment SET ?', newEquipment);
@@ -83,7 +86,7 @@ router.post('/', [auth, isAdmin], async (req, res) => {
     } catch (err) {
         console.error('Error creating equipment:', err.message);
         // Check for foreign key constraint violation if labId is invalid
-        if (err.code === 'ER_NO_REFERENCED_ROW_2') {
+        if (err.code === 'ER_NO_REFERENCED_ROW_2' && labId) { // Only if labId was provided
             return res.status(400).json({ msg: 'Invalid labId. The specified lab does not exist.' });
         }
         res.status(500).send('Server error');
@@ -133,7 +136,7 @@ router.put('/:id', [auth, isAdmin], async (req, res) => {
         res.json(updatedEquipment[0]);
     } catch (err) {
         console.error('Error updating equipment:', err.message);
-        if (err.code === 'ER_NO_REFERENCED_ROW_2') {
+        if (err.code === 'ER_NO_REFERENCED_ROW_2' && parsedLabId) {
             return res.status(400).json({ msg: 'Invalid labId. The specified lab does not exist.' });
         }
         res.status(500).send('Server error');
@@ -150,7 +153,8 @@ router.delete('/:id', [auth, isAdmin], async (req, res) => {
         if (existingEquipment.length === 0) {
             return res.status(404).json({ msg: 'Equipment not found' });
         }
-        // Consider implications if equipment is part of active bookings (equipmentIds JSON field)
+        // Consider implications if equipment is part of active bookings (equipmentIds JSON field in bookings table)
+        // This might require a check or be handled by application logic (e.g., prevent deletion if in use).
         await pool.query('DELETE FROM equipment WHERE id = ?', [equipmentId]);
         res.json({ msg: 'Equipment deleted successfully' });
     } catch (err) {

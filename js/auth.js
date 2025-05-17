@@ -10,8 +10,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (signupForm) {
         signupForm.addEventListener('submit', handleSignup);
         const departmentSelect = document.getElementById('department');
-        if (departmentSelect && window.DEPARTMENTS) {
-            window.DEPARTMENTS.forEach(dept => {
+        if (departmentSelect && window.DEPARTMENTS_CONST) {
+            window.DEPARTMENTS_CONST.forEach(dept => {
                 const option = document.createElement('option');
                 option.value = dept;
                 option.textContent = dept;
@@ -24,15 +24,15 @@ document.addEventListener('DOMContentLoaded', () => {
 async function handleLogin(event) {
     event.preventDefault();
     clearErrors();
-    console.log("handleLogin triggered");
+    // console.log("handleLogin triggered");
 
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
     const roleInput = document.getElementById('role');
-    const loginButton = document.querySelector('#loginForm button[type="submit"]'); // Assuming one submit button
+    const loginButton = document.querySelector('#loginForm button[type="submit"]'); 
 
     if (!emailInput || !passwordInput || !roleInput || !loginButton) {
-        console.error("Login form elements not found!");
+        // console.error("Login form elements not found!");
         showError('roleError', 'Login form elements missing. Please refresh.');
         return;
     }
@@ -47,7 +47,7 @@ async function handleLogin(event) {
     const password = passwordInput.value;
     const role = roleInput.value;
 
-    console.log("Login attempt:", { email, role });
+    // console.log("Login attempt:", { email, role });
 
     let isValid = true;
     if (!email) {
@@ -61,14 +61,13 @@ async function handleLogin(event) {
         showError('passwordError', 'Password is required.');
         isValid = false;
     }
-    // Password length validation can be handled by backend, or kept for basic UX
     if (!role) {
         showError('roleError', 'Please select a role.');
         isValid = false;
     }
 
     if (!isValid) {
-        console.log("Login validation failed on frontend.");
+        // console.log("Login validation failed on frontend.");
         loginButton.disabled = false;
         loginButton.innerHTML = originalButtonText;
         if (window.lucide) window.lucide.createIcons();
@@ -76,8 +75,7 @@ async function handleLogin(event) {
     }
 
     try {
-        // IMPORTANT: Replace with your actual backend API URL
-        const response = await fetch('http://localhost:5001/api/auth/login', { 
+        const response = await fetch('/api/auth/login', { 
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -88,53 +86,59 @@ async function handleLogin(event) {
         const data = await response.json();
 
         if (response.ok) {
-            console.log("Login successful from backend:", data);
-            localStorage.setItem('token', data.token); // Store JWT
+            // console.log("Login successful from backend:", data);
+            localStorage.setItem('token', data.token); 
             localStorage.setItem('userRole', data.user.role);
             localStorage.setItem('userEmail', data.user.email);
             localStorage.setItem('userName', data.user.name);
-            localStorage.setItem('userDepartment', data.user.department || ''); // Ensure department is stored
+            localStorage.setItem('userDepartment', data.user.department || '');
 
-            alert(`Login Successful. Welcome, ${data.user.name}! Redirecting to your dashboard...`);
+            // alert(`Login Successful. Welcome, ${data.user.name}! Redirecting to your dashboard...`);
             
-            const currentUserRoleConst = window.USER_ROLES; // From constants.js
+            const currentUserRoleConst = window.USER_ROLES_OBJ; 
             if (!currentUserRoleConst) {
-                 console.error("CRITICAL ERROR: window.USER_ROLES not defined on frontend!");
+                //  console.error("CRITICAL ERROR: window.USER_ROLES_OBJ not defined on frontend!");
                  showError('roleError', 'Frontend configuration error. Cannot redirect.');
                  loginButton.disabled = false;
                  loginButton.innerHTML = originalButtonText;
                  if (window.lucide) window.lucide.createIcons();
                  return;
             }
+            // console.log("Alert shown. Current role for switch:", data.user.role);
+            // console.log("USER_ROLES for comparison:", currentUserRoleConst);
 
             switch (data.user.role) {
                 case currentUserRoleConst.ADMIN:
+                    // console.log("Redirecting to Admin dashboard...");
                     window.location.href = 'dashboard/admin.html';
                     break;
                 case currentUserRoleConst.FACULTY:
+                    // console.log("Redirecting to Faculty dashboard...");
                     window.location.href = 'dashboard/faculty.html';
                     break;
                 case currentUserRoleConst.STUDENT:
+                    // console.log("Redirecting to Student dashboard...");
                     window.location.href = 'dashboard/student.html';
                     break;
                 case currentUserRoleConst.ASSISTANT:
+                    // console.log("Redirecting to Assistant dashboard...");
                     window.location.href = 'dashboard/assistant.html';
                     break;
                 default:
-                    console.error("Login: No matching role for redirection. Role from backend:", data.user.role);
+                    // console.error("Login: No matching role for redirection. Role from backend:", data.user.role);
                     showError('roleError', 'Invalid role received from server. Cannot redirect.');
             }
         } else {
-            console.error("Login failed from backend:", data);
+            // console.error("Login failed from backend:", data);
             showError('roleError', data.msg || 'Login failed. Please check your credentials and role.');
         }
     } catch (error) {
-        console.error('Login request failed:', error);
+        // console.error('Login request failed:', error);
         showError('roleError', 'An error occurred during login. Could not connect to server.');
     } finally {
         loginButton.disabled = false;
         loginButton.innerHTML = originalButtonText;
-        if (window.lucide) window.lucide.createIcons(); // Re-render icons if any were on the button
+        if (window.lucide) window.lucide.createIcons(); 
     }
 }
 
@@ -166,7 +170,7 @@ async function handleSignup(event) {
         showError('emailError', 'Invalid email address.');
         isValid = false;
     }
-    if (!password || password.length < 6) { // Adjusted to 6 to match backend expectations (if any)
+    if (!password || password.length < 6) { 
         showError('passwordError', 'Password must be at least 6 characters.');
         isValid = false;
     }
@@ -186,22 +190,21 @@ async function handleSignup(event) {
     }
     
     try {
-        // IMPORTANT: Replace with your actual backend API URL
-        const response = await fetch('http://localhost:5001/api/auth/signup', {
+        const response = await fetch('/api/auth/signup', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ fullName, email, password, role, department }),
         });
         const data = await response.json();
 
-        if (response.status === 201) { // HTTP 201 Created for successful registration
+        if (response.status === 201) { 
             alert(`Account Created! ${data.msg || `Welcome, ${fullName}! Please login.`}`);
-            window.location.href = 'index.html'; // Redirect to login page
+            window.location.href = 'index.html'; 
         } else {
-            showError('roleError', data.msg || 'Signup failed. Please try again.'); // Show general error near role or a dedicated spot
+            showError('roleError', data.msg || 'Signup failed. Please try again.'); 
         }
     } catch (error) {
-        console.error('Signup request failed:', error);
+        // console.error('Signup request failed:', error);
         showError('roleError', 'An error occurred during signup. Could not connect to server.');
     } finally {
         signupButton.disabled = false;
@@ -213,7 +216,7 @@ async function handleSignup(event) {
 function togglePasswordVisibility(fieldId, buttonElement) {
     const passwordInput = document.getElementById(fieldId);
     if (!passwordInput || !buttonElement) {
-        console.error('Password input field or toggle button not found:', fieldId);
+        // console.error('Password input field or toggle button not found:', fieldId);
         return;
     }
     let newIconName;
@@ -224,9 +227,9 @@ function togglePasswordVisibility(fieldId, buttonElement) {
         passwordInput.type = 'password';
         newIconName = 'eye';
     }
-    buttonElement.innerHTML = `<i data-lucide="${newIconName}"></i>`;
+    buttonElement.innerHTML = `<i data-lucide="${newIconName}"></i>`; // Recreate the <i> tag
     if (window.lucide) {
-        window.lucide.createIcons();
+        window.lucide.createIcons(); // Tell Lucide to process the new icon
     }
 }
 
@@ -236,13 +239,12 @@ function showError(elementId, message) {
         errorElement.textContent = message;
         errorElement.classList.add('visible');
     } else {
-        // Fallback for general errors if specific element not found
-        const generalErrorArea = document.getElementById('generalAuthError'); // You might need to add this element to your HTML
+        const generalErrorArea = document.getElementById('generalAuthError'); 
         if (generalErrorArea) {
             generalErrorArea.textContent = message;
             generalErrorArea.classList.add('visible');
         } else {
-            alert(message); // Last resort
+            // alert(message); // Last resort
         }
     }
 }
@@ -259,5 +261,3 @@ function clearErrors() {
         generalErrorArea.classList.remove('visible');
     }
 }
-
-    

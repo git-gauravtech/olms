@@ -1,5 +1,5 @@
 
-const API_BASE_URL_GRID = 'http://localhost:5001/api'; 
+const API_BASE_URL_GRID_VIEW = '/api'; // Relative path
 
 async function initializeLabGrid() {
     const labSelector = document.getElementById('labSelector');
@@ -17,6 +17,7 @@ async function initializeLabGrid() {
     const dialogBookButton = document.getElementById('dialogBookButton');
     const dialogCloseButton = document.getElementById('dialogCloseButton'); 
     const dialogCloseButtonSecondary = document.getElementById('dialogCloseButtonSecondary');
+    const token = localStorage.getItem('token');
 
     let currentSelectedLabId = '';
     let currentDate = new Date(); 
@@ -25,26 +26,29 @@ async function initializeLabGrid() {
     async function fetchLabsForSelector() {
         if (!labSelector) return;
         try {
-            const response = await fetch(`${API_BASE_URL_GRID}/labs`, {
-                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            const response = await fetch(`${API_BASE_URL_GRID_VIEW}/labs`, {
+                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (!response.ok) throw new Error('Failed to fetch labs');
             const labs = await response.json();
             
-            labSelector.innerHTML = '<option value="">Select a Lab</option>'; // Clear previous
-            labs.forEach(lab => {
-                const option = document.createElement('option');
-                option.value = lab.id;
-                option.textContent = `${lab.name} (Capacity: ${lab.capacity})`;
-                labSelector.appendChild(option);
-            });
+            labSelector.innerHTML = ''; // Clear previous
             if (labs.length > 0) {
+                labs.forEach(lab => {
+                    const option = document.createElement('option');
+                    option.value = lab.id;
+                    option.textContent = `${lab.name} (Capacity: ${lab.capacity})`;
+                    labSelector.appendChild(option);
+                });
                 currentSelectedLabId = labs[0].id;
                 labSelector.value = currentSelectedLabId;
+                 await renderGrid(); 
+            } else {
+                labSelector.innerHTML = '<option value="">No labs available</option>';
+                if(gridContainer) gridContainer.innerHTML = '<p class="text-muted-foreground">No labs found to display availability.</p>';
             }
-            await renderGrid(); 
         } catch (error) {
-            console.error("Error fetching labs for selector:", error);
+            // console.error("Error fetching labs for selector:", error);
             if(gridContainer) gridContainer.innerHTML = `<p class="error-message visible">Error loading labs: ${error.message}</p>`;
         }
     }
@@ -86,14 +90,14 @@ async function initializeLabGrid() {
     
     function getWeekDateRange(date) {
         const startOfWeek = new Date(date);
-        const dayOfWeek = startOfWeek.getDay(); // 0 for Sunday, 1 for Monday, etc.
-        const diff = startOfWeek.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // Adjust to make Monday the first day
+        const dayOfWeek = startOfWeek.getDay(); 
+        const diff = startOfWeek.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); 
         startOfWeek.setDate(diff);
-        startOfWeek.setHours(0, 0, 0, 0); // Normalize to start of the day
+        startOfWeek.setHours(0, 0, 0, 0);
 
         const endOfWeek = new Date(startOfWeek);
         endOfWeek.setDate(startOfWeek.getDate() + 6);
-        endOfWeek.setHours(23, 59, 59, 999); // Normalize to end of the day
+        endOfWeek.setHours(23, 59, 59, 999); 
         
         return { start: startOfWeek, end: endOfWeek };
     }
@@ -101,24 +105,23 @@ async function initializeLabGrid() {
     async function fetchBookingsForGridData(labId, startDate, endDate) {
         if (!labId) return [];
         try {
-            // Fetch all bookings for now; ideally, backend would filter by date range
-            const response = await fetch(`${API_BASE_URL_GRID}/bookings`, {
-                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } // Assuming admin/faculty needs to see all
+            // Fetch all bookings and filter client-side for simplicity
+            // Ideally, backend would filter: /api/bookings?labId=X&startDate=Y&endDate=Z
+            const response = await fetch(`${API_BASE_URL_GRID_VIEW}/bookings`, { // Admin might fetch all
+                 headers: { 'Authorization': `Bearer ${token}` } 
             });
             if(!response.ok) throw new Error('Failed to fetch bookings');
             let allBookings = await response.json();
             
-            // Filter client-side by labId and date range
-            const startDateString = window.formatDate(startDate);
-            const endDateString = window.formatDate(endDate);
+            const startDateString = window.formatDateForInput(startDate); // YYYY-MM-DD
+            const endDateString = window.formatDateForInput(endDate);   // YYYY-MM-DD
 
             return allBookings.filter(b => {
-                const bookingDate = new Date(b.date + 'T00:00:00'); // Ensure date comparison is correct
-                return String(b.labId) === String(labId) && // Compare as strings in case of type mismatch
+                return String(b.labId) === String(labId) && 
                        b.date >= startDateString && b.date <= endDateString;
             });
         } catch (error) {
-            console.error("Error fetching bookings for grid:", error);
+            // console.error("Error fetching bookings for grid:", error);
             return [];
         }
     }
@@ -127,7 +130,7 @@ async function initializeLabGrid() {
     async function renderGrid() {
         if (!gridContainer) return;
         if (!currentSelectedLabId) {
-             gridContainer.innerHTML = '<p>Please select a lab to view its availability.</p>';
+             gridContainer.innerHTML = '<p class="text-muted-foreground">Please select a lab to view its availability.</p>';
              if (currentWeekDisplay) currentWeekDisplay.textContent = 'N/A';
              return;
         }
@@ -135,46 +138,46 @@ async function initializeLabGrid() {
 
         const { start, end } = getWeekDateRange(currentDate);
         if (currentWeekDisplay) {
-            currentWeekDisplay.textContent = `${window.formatDate(start)} - ${window.formatDate(end)}`;
+            currentWeekDisplay.textContent = `${window.formatDateForDisplay(start)} - ${window.formatDateForDisplay(end)}`;
         }
 
         currentBookingsForGrid = await fetchBookingsForGridData(currentSelectedLabId, start, end);
-        console.log("Fetched bookings for grid:", currentBookingsForGrid);
+        // console.log("Fetched bookings for grid (Lab ID: " + currentSelectedLabId + "):", currentBookingsForGrid);
 
 
         gridContainer.innerHTML = ''; 
-        gridContainer.style.gridTemplateColumns = `minmax(80px, auto) repeat(${window.DAYS_OF_WEEK.length}, 1fr)`;
+        gridContainer.style.gridTemplateColumns = `minmax(80px, auto) repeat(${window.DAYS_OF_WEEK_CONST.length}, 1fr)`;
         
         const emptyHeaderCell = document.createElement('div');
         emptyHeaderCell.className = 'lab-grid-header-cell';
         gridContainer.appendChild(emptyHeaderCell);
 
         const weekDates = [];
-        for (let i = 0; i < window.DAYS_OF_WEEK.length; i++) {
+        for (let i = 0; i < window.DAYS_OF_WEEK_CONST.length; i++) {
             const dayCell = document.createElement('div');
             dayCell.className = 'lab-grid-header-cell';
             const currentDayDate = new Date(start);
             currentDayDate.setDate(start.getDate() + i);
             weekDates.push(currentDayDate);
-            dayCell.textContent = `${window.DAYS_OF_WEEK[i]} (${currentDayDate.getDate()})`;
+            dayCell.textContent = `${window.DAYS_OF_WEEK_CONST[i]} (${currentDayDate.getDate()})`;
             gridContainer.appendChild(dayCell);
         }
 
-        window.MOCK_TIME_SLOTS.forEach(slot => { 
+        window.MOCK_TIME_SLOTS_CONST.forEach(slot => { 
             const timeCell = document.createElement('div');
             timeCell.className = 'lab-grid-time-cell';
-            timeCell.textContent = slot.displayTime.replace(' - ', '\\n');
+            timeCell.textContent = slot.displayTime.replace(' - ', '\\n'); // For potential CSS to break line
             gridContainer.appendChild(timeCell);
 
             weekDates.forEach(date => {
                 const cell = document.createElement('div');
                 cell.className = 'lab-grid-cell interactive';
-                const dateString = window.formatDate(date); 
+                const dateString = window.formatDateForInput(date); 
                 
                 const booking = currentBookingsForGrid.find(b => 
                     b.date === dateString && 
-                    b.timeSlotId === slot.id && // timeSlotId should be string
-                    (b.status === 'booked' || b.status === 'pending' || b.status === 'pending-admin-approval') // Only show active/pending
+                    String(b.timeSlotId) === String(slot.id) && 
+                    (b.status === 'booked' || b.status === 'pending' || b.status === 'pending-admin-approval')
                 );
 
                 const cellStatusSpan = document.createElement('span');
@@ -192,7 +195,7 @@ async function initializeLabGrid() {
                 } else if (booking) {
                     cell.classList.add(`status-${booking.status}`);
                     cellStatusSpan.textContent = booking.status.replace(/-/g, ' ').toUpperCase();
-                    cellPurposeSpan.textContent = booking.purpose || `By: ${booking.userName || booking.userId}`;
+                    cellPurposeSpan.textContent = booking.purpose || `By: ${booking.userName || booking.userId || 'N/A'}`;
                 } else {
                     cell.classList.add('status-available');
                     cellStatusSpan.textContent = 'Available';
@@ -212,16 +215,17 @@ async function initializeLabGrid() {
 
     async function loadSeatStatusesForDialog(labId) {
         try {
-            const response = await fetch(`${API_BASE_URL_GRID}/labs/${labId}/seats`, {
-                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            const response = await fetch(`${API_BASE_URL_GRID_VIEW}/labs/${labId}/seats`, {
+                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (!response.ok) {
                  if (response.status === 404) return {}; 
-                 throw new Error('Failed to fetch seat statuses');
+                 const errorData = await response.json();
+                 throw new Error(errorData.msg || 'Failed to fetch seat statuses');
             }
             return await response.json();
         } catch (error) {
-            console.error("Error fetching seat statuses for dialog:", error);
+            // console.error("Error fetching seat statuses for dialog:", error);
             return {}; 
         }
     }
@@ -268,8 +272,8 @@ async function initializeLabGrid() {
         let lab;
         let seatStatuses;
         try {
-            const labResponse = await fetch(`${API_BASE_URL_GRID}/labs/${labId}`,{
-                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            const labResponse = await fetch(`${API_BASE_URL_GRID_VIEW}/labs/${labId}`,{
+                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (!labResponse.ok) throw new Error('Failed to fetch lab details');
             lab = await labResponse.json();
@@ -318,20 +322,19 @@ async function initializeLabGrid() {
         if (numMiddleDesks < 0) numMiddleDesks = 0;
         if (numRightDesks < 0) numRightDesks = 0;
         
-        // Adjust if total doesn't match capacity due to rounding (add to largest section, or distribute)
         let currentTotal = numLeftDesks + numMiddleDesks + numRightDesks;
-        if (currentTotal < capacity) {
-            numLeftDesks += Math.floor((capacity - currentTotal) / 2); // Example distribution
-            numRightDesks += Math.ceil((capacity - currentTotal) / 2);
-        } else if (currentTotal > capacity) {
-            // Reduce from largest, ensuring no negative
-             let diff = currentTotal - capacity;
-             while(diff > 0) {
-                if(numLeftDesks > numMiddleDesks && numLeftDesks > numRightDesks && numLeftDesks > 0) { numLeftDesks--; diff--; }
-                else if (numRightDesks > numMiddleDesks && numRightDesks > 0) { numRightDesks--; diff--;}
-                else if (numMiddleDesks > 0) { numMiddleDesks--; diff--;}
-                else if (numLeftDesks > 0) { numLeftDesks--; diff--;} // if middle and right are 0
-                else { break; } // Should not happen if capacity > 0
+        let diff = capacity - currentTotal;
+        if (diff > 0) { // Distribute remaining capacity
+            numLeftDesks += Math.floor(diff / 2);
+            numRightDesks += Math.ceil(diff / 2);
+        } else if (diff < 0) { // Reduce excess capacity
+             let reduceAmount = Math.abs(diff);
+             while(reduceAmount > 0) {
+                if(numLeftDesks > numMiddleDesks && numLeftDesks > numRightDesks && numLeftDesks > 0) { numLeftDesks--; reduceAmount--; }
+                else if (numRightDesks > numMiddleDesks && numRightDesks > 0) { numRightDesks--; reduceAmount--;}
+                else if (numMiddleDesks > 0) { numMiddleDesks--; reduceAmount--;}
+                else if (numLeftDesks > 0) { numLeftDesks--; reduceAmount--;}
+                else { break; } 
              }
         }
 
@@ -350,8 +353,8 @@ async function initializeLabGrid() {
     async function showSlotDetails(labId, date, timeSlot, booking) {
         let lab;
         try {
-            const labResponse = await fetch(`${API_BASE_URL_GRID}/labs/${labId}`,{
-                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            const labResponse = await fetch(`${API_BASE_URL_GRID_VIEW}/labs/${labId}`,{
+                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (!labResponse.ok) throw new Error('Failed to fetch lab details for dialog');
             lab = await labResponse.json();
@@ -361,7 +364,7 @@ async function initializeLabGrid() {
         }
 
         if (dialogTitle) dialogTitle.textContent = `Details for ${lab.name}`;
-        if (dialogDescription) dialogDescription.textContent = `Date: ${window.formatDate(new Date(date))}, Time: ${timeSlot.displayTime}`;
+        if (dialogDescription) dialogDescription.textContent = `Date: ${window.formatDateForDisplay(new Date(date))}, Time: ${timeSlot.displayTime}`;
         
         if (dialogSlotInfoContainer) dialogSlotInfoContainer.innerHTML = ''; 
         if (dialogBookButton) dialogBookButton.style.display = 'none';
@@ -383,7 +386,8 @@ async function initializeLabGrid() {
             if (dialogSlotInfoContainer) dialogSlotInfoContainer.appendChild(pPurpose);
 
             const pUser = document.createElement('p');
-            pUser.innerHTML = `<strong>Booked By:</strong> ${booking.userName || booking.userId} (${booking.requestedByRole})`;
+            // userName is joined in the backend query for /api/bookings
+            pUser.innerHTML = `<strong>Booked By:</strong> ${booking.userName || booking.userId || 'N/A'} (${booking.requestedByRole || 'N/A'})`;
             if (dialogSlotInfoContainer) dialogSlotInfoContainer.appendChild(pUser);
 
             if (booking.batchIdentifier) {
@@ -397,10 +401,10 @@ async function initializeLabGrid() {
             if (dialogSlotInfoContainer) dialogSlotInfoContainer.appendChild(pStatus);
             
             const currentUserRole = window.getCurrentUserRole(); 
-            if ((currentUserRole === window.USER_ROLES.FACULTY || currentUserRole === window.USER_ROLES.ASSISTANT) && dialogBookButton) { 
+            if ((currentUserRole === window.USER_ROLES_OBJ.FACULTY || currentUserRole === window.USER_ROLES_OBJ.ASSISTANT) && dialogBookButton) { 
                  dialogBookButton.style.display = 'inline-flex';
                  dialogBookButton.onclick = () => {
-                    let bookPage = currentUserRole === window.USER_ROLES.ASSISTANT ? 'assistant_request_lab.html' : 'book_slot.html';
+                    let bookPage = currentUserRole === window.USER_ROLES_OBJ.ASSISTANT ? 'assistant_request_lab.html' : 'book_slot.html';
                     window.location.href = `${bookPage}?labId=${labId}&date=${date}&timeSlotId=${timeSlot.id}`;
                  };
             }
@@ -413,6 +417,28 @@ async function initializeLabGrid() {
 
     fetchLabsForSelector();
 }
+
+// Helper to format date for display (e.g., Jul 18, 2024)
+window.formatDateForDisplay = function(date) {
+    if (!date) return '';
+    const d = date instanceof Date ? date : new Date(date);
+     if (isNaN(d.getTime())) return 'Invalid Date';
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
+// Helper to format date for <input type="date"> (YYYY-MM-DD)
+window.formatDateForInput = function(date) {
+    if (!date) return '';
+    const d = date instanceof Date ? date : new Date(date);
+    if (isNaN(d.getTime())) return 'Invalid Date';
+    let month = '' + (d.getMonth() + 1);
+    let day = '' + d.getDate();
+    const year = d.getFullYear();
+    if (month.length < 2) month = '0' + month;
+    if (day.length < 2) day = '0' + day;
+    return [year, month, day].join('-');
+};
+
 
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initializeLabGrid);

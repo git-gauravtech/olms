@@ -53,8 +53,12 @@ router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
     console.log(`Admin triggered algorithm: ${algorithmName}`);
     // Placeholder for actual C++ algorithm execution via child_process or other means
     try {
-        await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate processing
-        res.json({ success: true, message: `${algorithmName.replace(/-/g, ' ')} algorithm run successfully (simulation).` });
+        // Simulate processing time
+        await new Promise(resolve => setTimeout(resolve, 1500)); 
+        res.json({ 
+            success: true, 
+            message: `${algorithmName.replace(/-/g, ' ')} algorithm run successfully (simulation). Results would be applied to the database.` 
+        });
     } catch (error) {
         console.error(`Error running algorithm ${algorithmName}:`, error);
         res.status(500).json({ success: false, message: `Error running ${algorithmName}.` });

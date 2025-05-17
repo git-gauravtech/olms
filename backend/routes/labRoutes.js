@@ -110,13 +110,14 @@ router.delete('/:id', [auth, isAdmin], async (req, res) => {
 
         // Consider implications: what happens to bookings for this lab? 
         // ON DELETE CASCADE for bookings.labId might be an option, or handle here.
+        // ON DELETE SET NULL for equipment.labId is set in schema.
         await pool.query('DELETE FROM labs WHERE id = ?', [labId]);
         res.json({ msg: 'Lab deleted successfully' });
     } catch (err) {
         console.error('Error deleting lab:', err.message);
         // Check for foreign key constraint errors if lab is referenced elsewhere
         if (err.code === 'ER_ROW_IS_REFERENCED_2') {
-             return res.status(400).json({ msg: 'Cannot delete lab. It is referenced by other records (e.g., bookings or equipment). Please remove references first.' });
+             return res.status(400).json({ msg: 'Cannot delete lab. It is referenced by other records (e.g., active bookings or equipment). Please remove or reassign references first.' });
         }
         res.status(500).send('Server error');
     }
@@ -125,8 +126,8 @@ router.delete('/:id', [auth, isAdmin], async (req, res) => {
 
 // @route   GET api/labs/:labId/seats
 // @desc    Get all seat statuses for a lab
-// @access  Private (Assistant or Admin)
-router.get('/:labId/seats', auth, async (req, res) => { // Auth for any logged in user, further role checks if needed
+// @access  Private (Assistant or Admin or Faculty - any authenticated user for now)
+router.get('/:labId/seats', auth, async (req, res) => { 
     const { labId } = req.params;
     try {
         const [seatStatuses] = await pool.query(
@@ -145,11 +146,11 @@ router.get('/:labId/seats', auth, async (req, res) => { // Auth for any logged i
 });
 
 // @route   PUT api/labs/:labId/seats/:seatIndex
-// @desc    Update status of a specific seat by Assistant
-// @access  Private (Assistant only)
-router.put('/:labId/seats/:seatIndex', [auth], async (req, res) => { // Add middleware to check if user is Assistant
-    if (req.user.role !== 'Assistant') {
-        return res.status(403).json({ msg: 'Access denied. Assistant role required.'});
+// @desc    Update status of a specific seat by Assistant or Admin
+// @access  Private (Assistant or Admin)
+router.put('/:labId/seats/:seatIndex', [auth], async (req, res) => { 
+    if (req.user.role !== 'Assistant' && req.user.role !== 'Admin') { // Allow Admin to also update
+        return res.status(403).json({ msg: 'Access denied. Assistant or Admin role required.'});
     }
     const { labId, seatIndex } = req.params;
     const { status } = req.body; // expecting { status: 'working' | 'not-working' }

@@ -24,7 +24,7 @@
 
         <div class="main-content-wrapper">
             <header class="dashboard-header">
-                <button class="mobile-menu-button" id="mobileMenuButton">
+                <button class="mobile-menu-button" id="mobileMenuButton" type="button">
                     <i data-lucide="menu"></i>
                 </button>
                 <div class="user-nav" id="userNavContainer">
@@ -43,16 +43,16 @@
                         </p>
                         
                         <div class="grid sm-grid-cols-2 gap-4">
-                            <button class="button button-primary" onclick="runAlgorithm('Graph Coloring Scheduling')">
+                            <button class="button button-primary" onclick="runAlgorithm('Graph Coloring Scheduling', 'run-scheduling')">
                                 <i data-lucide="palette" style="margin-right: 0.5rem;"></i> Run Scheduling (Graph Coloring)
                             </button>
-                            <button class="button button-primary" onclick="runAlgorithm('0/1 Knapsack Resource Allocation')">
+                            <button class="button button-primary" onclick="runAlgorithm('0/1 Knapsack Resource Allocation', 'run-resource-allocation')">
                                 <i data-lucide="box" style="margin-right: 0.5rem;"></i> Run Resource Allocation (0/1 Knapsack)
                             </button>
-                            <button class="button button-primary" onclick="runAlgorithm('Greedy Lab Usage Optimization')">
+                            <button class="button button-primary" onclick="runAlgorithm('Greedy Lab Usage Optimization', 'optimize-lab-usage')">
                                 <i data-lucide="trending-up" style="margin-right: 0.5rem;"></i> Optimize Lab Usage (Greedy)
                             </button>
-                            <button class="button button-primary" onclick="runAlgorithm('Dijkstra Nearest Lab Assignment')">
+                            <button class="button button-primary" onclick="runAlgorithm('Dijkstra Nearest Lab Assignment', 'assign-nearest-labs')">
                                 <i data-lucide="map-pin" style="margin-right: 0.5rem;"></i> Assign Nearest Labs (Dijkstra)
                             </button>
                         </div>
@@ -77,21 +77,42 @@
             if (window.lucide) window.lucide.createIcons();
         });
 
-        function runAlgorithm(algorithmName) {
+        async function runAlgorithm(algorithmDisplayName, algorithmEndpointName) {
             const statusDiv = document.getElementById('algorithmStatus');
             const statusMessage = document.getElementById('statusMessage');
-            
-            statusMessage.innerHTML = `<i data-lucide="loader-2" style="animation: spin 1s linear infinite; display: inline-block; margin-right: 0.5rem;"></i> Running ${algorithmName}... Please wait.`;
-            statusDiv.style.display = 'block';
-            if (window.lucide) window.lucide.createIcons(); // Re-render loader icon
+            const token = localStorage.getItem('token');
 
-            // Simulate algorithm execution
-            setTimeout(() => {
-                statusMessage.innerHTML = `<i data-lucide="check-circle" style="color: green; display: inline-block; margin-right: 0.5rem;"></i> ${algorithmName} completed successfully!`;
-                if (window.lucide) window.lucide.createIcons(); // Re-render success icon
-                // You might want to hide the status after a few more seconds
-                // setTimeout(() => { statusDiv.style.display = 'none'; }, 5000);
-            }, 2000 + Math.random() * 2000); // Simulate varying execution time
+            if (!token) {
+                alert('Authentication token not found. Please log in again.');
+                return;
+            }
+            
+            statusMessage.innerHTML = `<i data-lucide="loader-2" style="animation: spin 1s linear infinite; display: inline-block; margin-right: 0.5rem;"></i> Running ${algorithmDisplayName}... Please wait.`;
+            statusDiv.style.display = 'block';
+            if (window.lucide) window.lucide.createIcons();
+
+            try {
+                const response = await fetch(`/api/admin/algorithms/${algorithmEndpointName}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}` 
+                    }
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    statusMessage.innerHTML = `<i data-lucide="check-circle" style="color: green; display: inline-block; margin-right: 0.5rem;"></i> ${algorithmDisplayName} triggered successfully! ${result.message || ''}`;
+                } else {
+                    statusMessage.innerHTML = `<i data-lucide="x-circle" style="color: red; display: inline-block; margin-right: 0.5rem;"></i> ${algorithmDisplayName} failed: ${result.message || 'Unknown error from server'}`;
+                }
+            } catch (error) {
+                console.error(`Error running ${algorithmDisplayName}:`, error);
+                statusMessage.innerHTML = `<i data-lucide="alert-triangle" style="color: orange; display: inline-block; margin-right: 0.5rem;"></i> Error communicating with server for ${algorithmDisplayName}. Check console for details.`;
+            } finally {
+                if (window.lucide) window.lucide.createIcons();
+            }
         }
     </script>
 </body>
