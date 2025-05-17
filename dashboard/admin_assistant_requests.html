@@ -14,7 +14,7 @@
             <div class="sidebar-header">
                  <a href="#" class="sidebar-header-link" id="dashboardHomeLink">
                     <i data-lucide="atom"></i>
-                    <span class="sidebar-title">Optimized Lab Management</span>
+                    <span class="sidebar-title">Optimized Lab Management System</span>
                 </a>
             </div>
             <ul class="sidebar-nav" id="sidebarNav">
@@ -63,19 +63,24 @@
 
             const requestsListContainer = document.getElementById('assistantRequestsList');
             
-            // Ensure MOCK_BOOKINGS is accessed correctly (it's global via constants.js)
+            // Ensure MOCK_BOOKINGS is accessed correctly
             const assistantPendingRequests = window.MOCK_BOOKINGS.filter(
                 booking => booking.requestedByRole === USER_ROLES.ASSISTANT && booking.status === 'pending'
             );
 
-            console.log("All Bookings:", JSON.parse(JSON.stringify(window.MOCK_BOOKINGS)));
-            console.log("Filtered Assistant Pending Requests:", JSON.parse(JSON.stringify(assistantPendingRequests)));
+            // Debugging: Log the data
+            // console.log("All MOCK_BOOKINGS:", JSON.parse(JSON.stringify(window.MOCK_BOOKINGS)));
+            // console.log("Filtered Assistant Pending Requests:", JSON.parse(JSON.stringify(assistantPendingRequests)));
 
 
             if (requestsListContainer) {
                 if (assistantPendingRequests.length > 0) {
                     requestsListContainer.innerHTML = ''; 
-                    assistantPendingRequests.sort((a,b) => new Date(a.date + 'T' + (window.MOCK_TIME_SLOTS.find(ts => ts.id === a.timeSlotId)?.startTime || '00:00')) - new Date(b.date + 'T' + (window.MOCK_TIME_SLOTS.find(ts => ts.id === b.timeSlotId)?.startTime || '00:00')));
+                    assistantPendingRequests.sort((a,b) => {
+                        const timeA = window.MOCK_TIME_SLOTS.find(ts => ts.id === a.timeSlotId)?.startTime || '00:00';
+                        const timeB = window.MOCK_TIME_SLOTS.find(ts => ts.id === b.timeSlotId)?.startTime || '00:00';
+                        return new Date(a.date + 'T' + timeA) - new Date(b.date + 'T' + timeB);
+                    });
 
                     assistantPendingRequests.forEach(request => {
                         const lab = window.MOCK_LABS.find(l => l.id === request.labId);
@@ -147,6 +152,9 @@
              if (confirm('Are you sure you want to reject this booking request?')) {
                 const bookingIndex = window.MOCK_BOOKINGS.findIndex(b => b.id === bookingId);
                  if (bookingIndex > -1) {
+                    // Instead of deleting, mark as rejected or create a different status
+                    // For this demo, we'll mark it as 'rejected' to keep it in the system if needed later.
+                    // Or, if the requirement is to remove it:
                     window.MOCK_BOOKINGS.splice(bookingIndex, 1); 
                     window.saveMockBookings(); 
                     alert('Request rejected and removed.');

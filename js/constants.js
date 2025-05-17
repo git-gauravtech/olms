@@ -141,7 +141,8 @@ yesterday.setDate(today.getDate() - 1);
 
 function formatDate(dateInput) { 
     if (!dateInput) return '';
-    const d = new Date(dateInput); // Handles date objects and valid date strings
+    const d = dateInput instanceof Date ? dateInput : new Date(dateInput); // Handles date objects and valid date strings
+    if (isNaN(d.getTime())) return ''; // Invalid date
     let month = '' + (d.getMonth() + 1);
     let day = '' + d.getDate();
     const year = d.getFullYear();
@@ -159,25 +160,34 @@ function initializeMockBookings() {
         MOCK_BOOKINGS = JSON.parse(storedBookings);
     } else {
         MOCK_BOOKINGS = [
+            // Existing Bookings
             { id: 'b1', labId: 'physics_lab_alpha', date: formatDate(today), timeSlotId: 'ts_0900_1000', userId: 'student1@example.com', purpose: 'Physics Experiment A', equipmentIds: ['eq_spectrometer_01'], status: 'booked', requestedByRole: USER_ROLES.STUDENT},
             { id: 'b3', labId: 'chemistry_lab_beta', date: formatDate(tomorrow), timeSlotId: 'ts_1400_1500', userId: 'faculty1@example.com', purpose: 'Chem 101 Class', equipmentIds: ['eq_microscope_01'], status: 'booked', requestedByRole: USER_ROLES.FACULTY},
-            { id: 'b4_assistant_pending_old', labId: 'computer_lab_gamma', date: formatDate(dayAfterTomorrow), timeSlotId: 'ts_1100_1200', userId: 'assistant@example.com', purpose: 'AI Project Work', equipmentIds: ['eq_pc_high_01'], status: 'pending', batchIdentifier: 'CSE Year 2 - Section A', requestedByRole: USER_ROLES.ASSISTANT },
             { id: 'b5_assistant_booked', labId: 'robotics_lab_zeta', date: formatDate(today), timeSlotId: 'ts_1000_1100', userId: 'assistant@example.com', purpose: 'Robotics Prep', equipmentIds: [], status: 'booked', batchIdentifier: 'Robotics Club', requestedByRole: USER_ROLES.ASSISTANT },
             { id: 'b5_past', labId: 'electronics_lab_delta', date: formatDate(yesterday), timeSlotId: 'ts_1500_1600', userId: 'student1@example.com', purpose: 'Circuit Design (Completed)', equipmentIds: ['eq_oscilloscope_01'], status: 'booked', requestedByRole: USER_ROLES.STUDENT },
             
-            { id: 'b6_assistant_pending_new_1', labId: 'physics_lab_alpha', date: formatDate(tomorrow), timeSlotId: 'ts_1300_1400', userId: 'assistant_new@example.com', purpose: 'Special Physics Tutoring', equipmentIds: ['eq_spectrometer_01'], status: 'pending', batchIdentifier: 'Physics Honors Group', requestedByRole: USER_ROLES.ASSISTANT },
-            { id: 'b7_assistant_pending_new_2', labId: 'computer_lab_gamma', date: formatDate(dayAfterTomorrow), timeSlotId: 'ts_1500_1600', userId: 'assistant@example.com', purpose: 'Data Structures Workshop', equipmentIds: ['eq_pc_high_01', 'eq_projector_01'], status: 'pending', batchIdentifier: 'IT Year 1 - Section B', requestedByRole: USER_ROLES.ASSISTANT },
-            { id: 'b8_assistant_pending_new_3', labId: 'chemistry_lab_beta', date: formatDate(tomorrow), timeSlotId: 'ts_0800_0900', userId: 'another_assistant@example.com', purpose: 'Organic Chem Practicals', equipmentIds: [], status: 'pending', batchIdentifier: 'Chemistry Advanced', requestedByRole: USER_ROLES.ASSISTANT },
-            { id: 'b9_assistant_pending_no_equip', labId: 'biology_lab_epsilon', date: formatDate(dayAfterTomorrow), timeSlotId: 'ts_0900_1000', userId: 'assistant@example.com', purpose: 'Microbiology Prep', equipmentIds: [], status: 'pending', batchIdentifier: 'Biology Majors', requestedByRole: USER_ROLES.ASSISTANT },
-            { id: 'b10_assistant_pending_comp_lab', labId: 'computer_lab_gamma', date: formatDate(tomorrow), timeSlotId: 'ts_1600_1700', userId: 'assistant_new@example.com', purpose: 'Programming Basics', equipmentIds: ['eq_projector_01'], status: 'pending', batchIdentifier: 'Intro to CS', requestedByRole: USER_ROLES.ASSISTANT },
+            // Pending Assistant Requests (for Admin to approve/reject)
+            { id: 'ar1', labId: 'physics_lab_alpha', date: formatDate(tomorrow), timeSlotId: 'ts_1300_1400', userId: 'assistant_new@example.com', purpose: 'Special Physics Tutoring', equipmentIds: ['eq_spectrometer_01'], status: 'pending', batchIdentifier: 'Physics Honors Group', requestedByRole: USER_ROLES.ASSISTANT },
+            { id: 'ar2', labId: 'computer_lab_gamma', date: formatDate(dayAfterTomorrow), timeSlotId: 'ts_1500_1600', userId: 'assistant@example.com', purpose: 'Data Structures Workshop', equipmentIds: ['eq_pc_high_01', 'eq_projector_01'], status: 'pending', batchIdentifier: 'IT Year 1 - Section B', requestedByRole: USER_ROLES.ASSISTANT },
+            { id: 'ar3', labId: 'chemistry_lab_beta', date: formatDate(tomorrow), timeSlotId: 'ts_0800_0900', userId: 'another_assistant@example.com', purpose: 'Organic Chem Practicals', equipmentIds: [], status: 'pending', batchIdentifier: 'Chemistry Advanced', requestedByRole: USER_ROLES.ASSISTANT },
+            { id: 'ar4', labId: 'biology_lab_epsilon', date: formatDate(dayAfterTomorrow), timeSlotId: 'ts_0900_1000', userId: 'assistant@example.com', purpose: 'Microbiology Prep', equipmentIds: [], status: 'pending', batchIdentifier: 'Biology Majors', requestedByRole: USER_ROLES.ASSISTANT },
+            { id: 'ar5', labId: 'computer_lab_gamma', date: formatDate(tomorrow), timeSlotId: 'ts_1600_1700', userId: 'assistant_new@example.com', purpose: 'Programming Basics', equipmentIds: ['eq_projector_01'], status: 'pending', batchIdentifier: 'Intro to CS', requestedByRole: USER_ROLES.ASSISTANT },
 
+            // Faculty Requests for Admin Approval
+            { id: 'fr1', labId: null, date: formatDate(yesterday), timeSlotId: null, userId: 'faculty1@example.com', purpose: 'Requesting a new XYZ Spectrophotometer for advanced research.', equipmentIds: [], status: 'pending-admin-approval', requestedByRole: USER_ROLES.FACULTY, requestType: 'equipment_procurement', submittedDate: formatDate(yesterday) },
+            { id: 'fr2', labId: 'physics_lab_alpha', date: formatDate(today), timeSlotId: null, userId: 'faculty2@example.com', purpose: 'Request for extended lab hours for Project Minerva next Monday.', equipmentIds: [], status: 'pending-admin-approval', requestedByRole: USER_ROLES.FACULTY, requestType: 'lab_policy_exception', submittedDate: formatDate(today) },
+            { id: 'fr3', labId: null, date: formatDate(tomorrow), timeSlotId: null, userId: 'faculty1@example.com', purpose: 'Budget approval for 5 new Raspberry Pi units for IoT lab.', equipmentIds: [], status: 'pending-admin-approval', requestedByRole: USER_ROLES.FACULTY, requestType: 'budget_request', submittedDate: formatDate(tomorrow) },
         ];
         saveMockBookings();
     }
 }
 
 function saveMockBookings() {
-    localStorage.setItem(MOCK_BOOKINGS_STORAGE_KEY, JSON.stringify(MOCK_BOOKINGS));
+    try {
+        localStorage.setItem(MOCK_BOOKINGS_STORAGE_KEY, JSON.stringify(MOCK_BOOKINGS));
+    } catch (e) {
+        console.error("Error saving mockBookings to localStorage:", e);
+    }
 }
 
 initializeMockBookings();
@@ -222,3 +232,6 @@ window.LAB_SEAT_STATUSES_STORAGE_KEY = LAB_SEAT_STATUSES_STORAGE_KEY;
 window.loadLabSeatStatuses = loadLabSeatStatuses; // Expose for other scripts
 window.saveLabSeatStatuses = saveLabSeatStatuses; // Expose for other scripts
 
+// Initialize seat statuses cache on load
+loadLabSeatStatuses();
+```
