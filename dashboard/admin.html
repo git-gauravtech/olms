@@ -72,12 +72,15 @@
                 { title: "Lab Availability", description: "View current lab schedules and slot availability.", icon: "flask-conical", href: "labs.html", label: "View Lab Grid" },
                 { title: "View All Bookings", description: "Monitor all lab bookings and manage scheduling conflicts.", icon: "calendar-days", href: "admin_view_bookings.html", label: "Go to Bookings Overview" },
                 { title: "Assistant Requests", description: "Review reschedule or special booking requests from Assistants.", icon: "clipboard-list", href: "admin_assistant_requests.html", label: "View Assistant Requests" },
+                { title: "Faculty Requests", description: "Review direct requests or approvals needed from Faculty.", icon: "user-check", href: "admin_faculty_requests.html", label: "View Faculty Requests" },
                 { title: "Run Algorithms", description: "Execute optimization algorithms for scheduling and resources.", icon: "brain-circuit", href: "admin_run_algorithms.html", label: "Go to Algorithm Console" }
             ];
 
-            adminFeatures.forEach(feature => {
-                featureCardsContainer.appendChild(createFeatureCard(feature));
-            });
+            if (featureCardsContainer) {
+                adminFeatures.forEach(feature => {
+                    featureCardsContainer.appendChild(createFeatureCard(feature));
+                });
+            }
              if (window.lucide) window.lucide.createIcons();
         });
     </script>

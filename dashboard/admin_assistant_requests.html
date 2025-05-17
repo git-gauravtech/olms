@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -34,7 +35,7 @@
             <main class="page-content">
                 <div class="custom-card">
                     <div class="custom-card-header">
-                        <i data-lucide="file-check"></i>
+                        <i data-lucide="clipboard-list"></i>
                         <h1 class="custom-card-title">Assistant Lab Requests</h1>
                     </div>
                     <div class="custom-card-content">
@@ -55,32 +56,37 @@
     <script src="js/dashboard.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            if (!roleGuard(USER_ROLES.ADMIN)) return; // Changed role guard to ADMIN
+            if (!roleGuard(USER_ROLES.ADMIN)) return; 
             
             initializeDashboard();
             setDashboardHomeLink();
 
             const requestsListContainer = document.getElementById('assistantRequestsList');
             
-            const assistantPendingRequests = MOCK_BOOKINGS.filter(
+            // Ensure MOCK_BOOKINGS is accessed correctly (it's global via constants.js)
+            const assistantPendingRequests = window.MOCK_BOOKINGS.filter(
                 booking => booking.requestedByRole === USER_ROLES.ASSISTANT && booking.status === 'pending'
             );
+
+            console.log("All Bookings:", JSON.parse(JSON.stringify(window.MOCK_BOOKINGS)));
+            console.log("Filtered Assistant Pending Requests:", JSON.parse(JSON.stringify(assistantPendingRequests)));
+
 
             if (requestsListContainer) {
                 if (assistantPendingRequests.length > 0) {
                     requestsListContainer.innerHTML = ''; 
-                    assistantPendingRequests.sort((a,b) => new Date(a.date + 'T' + MOCK_TIME_SLOTS.find(ts => ts.id === a.timeSlotId).startTime) - new Date(b.date + 'T' + MOCK_TIME_SLOTS.find(ts => ts.id === b.timeSlotId).startTime));
+                    assistantPendingRequests.sort((a,b) => new Date(a.date + 'T' + (window.MOCK_TIME_SLOTS.find(ts => ts.id === a.timeSlotId)?.startTime || '00:00')) - new Date(b.date + 'T' + (window.MOCK_TIME_SLOTS.find(ts => ts.id === b.timeSlotId)?.startTime || '00:00')));
 
                     assistantPendingRequests.forEach(request => {
-                        const lab = MOCK_LABS.find(l => l.id === request.labId);
-                        const timeSlot = MOCK_TIME_SLOTS.find(ts => ts.id === request.timeSlotId);
+                        const lab = window.MOCK_LABS.find(l => l.id === request.labId);
+                        const timeSlot = window.MOCK_TIME_SLOTS.find(ts => ts.id === request.timeSlotId);
                         
                         const card = document.createElement('div');
                         card.className = 'custom-card p-4 border rounded-md shadow-sm';
                         
                         let equipmentNames = 'None';
                         if (request.equipmentIds && request.equipmentIds.length > 0) {
-                            equipmentNames = request.equipmentIds.map(eqId => MOCK_EQUIPMENT.find(eq => eq.id === eqId)?.name || 'Unknown Equipment').join(', ');
+                            equipmentNames = request.equipmentIds.map(eqId => (window.MOCK_EQUIPMENT.find(eq => eq.id === eqId)?.name || 'Unknown Equipment')).join(', ');
                         }
 
                         card.innerHTML = \`
@@ -101,6 +107,8 @@
                 } else {
                     requestsListContainer.innerHTML = '<p class="text-muted-foreground">No pending Assistant booking requests at this time.</p>';
                 }
+            } else {
+                console.error("assistantRequestsList container not found!");
             }
 
 
@@ -108,9 +116,12 @@
         });
 
         function approveRequest(bookingId) {
-            const booking = MOCK_BOOKINGS.find(b => b.id === bookingId);
+            const booking = window.MOCK_BOOKINGS.find(b => b.id === bookingId);
             if (booking) {
-                const conflict = MOCK_BOOKINGS.find(b => 
+                const labForBooking = window.MOCK_LABS.find(l => l.id === booking.labId);
+                const timeSlotForBooking = window.MOCK_TIME_SLOTS.find(ts => ts.id === booking.timeSlotId);
+
+                const conflict = window.MOCK_BOOKINGS.find(b => 
                     b.id !== bookingId && 
                     b.labId === booking.labId &&
                     b.date === booking.date &&
@@ -119,33 +130,32 @@
                 );
 
                 if (conflict) {
-                    alert(\`Cannot approve: Slot for \${MOCK_LABS.find(l=>l.id === booking.labId).name} on \${booking.date} at \${MOCK_TIME_SLOTS.find(ts=>ts.id === booking.timeSlotId).displayTime} is already booked by \${conflict.userId}. Please resolve the conflict first or ask Assistant to choose another slot.\`);
+                    alert(\`Cannot approve: Slot for \${labForBooking ? labForBooking.name : 'Unknown Lab'} on \${booking.date} at \${timeSlotForBooking ? timeSlotForBooking.displayTime : 'Unknown Time'} is already booked by \${conflict.userId}. Please resolve the conflict first or ask Assistant to choose another slot.\`);
                     return;
                 }
 
                 booking.status = 'booked';
-                saveMockBookings(); // from constants.js
+                window.saveMockBookings(); 
                 alert('Request approved and booking confirmed.');
                 window.location.reload(); 
+            } else {
+                alert('Error: Booking not found for approval.');
             }
         }
 
         function rejectRequest(bookingId) {
              if (confirm('Are you sure you want to reject this booking request?')) {
-                const booking = MOCK_BOOKINGS.find(b => b.id === bookingId);
-                if (booking) {
-                    const bookingIndex = MOCK_BOOKINGS.findIndex(b => b.id === bookingId);
-                     if (bookingIndex > -1) {
-                        MOCK_BOOKINGS.splice(bookingIndex, 1); 
-                        saveMockBookings(); // from constants.js
-                        alert('Request rejected and removed.');
-                        window.location.reload();
-                    }
+                const bookingIndex = window.MOCK_BOOKINGS.findIndex(b => b.id === bookingId);
+                 if (bookingIndex > -1) {
+                    window.MOCK_BOOKINGS.splice(bookingIndex, 1); 
+                    window.saveMockBookings(); 
+                    alert('Request rejected and removed.');
+                    window.location.reload();
+                } else {
+                    alert('Error: Booking not found for rejection.');
                 }
             }
         }
     </script>
 </body>
 </html>
-
-    
