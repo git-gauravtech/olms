@@ -1,8 +1,8 @@
 
 const jwt = require('jsonwebtoken');
-require('dotenv').config({ path: '../../.env' }); // Adjust if .env is in backend root
+require('dotenv').config({ path: '../.env' }); // Adjust if .env is in backend root
 
-module.exports = function(req, res, next) {
+function auth(req, res, next) {
     // Get token from header
     const token = req.header('x-auth-token'); // Or from 'Authorization: Bearer TOKEN'
 
@@ -20,13 +20,13 @@ module.exports = function(req, res, next) {
     }
 };
 
-// Example role-based authorization middleware (can be expanded)
-// module.exports.isAdmin = function(req, res, next) {
-//     if (req.user && req.user.role === 'Admin') {
-//         next();
-//     } else {
-//         res.status(403).json({ msg: 'Access denied. Admin role required.' });
-//     }
-// };
+function isAdmin(req, res, next) {
+    if (req.user && req.user.role === 'Admin') {
+        next();
+    } else {
+        console.log('Access denied. User role:', req.user ? req.user.role : 'undefined');
+        res.status(403).json({ msg: 'Access denied. Admin role required.' });
+    }
+};
 
-    
+module.exports = { auth, isAdmin };

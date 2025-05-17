@@ -4,6 +4,12 @@ const express = require('express');
 const cors = require('cors');
 const pool = require('./config/db'); // Database connection pool
 
+const authRoutes = require('./routes/authRoutes');
+const labRoutes = require('./routes/labRoutes');
+const equipmentRoutes = require('./routes/equipmentRoutes');
+const bookingRoutes = require('./routes/bookingRoutes'); // Placeholder
+const adminRoutes = require('./routes/adminRoutes'); // Placeholder
+
 const app = express();
 
 // Middleware
@@ -28,13 +34,14 @@ app.get('/', (req, res) => {
 });
 
 // API Routes
-// Example: app.use('/api/auth', require('./routes/authRoutes'));
-// Example: app.use('/api/labs', require('./routes/labRoutes'));
+app.use('/api/auth', authRoutes);
+app.use('/api/labs', labRoutes);
+app.use('/api/equipment', equipmentRoutes);
+app.use('/api/bookings', bookingRoutes); // Placeholder routes
+app.use('/api/admin', adminRoutes); // Placeholder routes
 
 
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
     console.log(`Backend server running on port ${PORT}`);
 });
-
-    
