@@ -122,4 +122,67 @@ router.delete('/:id', [auth, isAdmin], async (req, res) => {
     }
 });
 
+
+// @route   GET api/labs/:labId/seats
+// @desc    Get all seat statuses for a lab
+// @access  Private (Assistant or Admin)
+router.get('/:labId/seats', auth, async (req, res) => { // Auth for any logged in user, further role checks if needed
+    const { labId } = req.params;
+    try {
+        const [seatStatuses] = await pool.query(
+            'SELECT seatIndex, status FROM lab_seat_statuses WHERE labId = ?',
+            [labId]
+        );
+        const statusesMap = seatStatuses.reduce((acc, seat) => {
+            acc[seat.seatIndex] = seat.status;
+            return acc;
+        }, {});
+        res.json(statusesMap);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error: Could not fetch seat statuses.');
+    }
+});
+
+// @route   PUT api/labs/:labId/seats/:seatIndex
+// @desc    Update status of a specific seat by Assistant
+// @access  Private (Assistant only)
+router.put('/:labId/seats/:seatIndex', [auth], async (req, res) => { // Add middleware to check if user is Assistant
+    if (req.user.role !== 'Assistant') {
+        return res.status(403).json({ msg: 'Access denied. Assistant role required.'});
+    }
+    const { labId, seatIndex } = req.params;
+    const { status } = req.body; // expecting { status: 'working' | 'not-working' }
+
+    if (!status || !['working', 'not-working'].includes(status)) {
+        return res.status(400).json({ msg: 'Invalid status provided. Must be "working" or "not-working".' });
+    }
+
+    try {
+        // Check if lab exists to give a more specific error if labId is wrong.
+        const [labExists] = await pool.query('SELECT id FROM labs WHERE id = ?', [labId]);
+        if (labExists.length === 0) {
+            return res.status(404).json({ msg: 'Lab not found.' });
+        }
+
+        // UPSERT logic: Insert if not exists, update if exists
+        // Assumes lab_seat_statuses table has a UNIQUE KEY on (labId, seatIndex)
+        await pool.query(
+            `INSERT INTO lab_seat_statuses (labId, seatIndex, status) 
+             VALUES (?, ?, ?) 
+             ON DUPLICATE KEY UPDATE status = VALUES(status), updatedAt = CURRENT_TIMESTAMP`,
+            [labId, seatIndex, status]
+        );
+        res.json({ msg: `Seat ${seatIndex} in lab ${labId} updated to ${status}` });
+    } catch (err) {
+        console.error('Error updating seat status:', err.message);
+        // Check for specific foreign key constraint violation on labId if the lab does not exist,
+        // though the explicit check above should catch it.
+        if (err.code === 'ER_NO_REFERENCED_ROW_2') {
+            return res.status(400).json({ msg: 'Invalid labId. The specified lab does not exist.' });
+        }
+        res.status(500).send('Server Error: Could not update seat status.');
+    }
+});
+
 module.exports = router;

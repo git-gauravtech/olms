@@ -5,8 +5,10 @@ let currentEquipment = [];
 let editingLabId = null;
 let editingEquipmentId = null;
 
+const API_BASE_URL = 'http://localhost:5001/api'; // Adjust if your backend runs elsewhere
+
 // --- Lab Management --- //
-function initializeLabManagementPage() {
+async function initializeLabManagementPage() {
     const addNewLabBtn = document.getElementById('addNewLabBtn');
     const labModal = document.getElementById('labModal');
     const labForm = document.getElementById('labForm');
@@ -31,13 +33,30 @@ function initializeLabManagementPage() {
         labForm.addEventListener('submit', handleLabFormSubmit);
     }
     
-    renderLabsList();
+    await renderLabsList();
 }
 
-function renderLabsList() {
-    currentLabs = window.loadLabs(); 
+async function renderLabsList() {
     const labsListContainer = document.getElementById('labsListContainer');
     if (!labsListContainer) return;
+
+    labsListContainer.innerHTML = '<p>Loading labs...</p>'; 
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/labs`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.msg || `Failed to fetch labs: ${response.status}`);
+        }
+        currentLabs = await response.json();
+    } catch (error) {
+        console.error('Error fetching labs:', error);
+        labsListContainer.innerHTML = `<p class="error-message visible">Error loading labs: ${error.message}</p>`;
+        return;
+    }
+
 
     labsListContainer.innerHTML = ''; 
 
@@ -59,7 +78,7 @@ function renderLabsList() {
 
         const detailsEl = document.createElement('p');
         detailsEl.className = 'text-sm text-muted-foreground';
-        detailsEl.textContent = `Capacity: ${lab.capacity}, Room: ${lab.roomNumber || 'N/A'}, Location: ${lab.location || 'N/A'}`;
+        detailsEl.textContent = `ID: ${lab.id}, Capacity: ${lab.capacity}, Room: ${lab.roomNumber || 'N/A'}, Location: ${lab.location || 'N/A'}`;
         
         const actionsEl = document.createElement('div');
         actionsEl.className = 'mt-3 entity-actions';
@@ -119,51 +138,73 @@ function closeLabModal() {
     editingLabId = null;
 }
 
-function handleLabFormSubmit(event) {
+async function handleLabFormSubmit(event) {
     event.preventDefault();
-    const id = document.getElementById('labId').value;
+    const id = document.getElementById('labId').value; // This is for editingLabId check
     const name = document.getElementById('labName').value.trim();
     const capacity = parseInt(document.getElementById('labCapacity').value, 10);
     const roomNumber = document.getElementById('labRoomNumber').value.trim();
     const location = document.getElementById('labLocation').value.trim();
-
 
     if (!name || isNaN(capacity) || capacity <= 0 || !roomNumber) {
         alert('Please fill in Lab Name, Room Number, and ensure Capacity is a positive number.');
         return;
     }
 
-    if (editingLabId) { 
-        const labIndex = currentLabs.findIndex(l => l.id === editingLabId);
-        if (labIndex > -1) {
-            currentLabs[labIndex] = { ...currentLabs[labIndex], name, capacity, roomNumber, location };
-        }
-    } else { 
-        const newLab = {
-            id: 'lab_' + Date.now(), 
-            name,
-            capacity,
-            roomNumber,
-            location
-        };
-        currentLabs.push(newLab);
+    const labData = { name, capacity, roomNumber, location: location || null };
+    let url = `${API_BASE_URL}/labs`;
+    let method = 'POST';
+
+    if (editingLabId) {
+        url = `${API_BASE_URL}/labs/${editingLabId}`;
+        method = 'PUT';
     }
-    
-    window.saveLabs(currentLabs); 
-    renderLabsList();
-    closeLabModal();
+
+    try {
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify(labData)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.msg || `Failed to save lab: ${response.status}`);
+        }
+        
+        await renderLabsList();
+        closeLabModal();
+    } catch (error) {
+        console.error('Error saving lab:', error);
+        alert(`Error saving lab: ${error.message}`);
+    }
 }
 
-function deleteLab(labId) {
+async function deleteLab(labId) {
     if (confirm('Are you sure you want to delete this lab? This action cannot be undone.')) {
-        currentLabs = currentLabs.filter(lab => lab.id !== labId);
-        window.saveLabs(currentLabs);
-        renderLabsList();
+        try {
+            const response = await fetch(`${API_BASE_URL}/labs/${labId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.msg || `Failed to delete lab: ${response.status}`);
+            }
+            await renderLabsList();
+        } catch (error) {
+            console.error('Error deleting lab:', error);
+            alert(`Error deleting lab: ${error.message}`);
+        }
     }
 }
 
 // --- Equipment Management --- //
-function initializeEquipmentManagementPage() {
+async function initializeEquipmentManagementPage() {
     const addNewEquipmentBtn = document.getElementById('addNewEquipmentBtn');
     const equipmentModal = document.getElementById('equipmentModal');
     const equipmentForm = document.getElementById('equipmentForm');
@@ -188,11 +229,11 @@ function initializeEquipmentManagementPage() {
         equipmentForm.addEventListener('submit', handleEquipmentFormSubmit);
     }
     
-    populateEquipmentFormDropdowns();
-    renderEquipmentList();
+    await populateEquipmentFormDropdowns(); // Make sure labs are loaded before rendering equipment
+    await renderEquipmentList();
 }
 
-function populateEquipmentFormDropdowns() {
+async function populateEquipmentFormDropdowns() {
     const statusSelect = document.getElementById('equipmentStatus');
     const labSelect = document.getElementById('equipmentLabId');
 
@@ -206,24 +247,51 @@ function populateEquipmentFormDropdowns() {
         });
     }
 
-    if (labSelect && window.MOCK_LABS) { 
+    if (labSelect) { 
         labSelect.innerHTML = '<option value="">None</option>'; 
-        currentLabs = window.loadLabs(); 
-        currentLabs.forEach(lab => {
-            const option = document.createElement('option');
-            option.value = lab.id;
-            option.textContent = lab.name;
-            labSelect.appendChild(option);
-        });
+        try {
+            // Fetch labs from backend to populate dropdown
+            const response = await fetch(`${API_BASE_URL}/labs`, {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
+            if (!response.ok) throw new Error('Failed to fetch labs for dropdown');
+            const labsForDropdown = await response.json();
+            
+            labsForDropdown.forEach(lab => {
+                const option = document.createElement('option');
+                option.value = lab.id; // Use actual lab ID from backend
+                option.textContent = lab.name;
+                labSelect.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Error populating lab dropdown for equipment:', error);
+            // Handle error, maybe show a message to user
+        }
     }
 }
 
 
-function renderEquipmentList() {
-    currentEquipment = window.loadEquipment(); 
+async function renderEquipmentList() {
     const equipmentListContainer = document.getElementById('equipmentListContainer');
     if (!equipmentListContainer) return;
 
+    equipmentListContainer.innerHTML = '<p>Loading equipment...</p>';
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/equipment`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        if (!response.ok) {
+             const errorData = await response.json();
+            throw new Error(errorData.msg || `Failed to fetch equipment: ${response.status}`);
+        }
+        currentEquipment = await response.json();
+    } catch (error) {
+        console.error('Error fetching equipment:', error);
+        equipmentListContainer.innerHTML = `<p class="error-message visible">Error loading equipment: ${error.message}</p>`;
+        return;
+    }
+    
     equipmentListContainer.innerHTML = ''; 
 
     if (currentEquipment.length === 0) {
@@ -242,12 +310,11 @@ function renderEquipmentList() {
         nameEl.className = 'text-lg font-semibold';
         nameEl.textContent = equip.name;
 
-        const lab = currentLabs.find(l => l.id === equip.labId);
-        const labName = lab ? lab.name : 'None';
+        const labName = equip.labName || 'None'; // labName is joined in backend query
 
         const detailsEl = document.createElement('p');
         detailsEl.className = 'text-sm text-muted-foreground';
-        detailsEl.textContent = `Type: ${equip.type || 'N/A'}, Status: ${equip.status}, Assigned Lab: ${labName}`;
+        detailsEl.textContent = `ID: ${equip.id}, Type: ${equip.type || 'N/A'}, Status: ${equip.status}, Assigned Lab: ${labName}`;
         
         const actionsEl = document.createElement('div');
         actionsEl.className = 'mt-3 entity-actions';
@@ -276,12 +343,12 @@ function renderEquipmentList() {
     if (window.lucide) window.lucide.createIcons();
 }
 
-function openEquipmentForm(equip = null) {
+async function openEquipmentForm(equip = null) { // Marked async for consistency if future async ops needed
     const equipmentModal = document.getElementById('equipmentModal');
     const equipmentModalTitle = document.getElementById('equipmentModalTitle');
     const equipmentForm = document.getElementById('equipmentForm');
     
-    populateEquipmentFormDropdowns(); 
+    await populateEquipmentFormDropdowns(); // Repopulate to ensure latest labs are available
     editingEquipmentId = null;
     equipmentForm.reset();
 
@@ -291,7 +358,7 @@ function openEquipmentForm(equip = null) {
         document.getElementById('equipmentName').value = equip.name;
         document.getElementById('equipmentType').value = equip.type;
         document.getElementById('equipmentStatus').value = equip.status;
-        document.getElementById('equipmentLabId').value = equip.labId || "";
+        document.getElementById('equipmentLabId').value = equip.labId || ""; // equip.labId is just the ID
         editingEquipmentId = equip.id;
     } else {
         equipmentModalTitle.textContent = 'Add New Equipment';
@@ -307,46 +374,69 @@ function closeEquipmentModal() {
     editingEquipmentId = null;
 }
 
-function handleEquipmentFormSubmit(event) {
+async function handleEquipmentFormSubmit(event) {
     event.preventDefault();
-    const id = document.getElementById('equipmentId').value;
+    // const id = document.getElementById('equipmentId').value; // For editingEquipmentId check
     const name = document.getElementById('equipmentName').value.trim();
     const type = document.getElementById('equipmentType').value.trim();
     const status = document.getElementById('equipmentStatus').value;
-    const labId = document.getElementById('equipmentLabId').value;
+    const labIdValue = document.getElementById('equipmentLabId').value;
+    const labId = labIdValue ? parseInt(labIdValue) : null;
+
 
     if (!name || !type || !status) {
         alert('Please fill in Equipment Name, Type, and Status.');
         return;
     }
+    
+    const equipmentData = { name, type, status, labId };
+    let url = `${API_BASE_URL}/equipment`;
+    let method = 'POST';
 
-    if (editingEquipmentId) { 
-        const equipIndex = currentEquipment.findIndex(e => e.id === editingEquipmentId);
-        if (equipIndex > -1) {
-            currentEquipment[equipIndex] = { ...currentEquipment[equipIndex], name, type, status, labId: labId || null };
+    if (editingEquipmentId) {
+        url = `${API_BASE_URL}/equipment/${editingEquipmentId}`;
+        method = 'PUT';
+    }
+    
+    try {
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify(equipmentData)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.msg || `Failed to save equipment: ${response.status}`);
         }
-    } else { 
-        const newEquipment = {
-            id: 'equip_' + Date.now(),
-            name,
-            type,
-            status,
-            labId: labId || null
-        };
-        currentEquipment.push(newEquipment);
+        
+        await renderEquipmentList();
+        closeEquipmentModal();
+    } catch (error) {
+        console.error('Error saving equipment:', error);
+        alert(`Error saving equipment: ${error.message}`);
     }
-    
-    window.saveEquipment(currentEquipment);
-    renderEquipmentList();
-    closeEquipmentModal();
 }
 
-function deleteEquipment(equipmentId) {
+async function deleteEquipment(equipmentId) {
     if (confirm('Are you sure you want to delete this equipment? This action cannot be undone.')) {
-        currentEquipment = currentEquipment.filter(equip => equip.id !== equipmentId);
-        window.saveEquipment(currentEquipment);
-        renderEquipmentList();
+         try {
+            const response = await fetch(`${API_BASE_URL}/equipment/${equipmentId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.msg || `Failed to delete equipment: ${response.status}`);
+            }
+            await renderEquipmentList();
+        } catch (error) {
+            console.error('Error deleting equipment:', error);
+            alert(`Error deleting equipment: ${error.message}`);
+        }
     }
 }
-
-    

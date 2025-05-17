@@ -1,61 +1,124 @@
 
-let ALL_LAB_SEAT_STATUSES = {}; // In-memory cache of all lab seat statuses, specific to this module
+// Global variable for the current page context
+let ALL_LAB_SEAT_STATUSES = {}; // In-memory cache, specific to this module
+const API_BASE_URL_SEATS = 'http://localhost:5001/api'; // Adjust if needed
 
-function initializeSeatUpdaterPage() {
+async function initializeSeatUpdaterPage() {
     const labSelector = document.getElementById('labSelectorForSeatUpdate');
     const layoutContainer = document.getElementById('interactiveLabLayoutContainer');
 
-    // Load all statuses from localStorage into the module-level cache ONCE.
-    ALL_LAB_SEAT_STATUSES = window.loadLabSeatStatuses(); // From constants.js
+    if (labSelector && layoutContainer && window.MOCK_LABS) { // MOCK_LABS for lab list
+        try {
+            const labsResponse = await fetch(`${API_BASE_URL_SEATS}/labs`, {
+                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
+            if (!labsResponse.ok) throw new Error('Failed to fetch labs for selector');
+            const labs = await labsResponse.json();
 
-    if (labSelector && layoutContainer && window.MOCK_LABS) {
-        window.MOCK_LABS.forEach(lab => {
-            const option = document.createElement('option');
-            option.value = lab.id;
-            option.textContent = `${lab.name} (Capacity: ${lab.capacity})`;
-            labSelector.appendChild(option);
-        });
+            labs.forEach(lab => {
+                const option = document.createElement('option');
+                option.value = lab.id; // Use actual lab ID
+                option.textContent = `${lab.name} (Capacity: ${lab.capacity})`;
+                labSelector.appendChild(option);
+            });
 
-        labSelector.addEventListener('change', (e) => {
-            renderInteractiveLabLayout(e.target.value, layoutContainer);
-        });
+            labSelector.addEventListener('change', async (e) => {
+                await renderInteractiveLabLayout(e.target.value, layoutContainer);
+            });
 
-        if (window.MOCK_LABS.length > 0) {
-            labSelector.value = window.MOCK_LABS[0].id; // Default to first lab
-            renderInteractiveLabLayout(window.MOCK_LABS[0].id, layoutContainer);
-        } else {
-            layoutContainer.innerHTML = '<p class="text-muted-foreground text-center">No labs available to configure.</p>';
+            if (labs.length > 0) {
+                labSelector.value = labs[0].id; // Default to first lab
+                await renderInteractiveLabLayout(labs[0].id, layoutContainer);
+            } else {
+                layoutContainer.innerHTML = '<p class="text-muted-foreground text-center">No labs available to configure.</p>';
+            }
+        } catch (error) {
+            console.error("Error initializing seat updater page:", error);
+            layoutContainer.innerHTML = `<p class="error-message visible">Error loading labs: ${error.message}</p>`;
         }
+
     }
      if (window.lucide) window.lucide.createIcons();
 }
 
-// Reads from the module-level cache
-function getSeatStatus(labId, seatIndex) {
-    // Ensure seatIndex is a string for consistent key access
-    const status = ALL_LAB_SEAT_STATUSES[labId]?.[String(seatIndex)] || 'working'; // Default to 'working'
-    return status;
+async function loadSeatStatusesForLab(labId) {
+    try {
+        const response = await fetch(`${API_BASE_URL_SEATS}/labs/${labId}/seats`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        if (!response.ok) {
+            // If 404 (no statuses yet), return empty object. Otherwise, throw.
+            if (response.status === 404 || (await response.clone().json().catch(() => ({}))).msg === 'No seat statuses found for this lab.') {
+                 ALL_LAB_SEAT_STATUSES[labId] = {}; // Initialize if not found
+                 return {};
+            }
+            const errorData = await response.json();
+            throw new Error(errorData.msg || `Failed to fetch seat statuses for lab ${labId}`);
+        }
+        const statuses = await response.json();
+        ALL_LAB_SEAT_STATUSES[labId] = statuses; // Cache it
+        return statuses;
+    } catch (error) {
+        console.error(`Error fetching seat statuses for lab ${labId}:`, error);
+        ALL_LAB_SEAT_STATUSES[labId] = {}; // Default to empty on error to prevent breaking UI
+        return {}; // Return empty object on error
+    }
 }
 
-// Updates the module-level cache AND saves to localStorage
-function setSeatStatus(labId, seatIndex, status) {
-    // Ensure labId entry exists in the cache
+
+function getSeatStatus(labId, seatIndex) {
+    const labStatuses = ALL_LAB_SEAT_STATUSES[labId] || {};
+    return labStatuses[String(seatIndex)] || 'working'; // Default to 'working'
+}
+
+async function setSeatStatus(labId, seatIndex, status) {
     if (!ALL_LAB_SEAT_STATUSES[labId]) {
         ALL_LAB_SEAT_STATUSES[labId] = {};
     }
-    // Ensure seatIndex is a string for consistent key access
     ALL_LAB_SEAT_STATUSES[labId][String(seatIndex)] = status;
-    window.saveLabSeatStatuses(ALL_LAB_SEAT_STATUSES); // Pass the entire updated object to be saved in constants.js
+    
+    try {
+        const response = await fetch(`${API_BASE_URL_SEATS}/labs/${labId}/seats/${seatIndex}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({ status })
+        });
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.msg || `Failed to update seat status for lab ${labId}, seat ${seatIndex}`);
+        }
+        console.log(`Seat ${seatIndex} in lab ${labId} updated to ${status} on backend.`);
+    } catch (error) {
+        console.error('Error saving seat status to backend:', error);
+        alert(`Error saving seat status: ${error.message}. Please try again.`);
+        // Optionally, revert the UI change or ALL_LAB_SEAT_STATUSES cache if save fails
+    }
 }
 
-function renderInteractiveLabLayout(labId, container) {
-    container.innerHTML = ''; // Clear previous layout
+async function renderInteractiveLabLayout(labId, container) {
+    container.innerHTML = '<p>Loading lab layout...</p>'; 
 
-    const lab = window.MOCK_LABS.find(l => l.id === labId);
-    if (!lab) {
-        container.innerHTML = '<p class="text-muted-foreground text-center">Selected lab not found.</p>';
+    let lab;
+    try {
+        const labResponse = await fetch(`${API_BASE_URL_SEATS}/labs/${labId}`,{
+             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        if (!labResponse.ok) throw new Error('Failed to fetch lab details');
+        lab = await labResponse.json();
+        
+        await loadSeatStatusesForLab(labId); // Load and cache statuses for this lab
+
+    } catch (error) {
+        console.error("Error fetching lab details for layout:", error);
+        container.innerHTML = `<p class="error-message visible">Error loading lab layout: ${error.message}</p>`;
         return;
     }
+    
+    container.innerHTML = ''; // Clear loading message
+
     const capacity = lab.capacity;
 
     const title = document.createElement('h3');
@@ -113,13 +176,11 @@ function renderInteractiveLabLayout(labId, container) {
                 deskDiv.className = 'lab-layout-desk interactive-seat';
                 deskDiv.setAttribute('data-seat-index', currentSeatIndexStr);
 
-                const icon = document.createElement('i'); // Create the <i> tag for Lucide
-                icon.setAttribute('data-lucide', 'armchair');
-                // Initial status application will be handled by Lucide after it creates the SVG
-                // and then potentially by a re-style if needed, but handleSeatClick will manage active changes.
+                const iconTag = document.createElement('i'); 
+                iconTag.setAttribute('data-lucide', 'armchair');
                 
-                deskDiv.appendChild(icon);
-                deskDiv.addEventListener('click', () => handleSeatClick(labId, currentSeatIndexStr, deskDiv));
+                deskDiv.appendChild(iconTag);
+                // Event listener attached after lucide creates icons
                 row.appendChild(deskDiv);
                 
                 desksRenderedInSec++;
@@ -135,42 +196,43 @@ function renderInteractiveLabLayout(labId, container) {
     mainLayoutContainer.appendChild(createInteractiveDeskSection(numRightDesks, 3));
 
     container.appendChild(mainLayoutContainer);
+
     if (window.lucide) {
-        window.lucide.createIcons(); // Create icons from <i> tags
-        // After icons are created, apply initial styles based on saved status
+        window.lucide.createIcons(); 
         const allSeatDivs = mainLayoutContainer.querySelectorAll('.interactive-seat');
         allSeatDivs.forEach(seatDiv => {
             const seatIdx = seatDiv.getAttribute('data-seat-index');
-            const initialStatus = getSeatStatus(labId, seatIdx);
+            const initialStatus = getSeatStatus(labId, seatIdx); // Get from cache
             const svgIcon = seatDiv.querySelector('svg.lucide-armchair');
             if (svgIcon) {
                 svgIcon.classList.add(initialStatus === 'not-working' ? 'system-not-working' : 'system-working');
             }
+            seatDiv.addEventListener('click', () => handleSeatClick(labId, seatIdx, seatDiv));
         });
     }
 }
 
-function handleSeatClick(labId, seatIndexStr, seatContainerElement) {
-    // After lucide.createIcons(), the <i> tag is replaced by an <svg>
-    // So, we need to target the SVG element for class manipulation.
+async function handleSeatClick(labId, seatIndexStr, seatContainerElement) {
     const iconElement = seatContainerElement.querySelector('svg.lucide-armchair'); 
 
     if (!iconElement) {
-        console.error("Armchair SVG icon not found within the seat container:", seatContainerElement);
-        // As a fallback, it's possible the click happened before SVG replacement or some other edge case
-        const iTag = seatContainerElement.querySelector('i[data-lucide="armchair"]');
-        if(iTag) console.error("Found <i> tag instead:", iTag);
+        console.error("Armchair SVG icon not found for click handling:", seatContainerElement);
         return;
     }
 
-    const currentStatus = getSeatStatus(labId, seatIndexStr);
+    const currentStatus = getSeatStatus(labId, seatIndexStr); // Read from cache
     const newStatus = currentStatus === 'working' ? 'not-working' : 'working';
 
-    setSeatStatus(labId, seatIndexStr, newStatus); // This saves to localStorage
+    // Update cache first for immediate UI response
+    if (!ALL_LAB_SEAT_STATUSES[labId]) ALL_LAB_SEAT_STATUSES[labId] = {};
+    ALL_LAB_SEAT_STATUSES[labId][String(seatIndexStr)] = newStatus;
 
     // Update visual style
     iconElement.classList.remove('system-working', 'system-not-working');
     iconElement.classList.add(newStatus === 'not-working' ? 'system-not-working' : 'system-working');
 
-    // console.log(`Seat ${seatIndexStr} in lab ${labId} changed to ${newStatus}. Current all statuses:`, JSON.parse(JSON.stringify(ALL_LAB_SEAT_STATUSES)));
+    // Asynchronously save to backend
+    await setSeatStatus(labId, seatIndexStr, newStatus); 
+    // setSeatStatus handles backend call and updates ALL_LAB_SEAT_STATUSES again if needed,
+    // but UI already updated for responsiveness.
 }
