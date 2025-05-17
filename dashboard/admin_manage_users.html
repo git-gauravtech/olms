@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management - Optimized Lab Management System</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="dashboard-layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                 <a href="admin.html" class="sidebar-header-link" id="dashboardHomeLink">
+                    <i data-lucide="atom"></i>
+                    <span class="sidebar-title">Optimized Lab Management</span>
+                </a>
+            </div>
+            <ul class="sidebar-nav" id="sidebarNav">
+                <!-- Nav items will be populated by JS -->
+            </ul>
+        </aside>
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <div class="main-content-wrapper">
+            <header class="dashboard-header">
+                <button type="button" class="mobile-menu-button" id="mobileMenuButton">
+                    <i data-lucide="menu"></i>
+                </button>
+                <div class="user-nav" id="userNavContainer">
+                    <!-- UserNav will be populated by JS -->
+                </div>
+            </header>
+            <main class="page-content">
+                <div class="custom-card">
+                    <div class="custom-card-header">
+                        <i data-lucide="users"></i>
+                        <h1 class="custom-card-title">User Management</h1>
+                    </div>
+                    <div class="custom-card-content">
+                        <p class="text-muted-foreground mb-6">
+                            Manage user accounts, roles, and permissions within the system.
+                        </p>
+                        <button type="button" class="button button-primary mb-4" onclick="alert('Placeholder: Open form to add new user.')">
+                            <i data-lucide="user-plus" class="mr-2"></i> Add New User
+                        </button>
+
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full bg-white border border-gray-200 rounded-md">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200">
+                                    <!-- Placeholder User Data -->
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Dr. Albus Dumbledore</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">headmaster@hogwarts.ac.uk</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Admin</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Administration</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <button class="button button-outline button-sm mr-2" onclick="alert('Placeholder: Edit user Albus D.')"><i data-lucide="edit-2" class="h-4 w-4"></i></button>
+                                            <button class="button button-secondary button-sm" onclick="alert('Placeholder: Delete user Albus D.')"><i data-lucide="trash-2" class="h-4 w-4"></i></button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Prof. Minerva McGonagall</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">minerva.m@hogwarts.ac.uk</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Faculty</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Transfiguration</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <button class="button button-outline button-sm mr-2" onclick="alert('Placeholder: Edit user Minerva M.')"><i data-lucide="edit-2" class="h-4 w-4"></i></button>
+                                            <button class="button button-secondary button-sm" onclick="alert('Placeholder: Delete user Minerva M.')"><i data-lucide="trash-2" class="h-4 w-4"></i></button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Hermione Granger</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">h.granger@student.hogwarts.ac.uk</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Student</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Gryffindor</td>
+                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <button class="button button-outline button-sm mr-2" onclick="alert('Placeholder: Edit user Hermione G.')"><i data-lucide="edit-2" class="h-4 w-4"></i></button>
+                                            <button class="button button-secondary button-sm" onclick="alert('Placeholder: Delete user Hermione G.')"><i data-lucide="trash-2" class="h-4 w-4"></i></button>
+                                        </td>
+                                    </tr>
+                                    <!-- More users can be added here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="../js/constants.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!window.roleGuard(window.USER_ROLES.ADMIN)) return;
+            window.initializeDashboard();
+            window.setDashboardHomeLink();
+            if (window.lucide) window.lucide.createIcons();
+        });
+    </script>
+</body>
+</html>

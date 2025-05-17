@@ -1,15 +1,14 @@
 
-
-const USER_ROLES_OBJ = { // Renamed to avoid conflict if USER_ROLES is used as a global var name
+const USER_ROLES_OBJ = {
   ADMIN: 'Admin',
   FACULTY: 'Faculty',
   STUDENT: 'Student',
   ASSISTANT: 'Assistant',
 };
 
-const ROLES_ARRAY_CONST = Object.values(USER_ROLES_OBJ); // Renamed
+const ROLES_ARRAY_CONST = Object.values(USER_ROLES_OBJ);
 
-const NAV_LINKS_OBJ = { // Renamed
+const NAV_LINKS_OBJ = {
   [USER_ROLES_OBJ.ADMIN]: [
     { href: 'admin.html', label: 'Admin Dashboard', icon: 'layout-dashboard' },
     { href: 'admin_manage_labs.html', label: 'Manage Labs', icon: 'settings-2' },
@@ -19,6 +18,9 @@ const NAV_LINKS_OBJ = { // Renamed
     { href: 'admin_assistant_requests.html', label: 'Assistant Requests', icon: 'clipboard-list' },
     { href: 'admin_faculty_requests.html', label: 'Faculty Requests', icon: 'user-check' },
     { href: 'admin_run_algorithms.html', label: 'Run Algorithms', icon: 'brain-circuit' },
+    { href: 'admin_view_logs.html', label: 'View Logs', icon: 'history' },
+    { href: 'admin_reports.html', label: 'Generate Reports', icon: 'file-text' },
+    { href: 'admin_manage_users.html', label: 'User Management', icon: 'users' },
   ],
   [USER_ROLES_OBJ.FACULTY]: [
     { href: 'faculty.html', label: 'Faculty Dashboard', icon: 'layout-dashboard' },
@@ -38,15 +40,15 @@ const NAV_LINKS_OBJ = { // Renamed
   ],
 };
 
-const COMMON_NAV_LINKS_CONST = []; // Renamed
+const COMMON_NAV_LINKS_CONST = [];
 
 const MOCK_LABS_INITIAL = [
-  { id: 'physics_lab_alpha', name: 'Physics Lab Alpha', capacity: 20, roomNumber: 'P-101' },
-  { id: 'chemistry_lab_beta', name: 'Chemistry Lab Beta', capacity: 15, roomNumber: 'C-205' },
-  { id: 'computer_lab_gamma', name: 'Computer Lab Gamma', capacity: 70, roomNumber: 'CS-302' },
-  { id: 'electronics_lab_delta', name: 'Electronics Lab Delta', capacity: 18, roomNumber: 'E-110' },
-  { id: 'biology_lab_epsilon', name: 'Biology Lab Epsilon', capacity: 25, roomNumber: 'B-G03'},
-  { id: 'robotics_lab_zeta', name: 'Robotics Lab Zeta', capacity: 12, roomNumber: 'R-401'},
+  { id: 'physics_lab_alpha', name: 'Physics Lab Alpha', capacity: 20, roomNumber: 'P-101', location: 'Block A, Floor 1' },
+  { id: 'chemistry_lab_beta', name: 'Chemistry Lab Beta', capacity: 15, roomNumber: 'C-205', location: 'Block B, Floor 2' },
+  { id: 'computer_lab_gamma', name: 'Computer Lab Gamma', capacity: 70, roomNumber: 'CS-302', location: 'Block C, Floor 3' },
+  { id: 'electronics_lab_delta', name: 'Electronics Lab Delta', capacity: 18, roomNumber: 'E-110', location: 'Block A, Floor G' },
+  { id: 'biology_lab_epsilon', name: 'Biology Lab Epsilon', capacity: 25, roomNumber: 'B-G03', location: 'Block D, Floor G'},
+  { id: 'robotics_lab_zeta', name: 'Robotics Lab Zeta', capacity: 12, roomNumber: 'R-401', location: 'Block C, Floor 4'},
 ];
 
 const MOCK_EQUIPMENT_INITIAL = [
@@ -56,13 +58,13 @@ const MOCK_EQUIPMENT_INITIAL = [
   { id: 'eq_projector_01', name: 'Epson Projector 5000', type: 'Projector', status: 'available' },
   { id: 'eq_spectrometer_01', name: 'ThermoFisher Spectrometer', type: 'Spectrometer', labId: 'physics_lab_alpha', status: 'maintenance'},
 ];
-const EQUIPMENT_STATUSES_CONST = ['available', 'in-use', 'maintenance', 'broken']; // Renamed
+const EQUIPMENT_STATUSES_CONST = ['available', 'in-use', 'maintenance', 'broken'];
 
 
-const MOCK_LABS_STORAGE_KEY = 'adminManagedLabsV1';
-const MOCK_EQUIPMENT_STORAGE_KEY = 'adminManagedEquipmentV1';
-const LAB_SEAT_STATUSES_STORAGE_KEY = 'labSeatStatusesV3'; 
-const MOCK_BOOKINGS_STORAGE_KEY = 'mockBookingsV5'; // Incremented version
+const MOCK_LABS_STORAGE_KEY = 'adminManagedLabsV2'; // Incremented version
+const MOCK_EQUIPMENT_STORAGE_KEY = 'adminManagedEquipmentV2'; // Incremented version
+const LAB_SEAT_STATUSES_STORAGE_KEY = 'labSeatStatusesV3';
+const MOCK_BOOKINGS_STORAGE_KEY = 'mockBookingsV5';
 
 
 function loadLabs() {
@@ -72,7 +74,7 @@ function loadLabs() {
             return JSON.parse(storedLabs);
         } catch (e) {
             console.error("Error parsing labs from localStorage:", e);
-            localStorage.removeItem(MOCK_LABS_STORAGE_KEY); // Remove corrupted data
+            localStorage.removeItem(MOCK_LABS_STORAGE_KEY);
         }
     }
     localStorage.setItem(MOCK_LABS_STORAGE_KEY, JSON.stringify(MOCK_LABS_INITIAL));
@@ -94,7 +96,7 @@ function loadEquipment() {
             return JSON.parse(storedEquipment);
         } catch (e) {
             console.error("Error parsing equipment from localStorage:", e);
-            localStorage.removeItem(MOCK_EQUIPMENT_STORAGE_KEY); // Remove corrupted data
+            localStorage.removeItem(MOCK_EQUIPMENT_STORAGE_KEY);
         }
     }
     localStorage.setItem(MOCK_EQUIPMENT_STORAGE_KEY, JSON.stringify(MOCK_EQUIPMENT_INITIAL));
@@ -109,7 +111,7 @@ function saveEquipment(equipment) {
     }
 }
 
-let ALL_LAB_SEAT_STATUSES_CACHE; 
+let ALL_LAB_SEAT_STATUSES_CACHE;
 
 function loadLabSeatStatuses() {
     if (ALL_LAB_SEAT_STATUSES_CACHE && Object.keys(ALL_LAB_SEAT_STATUSES_CACHE).length > 0 && arguments.length === 0) {
@@ -121,14 +123,18 @@ function loadLabSeatStatuses() {
         ALL_LAB_SEAT_STATUSES_CACHE = storedStatuses ? JSON.parse(storedStatuses) : {};
     } catch (e) {
         console.error("Error parsing labSeatStatuses from localStorage:", e);
-        ALL_LAB_SEAT_STATUSES_CACHE = {}; 
+        ALL_LAB_SEAT_STATUSES_CACHE = {};
         localStorage.removeItem(LAB_SEAT_STATUSES_STORAGE_KEY);
     }
     return ALL_LAB_SEAT_STATUSES_CACHE;
 }
 
-function saveLabSeatStatuses(statuses) { 
-    ALL_LAB_SEAT_STATUSES_CACHE = statuses; 
+function saveLabSeatStatuses(statuses) {
+    if (!statuses) {
+        console.error("Attempted to save undefined statuses to localStorage.");
+        return;
+    }
+    ALL_LAB_SEAT_STATUSES_CACHE = statuses;
     try {
         localStorage.setItem(LAB_SEAT_STATUSES_STORAGE_KEY, JSON.stringify(statuses));
     } catch (e) {
@@ -137,7 +143,7 @@ function saveLabSeatStatuses(statuses) {
 }
 
 
-const MOCK_TIME_SLOTS_CONST = [ // Renamed
+const MOCK_TIME_SLOTS_CONST = [
   { id: 'ts_0800_0900', startTime: '08:00', endTime: '09:00', displayTime: '08:00 AM - 09:00 AM' },
   { id: 'ts_0900_1000', startTime: '09:00', endTime: '10:00', displayTime: '09:00 AM - 10:00 AM' },
   { id: 'ts_1000_1100', startTime: '10:00', endTime: '11:00', displayTime: '10:00 AM - 11:00 AM' },
@@ -158,11 +164,12 @@ dayAfterTomorrow.setDate(today.getDate() + 2);
 const yesterday = new Date(today);
 yesterday.setDate(today.getDate() - 1);
 
-function formatDate(dateInput) { 
-    if (!dateInput) return ''; 
-    const d = dateInput instanceof Date ? dateInput : new Date(dateInput); 
+function formatDate(dateInput) {
+    if (!dateInput) return '';
+    const d = dateInput instanceof Date ? dateInput : new Date(dateInput);
     if (isNaN(d.getTime())) {
-        return ''; 
+        console.warn("Invalid dateInput for formatDate:", dateInput);
+        return 'Invalid Date';
     }
     let month = '' + (d.getMonth() + 1);
     let day = '' + d.getDate();
@@ -173,7 +180,7 @@ function formatDate(dateInput) {
 }
 
 
-let MOCK_BOOKINGS_VAR = []; // Renamed
+let MOCK_BOOKINGS_VAR = [];
 const MOCK_BOOKINGS_INITIAL = [
     // Existing Bookings
     { id: 'b1', labId: 'physics_lab_alpha', date: formatDate(today), timeSlotId: 'ts_0900_1000', userId: 'student1@example.com', purpose: 'Physics Experiment A', equipmentIds: ['eq_spectrometer_01'], status: 'booked', requestedByRole: USER_ROLES_OBJ.STUDENT},
@@ -202,21 +209,22 @@ function initializeMockBookings() {
             MOCK_BOOKINGS_VAR = JSON.parse(storedBookings);
         } catch (e) {
             console.error("Error parsing mockBookings from localStorage:", e);
-            MOCK_BOOKINGS_VAR = MOCK_BOOKINGS_INITIAL; // Reset if corrupted
+            MOCK_BOOKINGS_VAR = MOCK_BOOKINGS_INITIAL;
             localStorage.removeItem(MOCK_BOOKINGS_STORAGE_KEY);
-            saveMockBookings(); // Save the initial data
+            saveMockBookings();
         }
     } else {
         MOCK_BOOKINGS_VAR = MOCK_BOOKINGS_INITIAL;
         saveMockBookings();
     }
-    console.log("Initialized MOCK_BOOKINGS_VAR:", JSON.parse(JSON.stringify(MOCK_BOOKINGS_VAR)));
+    console.log("[constants.js] Initialized MOCK_BOOKINGS_VAR with length:", MOCK_BOOKINGS_VAR.length, MOCK_BOOKINGS_VAR);
 }
 
 function saveMockBookings() {
     try {
         localStorage.setItem(MOCK_BOOKINGS_STORAGE_KEY, JSON.stringify(MOCK_BOOKINGS_VAR));
-    } catch (e) {
+    } catch (e)
+        {
         console.error("Error saving mockBookings to localStorage:", e);
     }
 }
@@ -224,10 +232,10 @@ function saveMockBookings() {
 initializeMockBookings();
 
 
-const DAYS_OF_WEEK_CONST = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']; // Renamed
+const DAYS_OF_WEEK_CONST = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 
-const DEPARTMENTS_CONST = [ // Renamed
+const DEPARTMENTS_CONST = [
   'CSE (Computer Science & Engineering)',
   'IT (Information Technology)',
   'ECE (Electronics & Communication Engineering)',
@@ -241,31 +249,30 @@ const DEPARTMENTS_CONST = [ // Renamed
   'Other',
 ];
 
-// Expose to global window object for access in other JS files
 window.USER_ROLES = USER_ROLES_OBJ;
 window.ROLES_ARRAY = ROLES_ARRAY_CONST;
 window.NAV_LINKS = NAV_LINKS_OBJ;
 window.COMMON_NAV_LINKS = COMMON_NAV_LINKS_CONST;
-window.MOCK_LABS = loadLabs(); 
-window.MOCK_EQUIPMENT = loadEquipment(); 
+window.MOCK_LABS = loadLabs();
+window.MOCK_EQUIPMENT = loadEquipment();
 window.EQUIPMENT_STATUSES = EQUIPMENT_STATUSES_CONST;
 window.saveLabs = saveLabs;
 window.saveEquipment = saveEquipment;
 window.MOCK_TIME_SLOTS = MOCK_TIME_SLOTS_CONST;
-window.MOCK_BOOKINGS = MOCK_BOOKINGS_VAR; 
+window.MOCK_BOOKINGS = MOCK_BOOKINGS_VAR;
 window.saveMockBookings = saveMockBookings;
 window.DAYS_OF_WEEK = DAYS_OF_WEEK_CONST;
 window.DEPARTMENTS = DEPARTMENTS_CONST;
-window.formatDate = formatDate; 
-window.loadLabs = loadLabs; 
-window.loadEquipment = loadEquipment; 
+window.formatDate = formatDate;
+window.loadLabs = loadLabs;
+window.loadEquipment = loadEquipment;
 window.LAB_SEAT_STATUSES_STORAGE_KEY = LAB_SEAT_STATUSES_STORAGE_KEY;
-window.loadLabSeatStatuses = loadLabSeatStatuses; 
-window.saveLabSeatStatuses = saveLabSeatStatuses; 
+window.loadLabSeatStatuses = loadLabSeatStatuses;
+window.saveLabSeatStatuses = saveLabSeatStatuses;
 
-// Initialize seat statuses cache on load
 loadLabSeatStatuses();
-console.log('[constants.js] Constants and mock data initialized and exposed to window. MOCK_BOOKINGS_STORAGE_KEY is now:', MOCK_BOOKINGS_STORAGE_KEY);
+console.log('[constants.js] Constants and mock data initialized. MOCK_BOOKINGS_STORAGE_KEY:', MOCK_BOOKINGS_STORAGE_KEY);
 console.log('[constants.js] window.USER_ROLES:', window.USER_ROLES);
 console.log('[constants.js] Initial window.MOCK_BOOKINGS length:', window.MOCK_BOOKINGS ? window.MOCK_BOOKINGS.length : 'undefined');
 
+    

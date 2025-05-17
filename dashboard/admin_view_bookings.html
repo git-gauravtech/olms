@@ -98,12 +98,11 @@
                 return;
             }
             console.log("Initial window.MOCK_BOOKINGS on admin_view_bookings.html:", JSON.parse(JSON.stringify(window.MOCK_BOOKINGS)));
-            allBookings = [...window.MOCK_BOOKINGS]; // Make a copy
+            allBookings = [...window.MOCK_BOOKINGS]; 
             console.log("Copied 'allBookings' on admin_view_bookings.html:", JSON.parse(JSON.stringify(allBookings)));
 
 
             function populateFilters() {
-                // Populate Lab Filter
                 if (window.MOCK_LABS && filterLabSelect) {
                     window.MOCK_LABS.forEach(lab => {
                         const option = document.createElement('option');
@@ -113,7 +112,6 @@
                     });
                 }
 
-                // Populate Status Filter
                 if (allBookings.length > 0 && filterStatusSelect) {
                     const statuses = [...new Set(allBookings.map(b => b.status))];
                     statuses.sort().forEach(status => {
@@ -185,14 +183,25 @@
 
 
                     card.innerHTML = `
-                        <h3 class="text-lg font-semibold mb-1">${lab ? lab.name : (booking.requestType || 'General Request')} ${booking.batchIdentifier ? `for ${booking.batchIdentifier}` : ''}</h3>
-                        <p class="text-sm text-muted-foreground"><strong>User:</strong> ${booking.userId} (${booking.requestedByRole || 'N/A'})</p>
-                        ${booking.date ? `<p class="text-sm text-muted-foreground"><strong>Date:</strong> ${window.formatDate(new Date(booking.date))}</p>` : ''}
-                        ${timeSlot ? `<p class="text-sm text-muted-foreground"><strong>Time:</strong> ${timeSlot.displayTime}</p>` : ''}
-                        <p class="text-sm text-muted-foreground"><strong>Purpose/Details:</strong> ${booking.purpose}</p>
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="text-lg font-semibold mb-1">${lab ? lab.name : (booking.requestType || 'General Request')} ${booking.batchIdentifier ? `for ${booking.batchIdentifier}` : ''}</h3>
+                                <p class="text-sm text-muted-foreground"><strong>User:</strong> ${booking.userId} (${booking.requestedByRole || 'N/A'})</p>
+                                ${booking.date ? `<p class="text-sm text-muted-foreground"><strong>Date:</strong> ${window.formatDate(new Date(booking.date))}</p>` : ''}
+                                ${timeSlot ? `<p class="text-sm text-muted-foreground"><strong>Time:</strong> ${timeSlot.displayTime}</p>` : ''}
+                            </div>
+                            <div class="flex flex-col gap-2 items-end">
+                                <p class="text-sm text-muted-foreground"><strong>Status:</strong> <span class="font-medium ${statusColorClass}">${booking.status.toUpperCase().replace(/_/g, ' ')}</span></p>
+                                ${(booking.status === 'booked' || booking.status === 'pending') ? `
+                                <button type="button" class="button button-outline button-sm" onclick="modifyBooking('${booking.id}')">Modify</button>
+                                <button type="button" class="button button-secondary button-sm" onclick="cancelBooking('${booking.id}')">Cancel</button>
+                                ` : ''}
+                            </div>
+                        </div>
+                        <p class="text-sm text-muted-foreground mt-2"><strong>Purpose/Details:</strong> ${booking.purpose}</p>
                         ${booking.equipmentIds && booking.equipmentIds.length > 0 ? `<p class="text-sm text-muted-foreground"><strong>Equipment:</strong> ${equipmentNames}</p>` : ''}
                         ${booking.submittedDate ? `<p class="text-sm text-muted-foreground"><strong>Submitted:</strong> ${window.formatDate(new Date(booking.submittedDate))}</p>` : ''}
-                        <p class="text-sm text-muted-foreground"><strong>Status:</strong> <span class="font-medium ${statusColorClass}">${booking.status.toUpperCase().replace(/_/g, ' ')}</span></p>
+                        
                     `;
                     bookingsListContainer.appendChild(card);
                 });
@@ -213,6 +222,35 @@
                 }
             }
             
+            window.modifyBooking = function(bookingId) {
+                alert('Modify booking (ID: ' + bookingId + ') functionality is a placeholder.');
+                // Future implementation: Open a modal with booking details pre-filled for editing.
+            }
+
+            window.cancelBooking = function(bookingId) {
+                if (confirm('Are you sure you want to cancel this booking?')) {
+                    const bookingIndex = window.MOCK_BOOKINGS.findIndex(b => b.id === bookingId);
+                    if (bookingIndex > -1) {
+                        if (window.MOCK_BOOKINGS[bookingIndex].status === 'booked') {
+                             window.MOCK_BOOKINGS[bookingIndex].status = 'cancelled'; // Or splice if truly removing
+                        } else if (window.MOCK_BOOKINGS[bookingIndex].status === 'pending') {
+                             window.MOCK_BOOKINGS[bookingIndex].status = 'cancelled'; // Or splice
+                        } else {
+                            // For other statuses, you might just remove it or have different logic
+                            // For simplicity here, we'll just change status or remove.
+                            // For a more robust system, you might just mark as cancelled.
+                            window.MOCK_BOOKINGS.splice(bookingIndex, 1);
+                        }
+                        window.saveMockBookings();
+                        allBookings = [...window.MOCK_BOOKINGS]; // Re-sync local copy
+                        renderBookings(); // Re-render the list
+                        alert('Booking action processed.');
+                    } else {
+                        alert('Error: Booking not found.');
+                    }
+                }
+            }
+            
             // Initialize
             populateFilters();
             renderBookings();
@@ -223,3 +261,5 @@
     </script>
 </body>
 </html>
+
+    

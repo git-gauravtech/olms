@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -65,19 +66,22 @@
                 return;
             }
             
-            initializeDashboard(); // From dashboard.js
+            initializeDashboard(); 
             console.log("Dashboard initialized for Admin.");
 
 
             const featureCardsContainer = document.getElementById('featureCardsContainer');
             const adminFeatures = [
-                { title: "Manage Labs", description: "Configure lab details, capacities, and room assignments.", icon: "settings-2", href: "admin_manage_labs.html", label: "Go to Lab Management" },
+                { title: "Manage Labs", description: "Configure lab details, capacities, room assignments, and locations.", icon: "settings-2", href: "admin_manage_labs.html", label: "Go to Lab Management" },
                 { title: "Manage Equipment", description: "Oversee laboratory equipment, inventory, status, and assignments.", icon: "wrench", href: "admin_manage_equipment.html", label: "Go to Equipment Management" },
                 { title: "Lab Availability", description: "View current lab schedules and slot availability.", icon: "flask-conical", href: "labs.html", label: "View Lab Grid" },
                 { title: "View All Bookings", description: "Monitor all lab bookings and manage scheduling conflicts.", icon: "calendar-days", href: "admin_view_bookings.html", label: "Go to Bookings Overview" },
                 { title: "Assistant Requests", description: "Review reschedule or special booking requests from Assistants.", icon: "clipboard-list", href: "admin_assistant_requests.html", label: "View Assistant Requests" },
                 { title: "Faculty Requests", description: "Review direct requests or approvals needed from Faculty.", icon: "user-check", href: "admin_faculty_requests.html", label: "View Faculty Requests" },
-                { title: "Run Algorithms", description: "Execute optimization algorithms for scheduling and resources.", icon: "brain-circuit", href: "admin_run_algorithms.html", label: "Go to Algorithm Console" }
+                { title: "Run Algorithms", description: "Execute optimization algorithms for scheduling and resources.", icon: "brain-circuit", href: "admin_run_algorithms.html", label: "Go to Algorithm Console" },
+                { title: "View Logs", description: "Access system activity logs and scheduling history.", icon: "history", href: "admin_view_logs.html", label: "Access Logs" },
+                { title: "Generate Reports", description: "Create reports on lab usage, resource allocation, etc.", icon: "file-text", href: "admin_reports.html", label: "View Reports" },
+                { title: "User Management", description: "Manage user accounts, roles, and permissions.", icon: "users", href: "admin_manage_users.html", label: "Manage Users" }
             ];
 
             if (featureCardsContainer) {
@@ -99,3 +103,5 @@
     </script>
 </body>
 </html>
+
+    

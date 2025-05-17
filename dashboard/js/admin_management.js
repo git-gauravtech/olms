@@ -35,11 +35,11 @@ function initializeLabManagementPage() {
 }
 
 function renderLabsList() {
-    currentLabs = window.loadLabs(); // From constants.js
+    currentLabs = window.loadLabs(); 
     const labsListContainer = document.getElementById('labsListContainer');
     if (!labsListContainer) return;
 
-    labsListContainer.innerHTML = ''; // Clear current list
+    labsListContainer.innerHTML = ''; 
 
     if (currentLabs.length === 0) {
         labsListContainer.innerHTML = '<p>No labs configured yet. Click "Add New Lab" to get started.</p>';
@@ -47,11 +47,11 @@ function renderLabsList() {
     }
 
     const ul = document.createElement('ul');
-    ul.className = 'entity-list'; // For styling
+    ul.className = 'entity-list'; 
 
     currentLabs.forEach(lab => {
         const li = document.createElement('li');
-        li.className = 'entity-list-item custom-card p-4 mb-3'; // Re-use card styling
+        li.className = 'entity-list-item custom-card p-4 mb-3'; 
         
         const nameEl = document.createElement('h3');
         nameEl.className = 'text-lg font-semibold';
@@ -59,7 +59,7 @@ function renderLabsList() {
 
         const detailsEl = document.createElement('p');
         detailsEl.className = 'text-sm text-muted-foreground';
-        detailsEl.textContent = `Capacity: ${lab.capacity}, Room: ${lab.roomNumber || 'N/A'}`;
+        detailsEl.textContent = `Capacity: ${lab.capacity}, Room: ${lab.roomNumber || 'N/A'}, Location: ${lab.location || 'N/A'}`;
         
         const actionsEl = document.createElement('div');
         actionsEl.className = 'mt-3 entity-actions';
@@ -93,8 +93,8 @@ function openLabForm(lab = null) {
     const labModalTitle = document.getElementById('labModalTitle');
     const labForm = document.getElementById('labForm');
     
-    editingLabId = null; // Reset
-    labForm.reset(); // Clear form fields
+    editingLabId = null; 
+    labForm.reset(); 
 
     if (lab) {
         labModalTitle.textContent = 'Edit Lab';
@@ -102,13 +102,15 @@ function openLabForm(lab = null) {
         document.getElementById('labName').value = lab.name;
         document.getElementById('labCapacity').value = lab.capacity;
         document.getElementById('labRoomNumber').value = lab.roomNumber;
+        document.getElementById('labLocation').value = lab.location || '';
         editingLabId = lab.id;
     } else {
         labModalTitle.textContent = 'Add New Lab';
-        document.getElementById('labId').value = ''; // Ensure ID is empty for new lab
+        document.getElementById('labId').value = ''; 
+        document.getElementById('labLocation').value = '';
     }
     labModal.classList.add('open');
-    if (window.lucide) window.lucide.createIcons(); // For modal close icon
+    if (window.lucide) window.lucide.createIcons(); 
 }
 
 function closeLabModal() {
@@ -123,28 +125,31 @@ function handleLabFormSubmit(event) {
     const name = document.getElementById('labName').value.trim();
     const capacity = parseInt(document.getElementById('labCapacity').value, 10);
     const roomNumber = document.getElementById('labRoomNumber').value.trim();
+    const location = document.getElementById('labLocation').value.trim();
+
 
     if (!name || isNaN(capacity) || capacity <= 0 || !roomNumber) {
-        alert('Please fill in all fields correctly. Capacity must be a positive number.');
+        alert('Please fill in Lab Name, Room Number, and ensure Capacity is a positive number.');
         return;
     }
 
-    if (editingLabId) { // Update existing lab
+    if (editingLabId) { 
         const labIndex = currentLabs.findIndex(l => l.id === editingLabId);
         if (labIndex > -1) {
-            currentLabs[labIndex] = { ...currentLabs[labIndex], name, capacity, roomNumber };
+            currentLabs[labIndex] = { ...currentLabs[labIndex], name, capacity, roomNumber, location };
         }
-    } else { // Add new lab
+    } else { 
         const newLab = {
-            id: 'lab_' + Date.now(), // Simple unique ID
+            id: 'lab_' + Date.now(), 
             name,
             capacity,
-            roomNumber
+            roomNumber,
+            location
         };
         currentLabs.push(newLab);
     }
     
-    window.saveLabs(currentLabs); // From constants.js
+    window.saveLabs(currentLabs); 
     renderLabsList();
     closeLabModal();
 }
@@ -192,7 +197,7 @@ function populateEquipmentFormDropdowns() {
     const labSelect = document.getElementById('equipmentLabId');
 
     if (statusSelect && window.EQUIPMENT_STATUSES) {
-        statusSelect.innerHTML = ''; // Clear existing
+        statusSelect.innerHTML = ''; 
         window.EQUIPMENT_STATUSES.forEach(status => {
             const option = document.createElement('option');
             option.value = status;
@@ -201,9 +206,9 @@ function populateEquipmentFormDropdowns() {
         });
     }
 
-    if (labSelect && window.MOCK_LABS) { // Assuming MOCK_LABS is up-to-date or loaded
-        labSelect.innerHTML = '<option value="">None</option>'; // Clear existing but keep "None"
-        currentLabs = window.loadLabs(); // Make sure labs are loaded
+    if (labSelect && window.MOCK_LABS) { 
+        labSelect.innerHTML = '<option value="">None</option>'; 
+        currentLabs = window.loadLabs(); 
         currentLabs.forEach(lab => {
             const option = document.createElement('option');
             option.value = lab.id;
@@ -215,11 +220,11 @@ function populateEquipmentFormDropdowns() {
 
 
 function renderEquipmentList() {
-    currentEquipment = window.loadEquipment(); // From constants.js
+    currentEquipment = window.loadEquipment(); 
     const equipmentListContainer = document.getElementById('equipmentListContainer');
     if (!equipmentListContainer) return;
 
-    equipmentListContainer.innerHTML = ''; // Clear current list
+    equipmentListContainer.innerHTML = ''; 
 
     if (currentEquipment.length === 0) {
         equipmentListContainer.innerHTML = '<p>No equipment configured yet. Click "Add New Equipment" to get started.</p>';
@@ -276,7 +281,7 @@ function openEquipmentForm(equip = null) {
     const equipmentModalTitle = document.getElementById('equipmentModalTitle');
     const equipmentForm = document.getElementById('equipmentForm');
     
-    populateEquipmentFormDropdowns(); // Ensure dropdowns are fresh
+    populateEquipmentFormDropdowns(); 
     editingEquipmentId = null;
     equipmentForm.reset();
 
@@ -315,12 +320,12 @@ function handleEquipmentFormSubmit(event) {
         return;
     }
 
-    if (editingEquipmentId) { // Update
+    if (editingEquipmentId) { 
         const equipIndex = currentEquipment.findIndex(e => e.id === editingEquipmentId);
         if (equipIndex > -1) {
             currentEquipment[equipIndex] = { ...currentEquipment[equipIndex], name, type, status, labId: labId || null };
         }
-    } else { // Add new
+    } else { 
         const newEquipment = {
             id: 'equip_' + Date.now(),
             name,

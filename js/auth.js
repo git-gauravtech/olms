@@ -9,7 +9,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (signupForm) {
         signupForm.addEventListener('submit', handleSignup);
-        // Populate departments on signup page
         const departmentSelect = document.getElementById('department');
         if (departmentSelect && window.DEPARTMENTS) {
             window.DEPARTMENTS.forEach(dept => {
@@ -22,15 +21,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-function handleLogin(event) {
+async function handleLogin(event) {
     event.preventDefault();
     clearErrors();
+    console.log("handleLogin triggered");
 
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-    const role = document.getElementById('role').value;
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const roleInput = document.getElementById('role');
+    const loginButton = document.querySelector('#loginForm button[type="submit"]'); // Assuming one submit button
 
-    console.log("Login attempt:", { email, role }); 
+    if (!emailInput || !passwordInput || !roleInput || !loginButton) {
+        console.error("Login form elements not found!");
+        showError('roleError', 'Login form elements missing. Please refresh.');
+        return;
+    }
+    
+    const originalButtonText = loginButton.innerHTML;
+    loginButton.disabled = true;
+    loginButton.innerHTML = '<i data-lucide="loader-2" class="button-primary-loader" style="animation: spin 1s linear infinite; display: inline-block; margin-right: 0.5rem;"></i> Logging in...';
+    if (window.lucide) window.lucide.createIcons();
+
+
+    const email = emailInput.value;
+    const password = passwordInput.value;
+    const role = roleInput.value;
+
+    console.log("Login attempt:", { email, role });
 
     let isValid = true;
     if (!email) {
@@ -43,84 +60,94 @@ function handleLogin(event) {
     if (!password) {
         showError('passwordError', 'Password is required.');
         isValid = false;
-    } else if (password.length < 6) {
-        showError('passwordError', 'Password must be at least 6 characters.');
-        isValid = false;
     }
+    // Password length validation can be handled by backend, or kept for basic UX
     if (!role) {
         showError('roleError', 'Please select a role.');
         isValid = false;
     }
 
     if (!isValid) {
-        console.log("Login validation failed."); 
+        console.log("Login validation failed on frontend.");
+        loginButton.disabled = false;
+        loginButton.innerHTML = originalButtonText;
+        if (window.lucide) window.lucide.createIcons();
         return;
     }
 
-    const currentUserRoles = window.USER_ROLES;
-    if (!currentUserRoles) {
-        console.error("CRITICAL ERROR: USER_ROLES object is not defined in window. Make sure constants.js is loaded before auth.js and defines window.USER_ROLES.");
-        showError('roleError', 'System error: Roles not defined. Please contact support.');
-        return;
-    }
-    console.log("USER_ROLES for comparison in login:", currentUserRoles); 
+    try {
+        // IMPORTANT: Replace with your actual backend API URL
+        const response = await fetch('http://localhost:5001/api/auth/login', { 
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email, password, role }),
+        });
 
-    localStorage.setItem('userRole', role);
-    localStorage.setItem('userEmail', email);
-    const userNameFromStorage = localStorage.getItem('userName');
-    const userName = userNameFromStorage && userNameFromStorage !== "null" && userNameFromStorage !== "undefined" ? userNameFromStorage : email.split('@')[0] || role;
-    localStorage.setItem('userName', userName);
+        const data = await response.json();
 
+        if (response.ok) {
+            console.log("Login successful from backend:", data);
+            localStorage.setItem('token', data.token); // Store JWT
+            localStorage.setItem('userRole', data.user.role);
+            localStorage.setItem('userEmail', data.user.email);
+            localStorage.setItem('userName', data.user.name);
+            localStorage.setItem('userDepartment', data.user.department || ''); // Ensure department is stored
 
-    alert(`Login Successful. Welcome, ${userName}! Redirecting to your dashboard...`);
-    console.log(`Alert shown. Current role for switch: "${role}"`); 
+            alert(`Login Successful. Welcome, ${data.user.name}! Redirecting to your dashboard...`);
+            
+            const currentUserRoleConst = window.USER_ROLES; // From constants.js
+            if (!currentUserRoleConst) {
+                 console.error("CRITICAL ERROR: window.USER_ROLES not defined on frontend!");
+                 showError('roleError', 'Frontend configuration error. Cannot redirect.');
+                 loginButton.disabled = false;
+                 loginButton.innerHTML = originalButtonText;
+                 if (window.lucide) window.lucide.createIcons();
+                 return;
+            }
 
-    let redirected = false;
-    switch (role) {
-        case currentUserRoles.ADMIN:
-            console.log("Redirecting to Admin dashboard...");
-            window.location.href = 'dashboard/admin.html';
-            redirected = true;
-            break;
-        case currentUserRoles.FACULTY:
-            console.log("Redirecting to Faculty dashboard...");
-            window.location.href = 'dashboard/faculty.html';
-            redirected = true;
-            break;
-        case currentUserRoles.STUDENT:
-            console.log("Redirecting to Student dashboard...");
-            window.location.href = 'dashboard/student.html';
-            redirected = true;
-            break;
-        case currentUserRoles.ASSISTANT:
-            console.log("Redirecting to Assistant dashboard...");
-            window.location.href = 'dashboard/assistant.html';
-            redirected = true;
-            break;
-        default:
-            console.error("Login: No matching role for redirection. Role provided:", role, "Expected roles:", currentUserRoles);
-            showError('roleError', 'Invalid role selected. Cannot redirect.');
-    }
-
-    if(redirected){
-        console.log("Redirection was attempted to:", window.location.href);
-    } else {
-        console.error("Redirection was NOT attempted. Check switch/case logic and role value. Role was:", role);
+            switch (data.user.role) {
+                case currentUserRoleConst.ADMIN:
+                    window.location.href = 'dashboard/admin.html';
+                    break;
+                case currentUserRoleConst.FACULTY:
+                    window.location.href = 'dashboard/faculty.html';
+                    break;
+                case currentUserRoleConst.STUDENT:
+                    window.location.href = 'dashboard/student.html';
+                    break;
+                case currentUserRoleConst.ASSISTANT:
+                    window.location.href = 'dashboard/assistant.html';
+                    break;
+                default:
+                    console.error("Login: No matching role for redirection. Role from backend:", data.user.role);
+                    showError('roleError', 'Invalid role received from server. Cannot redirect.');
+            }
+        } else {
+            console.error("Login failed from backend:", data);
+            showError('roleError', data.msg || 'Login failed. Please check your credentials and role.');
+        }
+    } catch (error) {
+        console.error('Login request failed:', error);
+        showError('roleError', 'An error occurred during login. Could not connect to server.');
+    } finally {
+        loginButton.disabled = false;
+        loginButton.innerHTML = originalButtonText;
+        if (window.lucide) window.lucide.createIcons(); // Re-render icons if any were on the button
     }
 }
 
-function handleSignup(event) {
+async function handleSignup(event) {
     event.preventDefault();
     clearErrors();
     const signupButton = document.getElementById('signupButton');
     if (!signupButton) return;
 
+    const originalButtonText = signupButton.innerHTML;
     signupButton.disabled = true;
-    // Correctly set innerHTML for loader icon
     signupButton.innerHTML = '<i data-lucide="loader-2" class="button-primary-loader" style="animation: spin 1s linear infinite; display: inline-block; margin-right: 0.5rem;"></i> Creating Account...';
-    if (window.lucide && typeof window.lucide.createIcons === 'function') {
-      window.lucide.createIcons(); // Re-render icons to show the loader
-    }
+    if (window.lucide) window.lucide.createIcons();
 
 
     const fullName = document.getElementById('fullName').value;
@@ -139,8 +166,8 @@ function handleSignup(event) {
         showError('emailError', 'Invalid email address.');
         isValid = false;
     }
-    if (!password || password.length < 8) {
-        showError('passwordError', 'Password must be at least 8 characters.');
+    if (!password || password.length < 6) { // Adjusted to 6 to match backend expectations (if any)
+        showError('passwordError', 'Password must be at least 6 characters.');
         isValid = false;
     }
     if (password !== confirmPassword) {
@@ -153,67 +180,42 @@ function handleSignup(event) {
     }
      if (!isValid) {
         signupButton.disabled = false;
-        signupButton.innerHTML = 'Create Account';
-        // If Lucide was used, ensure the original button content is restored or icons re-rendered if needed
-        if (window.lucide && typeof window.lucide.createIcons === 'function') {
-           // window.lucide.createIcons(); // Could be called if button had static icons to restore
-        }
+        signupButton.innerHTML = originalButtonText;
+        if (window.lucide) window.lucide.createIcons();
         return;
     }
+    
+    try {
+        // IMPORTANT: Replace with your actual backend API URL
+        const response = await fetch('http://localhost:5001/api/auth/signup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fullName, email, password, role, department }),
+        });
+        const data = await response.json();
 
-    const currentUserRoles = window.USER_ROLES;
-    if (!currentUserRoles) {
-        console.error("CRITICAL ERROR: USER_ROLES object is not defined for signup. Make sure constants.js is loaded before auth.js.");
-        signupButton.disabled = false;
-        signupButton.innerHTML = 'Create Account';
-        return;
-    }
-
-    setTimeout(() => {
-        localStorage.setItem('userRole', role);
-        localStorage.setItem('userEmail', email);
-        localStorage.setItem('userName', fullName);
-        if (department) localStorage.setItem('userDepartment', department);
-
-
-        alert(`Account Created! Welcome, ${fullName}! Your account as ${role} has been successfully created.`);
-        signupButton.disabled = false;
-        signupButton.innerHTML = 'Create Account';
-
-
-        switch (role) {
-            case currentUserRoles.ADMIN:
-                window.location.href = 'dashboard/admin.html';
-                break;
-            case currentUserRoles.FACULTY:
-                window.location.href = 'dashboard/faculty.html';
-                break;
-            case currentUserRoles.STUDENT:
-                window.location.href = 'dashboard/student.html';
-                break;
-            case currentUserRoles.ASSISTANT:
-                window.location.href = 'dashboard/assistant.html';
-                break;
-            default:
-                console.error("Signup: No matching role for redirection. Role was:", role);
-                window.location.href = 'index.html'; 
+        if (response.status === 201) { // HTTP 201 Created for successful registration
+            alert(`Account Created! ${data.msg || `Welcome, ${fullName}! Please login.`}`);
+            window.location.href = 'index.html'; // Redirect to login page
+        } else {
+            showError('roleError', data.msg || 'Signup failed. Please try again.'); // Show general error near role or a dedicated spot
         }
-    }, 1500);
+    } catch (error) {
+        console.error('Signup request failed:', error);
+        showError('roleError', 'An error occurred during signup. Could not connect to server.');
+    } finally {
+        signupButton.disabled = false;
+        signupButton.innerHTML = originalButtonText;
+        if (window.lucide) window.lucide.createIcons();
+    }
 }
 
 function togglePasswordVisibility(fieldId, buttonElement) {
-    console.log('togglePasswordVisibility called for field:', fieldId);
     const passwordInput = document.getElementById(fieldId);
-
-    if (!passwordInput) {
-        console.error('Password input field not found:', fieldId);
+    if (!passwordInput || !buttonElement) {
+        console.error('Password input field or toggle button not found:', fieldId);
         return;
     }
-    if (!buttonElement) {
-        console.error('Button element not provided to togglePasswordVisibility');
-        return;
-    }
-
     let newIconName;
     if (passwordInput.type === 'password') {
         passwordInput.type = 'text';
@@ -222,25 +224,26 @@ function togglePasswordVisibility(fieldId, buttonElement) {
         passwordInput.type = 'password';
         newIconName = 'eye';
     }
-
-    // Recreate the icon element inside the button
     buttonElement.innerHTML = `<i data-lucide="${newIconName}"></i>`;
-
-    if (window.lucide && typeof window.lucide.createIcons === 'function') {
-        // Lucide will process the new <i> tag within the buttonElement
-        window.lucide.createIcons(); 
-        console.log(`Lucide icons re-rendered. New icon: ${newIconName}`);
-    } else {
-        console.warn('Lucide library or createIcons function not available for re-rendering.');
+    if (window.lucide) {
+        window.lucide.createIcons();
     }
 }
-
 
 function showError(elementId, message) {
     const errorElement = document.getElementById(elementId);
     if (errorElement) {
         errorElement.textContent = message;
         errorElement.classList.add('visible');
+    } else {
+        // Fallback for general errors if specific element not found
+        const generalErrorArea = document.getElementById('generalAuthError'); // You might need to add this element to your HTML
+        if (generalErrorArea) {
+            generalErrorArea.textContent = message;
+            generalErrorArea.classList.add('visible');
+        } else {
+            alert(message); // Last resort
+        }
     }
 }
 
@@ -250,4 +253,11 @@ function clearErrors() {
         el.textContent = '';
         el.classList.remove('visible');
     });
+    const generalErrorArea = document.getElementById('generalAuthError');
+    if (generalErrorArea) {
+        generalErrorArea.textContent = '';
+        generalErrorArea.classList.remove('visible');
+    }
 }
+
+    
