@@ -56,12 +56,19 @@
     <script src="js/dashboard.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            if (!roleGuard(window.USER_ROLES.ADMIN)) return; 
+            if (!window.roleGuard(window.USER_ROLES.ADMIN)) return; 
             
-            initializeDashboard();
-            setDashboardHomeLink();
+            window.initializeDashboard();
+            window.setDashboardHomeLink();
 
             const requestsListContainer = document.getElementById('assistantRequestsList');
+            
+            // Ensure MOCK_BOOKINGS is loaded
+            if (!window.MOCK_BOOKINGS) {
+                console.error("MOCK_BOOKINGS not loaded on admin_assistant_requests.html!");
+                if (requestsListContainer) requestsListContainer.innerHTML = "<p>Error: Booking data could not be loaded.</p>";
+                return;
+            }
             
             console.log("All MOCK_BOOKINGS on admin_assistant_requests.html:", JSON.parse(JSON.stringify(window.MOCK_BOOKINGS)));
             
@@ -76,8 +83,10 @@
                 if (assistantPendingRequests.length > 0) {
                     requestsListContainer.innerHTML = ''; 
                     assistantPendingRequests.sort((a,b) => {
-                        const timeA = window.MOCK_TIME_SLOTS.find(ts => ts.id === a.timeSlotId)?.startTime || '00:00';
-                        const timeB = window.MOCK_TIME_SLOTS.find(ts => ts.id === b.timeSlotId)?.startTime || '00:00';
+                        const timeAObj = window.MOCK_TIME_SLOTS.find(ts => ts.id === a.timeSlotId);
+                        const timeBObj = window.MOCK_TIME_SLOTS.find(ts => ts.id === b.timeSlotId);
+                        const timeA = timeAObj ? timeAObj.startTime : '00:00';
+                        const timeB = timeBObj ? timeBObj.startTime : '00:00';
                         return new Date(a.date + 'T' + timeA) - new Date(b.date + 'T' + timeB);
                     });
 
@@ -90,22 +99,25 @@
                         
                         let equipmentNames = 'None';
                         if (request.equipmentIds && request.equipmentIds.length > 0) {
-                            equipmentNames = request.equipmentIds.map(eqId => (window.MOCK_EQUIPMENT.find(eq => eq.id === eqId)?.name || 'Unknown Equipment')).join(', ');
+                            equipmentNames = request.equipmentIds.map(eqId => {
+                                const equipment = window.MOCK_EQUIPMENT.find(eq => eq.id === eqId);
+                                return equipment ? equipment.name : 'Unknown Equipment';
+                            }).join(', ');
                         }
 
-                        card.innerHTML = \`
-                            <h3 class="text-lg font-semibold mb-1">\${lab ? lab.name : 'Unknown Lab'} \${request.batchIdentifier ? \`for \${request.batchIdentifier}\`:''}</h3>
-                            <p class="text-sm text-muted-foreground"><strong>Requested by:</strong> Assistant (\${request.userId})</p>
-                            <p class="text-sm text-muted-foreground"><strong>Date:</strong> \${formatDate(new Date(request.date))}</p>
-                            <p class="text-sm text-muted-foreground"><strong>Time:</strong> \${timeSlot ? timeSlot.displayTime : 'Unknown Time'}</p>
-                            <p class="text-sm text-muted-foreground"><strong>Purpose:</strong> \${request.purpose}</p>
-                            <p class="text-sm text-muted-foreground"><strong>Equipment:</strong> \${equipmentNames}</p>
-                            <p class="text-sm text-muted-foreground"><strong>Status:</strong> <span class="font-medium text-yellow-600">\${request.status.toUpperCase()}</span></p>
+                        card.innerHTML = `
+                            <h3 class="text-lg font-semibold mb-1">${lab ? lab.name : 'Unknown Lab'} ${request.batchIdentifier ? `for ${request.batchIdentifier}`:''}</h3>
+                            <p class="text-sm text-muted-foreground"><strong>Requested by:</strong> Assistant (${request.userId})</p>
+                            <p class="text-sm text-muted-foreground"><strong>Date:</strong> ${window.formatDate(new Date(request.date))}</p>
+                            <p class="text-sm text-muted-foreground"><strong>Time:</strong> ${timeSlot ? timeSlot.displayTime : 'Unknown Time'}</p>
+                            <p class="text-sm text-muted-foreground"><strong>Purpose:</strong> ${request.purpose}</p>
+                            <p class="text-sm text-muted-foreground"><strong>Equipment:</strong> ${equipmentNames}</p>
+                            <p class="text-sm text-muted-foreground"><strong>Status:</strong> <span class="font-medium text-yellow-600">${request.status.toUpperCase()}</span></p>
                             <div class="mt-3 flex gap-2">
-                                <button type="button" class="button button-primary button-sm" onclick="approveRequest('\${request.id}')">Approve</button>
-                                <button type="button" class="button button-secondary button-sm" onclick="rejectRequest('\${request.id}')">Reject</button>
+                                <button type="button" class="button button-primary button-sm" onclick="approveRequest('${request.id}')">Approve</button>
+                                <button type="button" class="button button-secondary button-sm" onclick="rejectRequest('${request.id}')">Reject</button>
                             </div>
-                        \`;
+                        `;
                         requestsListContainer.appendChild(card);
                     });
                 } else {
@@ -120,8 +132,9 @@
         });
 
         function approveRequest(bookingId) {
-            const booking = window.MOCK_BOOKINGS.find(b => b.id === bookingId);
-            if (booking) {
+            const bookingIndex = window.MOCK_BOOKINGS.findIndex(b => b.id === bookingId);
+            if (bookingIndex > -1) {
+                const booking = window.MOCK_BOOKINGS[bookingIndex];
                 const labForBooking = window.MOCK_LABS.find(l => l.id === booking.labId);
                 const timeSlotForBooking = window.MOCK_TIME_SLOTS.find(ts => ts.id === booking.timeSlotId);
 
@@ -134,11 +147,11 @@
                 );
 
                 if (conflict) {
-                    alert(\`Cannot approve: Slot for \${labForBooking ? labForBooking.name : 'Unknown Lab'} on \${booking.date} at \${timeSlotForBooking ? timeSlotForBooking.displayTime : 'Unknown Time'} is already booked by \${conflict.userId}. Please resolve the conflict first or ask Assistant to choose another slot.\`);
+                    alert(`Cannot approve: Slot for ${labForBooking ? labForBooking.name : 'Unknown Lab'} on ${booking.date} at ${timeSlotForBooking ? timeSlotForBooking.displayTime : 'Unknown Time'} is already booked by ${conflict.userId}. Please resolve the conflict first or ask Assistant to choose another slot.`);
                     return;
                 }
 
-                booking.status = 'booked';
+                window.MOCK_BOOKINGS[bookingIndex].status = 'booked';
                 window.saveMockBookings(); 
                 alert('Request approved and booking confirmed.');
                 window.location.reload(); 
@@ -151,11 +164,7 @@
              if (confirm('Are you sure you want to reject this booking request?')) {
                 const bookingIndex = window.MOCK_BOOKINGS.findIndex(b => b.id === bookingId);
                  if (bookingIndex > -1) {
-                    // Instead of deleting, mark as rejected or create a different status
-                    // For this demo, we'll mark it as 'rejected' to keep it in the system if needed later.
-                    // Or, if the requirement is to remove it:
-                    // window.MOCK_BOOKINGS.splice(bookingIndex, 1); 
-                    window.MOCK_BOOKINGS[bookingIndex].status = 'rejected'; // Mark as rejected
+                    window.MOCK_BOOKINGS[bookingIndex].status = 'rejected'; 
                     window.saveMockBookings(); 
                     alert('Request rejected.');
                     window.location.reload();

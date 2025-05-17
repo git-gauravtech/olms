@@ -80,9 +80,9 @@
     <script src="js/dashboard.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            if (!roleGuard(window.USER_ROLES.ADMIN)) return;
-            initializeDashboard();
-            setDashboardHomeLink();
+            if (!window.roleGuard(window.USER_ROLES.ADMIN)) return;
+            window.initializeDashboard();
+            window.setDashboardHomeLink();
 
             const filterDateInput = document.getElementById('filterDate');
             const filterLabSelect = document.getElementById('filterLab');
@@ -91,6 +91,16 @@
             const bookingsListContainer = document.getElementById('allBookingsListContainer');
 
             let allBookings = []; 
+
+            if (!window.MOCK_BOOKINGS) {
+                console.error("MOCK_BOOKINGS not loaded on admin_view_bookings.html!");
+                if (bookingsListContainer) bookingsListContainer.innerHTML = "<p>Error: Booking data could not be loaded.</p>";
+                return;
+            }
+            console.log("Initial window.MOCK_BOOKINGS on admin_view_bookings.html:", JSON.parse(JSON.stringify(window.MOCK_BOOKINGS)));
+            allBookings = [...window.MOCK_BOOKINGS]; // Make a copy
+            console.log("Copied 'allBookings' on admin_view_bookings.html:", JSON.parse(JSON.stringify(allBookings)));
+
 
             function populateFilters() {
                 // Populate Lab Filter
@@ -104,8 +114,8 @@
                 }
 
                 // Populate Status Filter
-                if (window.MOCK_BOOKINGS && filterStatusSelect) {
-                    const statuses = [...new Set(window.MOCK_BOOKINGS.map(b => b.status))];
+                if (allBookings.length > 0 && filterStatusSelect) {
+                    const statuses = [...new Set(allBookings.map(b => b.status))];
                     statuses.sort().forEach(status => {
                         const option = document.createElement('option');
                         option.value = status;
@@ -138,10 +148,12 @@
                 });
                 
                 filteredBookings.sort((a,b) => {
-                    const timeA = window.MOCK_TIME_SLOTS.find(ts => ts.id === a.timeSlotId)?.startTime || '00:00';
-                    const timeB = window.MOCK_TIME_SLOTS.find(ts => ts.id === b.timeSlotId)?.startTime || '00:00';
-                    const dateA = new Date(\`\${a.date}T\${timeA}\`);
-                    const dateB = new Date(\`\${b.date}T\${timeB}\`);
+                    const timeAObj = window.MOCK_TIME_SLOTS.find(ts => ts.id === a.timeSlotId);
+                    const timeBObj = window.MOCK_TIME_SLOTS.find(ts => ts.id === b.timeSlotId);
+                    const timeA = timeAObj ? timeAObj.startTime : '00:00';
+                    const timeB = timeBObj ? timeBObj.startTime : '00:00';
+                    const dateA = new Date(`${a.date}T${timeA}`);
+                    const dateB = new Date(`${b.date}T${timeB}`);
                     return dateA - dateB;
                 });
 
@@ -159,8 +171,11 @@
                     card.className = 'custom-card p-4 border rounded-md shadow-sm mb-3'; 
 
                     let equipmentNames = 'None';
-                    if (booking.equipmentIds && booking.equipmentIds.length > 0) {
-                        equipmentNames = booking.equipmentIds.map(eqId => (window.MOCK_EQUIPMENT.find(eq => eq.id === eqId)?.name || 'Unknown Equipment')).join(', ');
+                    if (booking.equipmentIds && booking.equipmentIds.length > 0 && window.MOCK_EQUIPMENT) {
+                        equipmentNames = booking.equipmentIds.map(eqId => {
+                             const equipment = window.MOCK_EQUIPMENT.find(eq => eq.id === eqId);
+                             return equipment ? equipment.name : 'Unknown Equipment';
+                        }).join(', ');
                     }
                     
                     let statusColorClass = 'text-gray-600';
@@ -169,16 +184,16 @@
                     else if (booking.status === 'rejected-by-admin' || booking.status === 'cancelled' || booking.status === 'rejected') statusColorClass = 'text-red-600';
 
 
-                    card.innerHTML = \`
-                        <h3 class="text-lg font-semibold mb-1">\${lab ? lab.name : (booking.requestType || 'General Request')} \${booking.batchIdentifier ? \`for \${booking.batchIdentifier}\` : ''}</h3>
-                        <p class="text-sm text-muted-foreground"><strong>User:</strong> \${booking.userId} (\${booking.requestedByRole || 'N/A'})</p>
-                        \${booking.date ? \`<p class="text-sm text-muted-foreground"><strong>Date:</strong> \${formatDate(new Date(booking.date))}</p>\` : ''}
-                        \${timeSlot ? \`<p class="text-sm text-muted-foreground"><strong>Time:</strong> \${timeSlot.displayTime}</p>\` : ''}
-                        <p class="text-sm text-muted-foreground"><strong>Purpose/Details:</strong> \${booking.purpose}</p>
-                        \${booking.equipmentIds && booking.equipmentIds.length > 0 ? \`<p class="text-sm text-muted-foreground"><strong>Equipment:</strong> \${equipmentNames}</p>\` : ''}
-                        \${booking.submittedDate ? \`<p class="text-sm text-muted-foreground"><strong>Submitted:</strong> \${formatDate(new Date(booking.submittedDate))}</p>\` : ''}
-                        <p class="text-sm text-muted-foreground"><strong>Status:</strong> <span class="font-medium \${statusColorClass}">\${booking.status.toUpperCase().replace(/_/g, ' ')}</span></p>
-                    \`;
+                    card.innerHTML = `
+                        <h3 class="text-lg font-semibold mb-1">${lab ? lab.name : (booking.requestType || 'General Request')} ${booking.batchIdentifier ? `for ${booking.batchIdentifier}` : ''}</h3>
+                        <p class="text-sm text-muted-foreground"><strong>User:</strong> ${booking.userId} (${booking.requestedByRole || 'N/A'})</p>
+                        ${booking.date ? `<p class="text-sm text-muted-foreground"><strong>Date:</strong> ${window.formatDate(new Date(booking.date))}</p>` : ''}
+                        ${timeSlot ? `<p class="text-sm text-muted-foreground"><strong>Time:</strong> ${timeSlot.displayTime}</p>` : ''}
+                        <p class="text-sm text-muted-foreground"><strong>Purpose/Details:</strong> ${booking.purpose}</p>
+                        ${booking.equipmentIds && booking.equipmentIds.length > 0 ? `<p class="text-sm text-muted-foreground"><strong>Equipment:</strong> ${equipmentNames}</p>` : ''}
+                        ${booking.submittedDate ? `<p class="text-sm text-muted-foreground"><strong>Submitted:</strong> ${window.formatDate(new Date(booking.submittedDate))}</p>` : ''}
+                        <p class="text-sm text-muted-foreground"><strong>Status:</strong> <span class="font-medium ${statusColorClass}">${booking.status.toUpperCase().replace(/_/g, ' ')}</span></p>
+                    `;
                     bookingsListContainer.appendChild(card);
                 });
                  if (window.lucide) window.lucide.createIcons();
@@ -199,8 +214,6 @@
             }
             
             // Initialize
-            allBookings = [...window.MOCK_BOOKINGS]; // Make a copy
-            console.log("Initial 'allBookings' on admin_view_bookings.html:", JSON.parse(JSON.stringify(allBookings)));
             populateFilters();
             renderBookings();
             setupEventListeners();

@@ -56,13 +56,18 @@
     <script src="js/dashboard.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            if (!roleGuard(window.USER_ROLES.ADMIN)) return;
+            if (!window.roleGuard(window.USER_ROLES.ADMIN)) return;
             
-            initializeDashboard();
-            setDashboardHomeLink();
+            window.initializeDashboard();
+            window.setDashboardHomeLink();
 
             const requestsListContainer = document.getElementById('facultyRequestsListContainer');
             
+            if (!window.MOCK_BOOKINGS) {
+                console.error("MOCK_BOOKINGS not loaded on admin_faculty_requests.html!");
+                if (requestsListContainer) requestsListContainer.innerHTML = "<p>Error: Booking data could not be loaded.</p>";
+                return;
+            }
             console.log("All MOCK_BOOKINGS on admin_faculty_requests.html:", JSON.parse(JSON.stringify(window.MOCK_BOOKINGS)));
 
             const facultyPendingAdminRequests = window.MOCK_BOOKINGS.filter(
@@ -80,19 +85,19 @@
                         const card = document.createElement('div');
                         card.className = 'custom-card p-4 border rounded-md shadow-sm';
                         
-                        card.innerHTML = \`
-                            <h3 class="text-lg font-semibold mb-1">\${request.requestType ? request.requestType.replace(/_/g, ' ').replace(/\\b\\w/g, l => l.toUpperCase()) : 'Faculty Request'}</h3>
-                            <p class="text-sm text-muted-foreground"><strong>Faculty:</strong> \${request.userId}</p>
-                            <p class="text-sm text-muted-foreground"><strong>Details:</strong> \${request.purpose}</p>
-                            <p class="text-sm text-muted-foreground"><strong>Submitted Date:</strong> \${request.submittedDate ? formatDate(new Date(request.submittedDate)) : 'N/A'}</p>
-                            \${request.labId ? \`<p class="text-sm text-muted-foreground"><strong>Associated Lab:</strong> \${window.MOCK_LABS.find(l=>l.id === request.labId)?.name || request.labId}</p>\` : ''}
-                            <p class="text-sm text-muted-foreground"><strong>Status:</strong> <span class="font-medium text-yellow-600">\${request.status.toUpperCase()}</span></p>
+                        card.innerHTML = `
+                            <h3 class="text-lg font-semibold mb-1">${request.requestType ? request.requestType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Faculty Request'}</h3>
+                            <p class="text-sm text-muted-foreground"><strong>Faculty:</strong> ${request.userId}</p>
+                            <p class="text-sm text-muted-foreground"><strong>Details:</strong> ${request.purpose}</p>
+                            <p class="text-sm text-muted-foreground"><strong>Submitted Date:</strong> ${request.submittedDate ? window.formatDate(new Date(request.submittedDate)) : 'N/A'}</p>
+                            ${request.labId && window.MOCK_LABS ? `<p class="text-sm text-muted-foreground"><strong>Associated Lab:</strong> ${window.MOCK_LABS.find(l=>l.id === request.labId)?.name || request.labId}</p>` : ''}
+                            <p class="text-sm text-muted-foreground"><strong>Status:</strong> <span class="font-medium text-yellow-600">${request.status.toUpperCase()}</span></p>
                             <div class="mt-3 flex gap-2">
-                                <button type="button" class="button button-primary button-sm" onclick="handleFacultyRequest('\${request.id}', 'approved-by-admin')">Approve</button>
-                                <button type="button" class="button button-secondary button-sm" onclick="handleFacultyRequest('\${request.id}', 'rejected-by-admin')">Reject</button>
-                                <button type="button" class="button button-outline button-sm" onclick="handleFacultyRequest('\${request.id}', 'under-review-by-admin')">Mark as Under Review</button>
+                                <button type="button" class="button button-primary button-sm" onclick="handleFacultyRequest('${request.id}', 'approved-by-admin')">Approve</button>
+                                <button type="button" class="button button-secondary button-sm" onclick="handleFacultyRequest('${request.id}', 'rejected-by-admin')">Reject</button>
+                                <button type="button" class="button button-outline button-sm" onclick="handleFacultyRequest('${request.id}', 'under-review-by-admin')">Mark as Under Review</button>
                             </div>
-                        \`;
+                        `;
                         requestsListContainer.appendChild(card);
                     });
                 } else {
@@ -105,14 +110,11 @@
         });
 
         function handleFacultyRequest(bookingId, newStatus) {
-            const booking = window.MOCK_BOOKINGS.find(b => b.id === bookingId);
-            if (booking) {
-                booking.status = newStatus; // Update the status
-                // Optionally, add a resolvedDate or adminNotes field
-                // booking.adminNotes = prompt("Add any notes for this action (optional):");
-                // booking.resolvedDate = formatDate(new Date());
+            const bookingIndex = window.MOCK_BOOKINGS.findIndex(b => b.id === bookingId);
+            if (bookingIndex > -1) {
+                window.MOCK_BOOKINGS[bookingIndex].status = newStatus; 
                 window.saveMockBookings(); 
-                alert(\`Request \${bookingId} status updated to: \${newStatus.toUpperCase().replace(/-/g, ' ')}\`);
+                alert(`Request ${bookingId} status updated to: ${newStatus.toUpperCase().replace(/-/g, ' ')}`);
                 window.location.reload(); 
             } else {
                 alert('Error: Request not found.');

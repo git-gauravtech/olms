@@ -61,8 +61,9 @@ const EQUIPMENT_STATUSES_CONST = ['available', 'in-use', 'maintenance', 'broken'
 
 const MOCK_LABS_STORAGE_KEY = 'adminManagedLabsV1';
 const MOCK_EQUIPMENT_STORAGE_KEY = 'adminManagedEquipmentV1';
-const LAB_SEAT_STATUSES_STORAGE_KEY = 'labSeatStatusesV3'; // Incremented from V2 to V3
-const MOCK_BOOKINGS_STORAGE_KEY = 'mockBookingsV4'; // Incremented from V3 to V4
+const LAB_SEAT_STATUSES_STORAGE_KEY = 'labSeatStatusesV3'; 
+const MOCK_BOOKINGS_STORAGE_KEY = 'mockBookingsV5'; // Incremented version
+
 
 function loadLabs() {
     const storedLabs = localStorage.getItem(MOCK_LABS_STORAGE_KEY);
@@ -112,14 +113,12 @@ let ALL_LAB_SEAT_STATUSES_CACHE;
 
 function loadLabSeatStatuses() {
     if (ALL_LAB_SEAT_STATUSES_CACHE && Object.keys(ALL_LAB_SEAT_STATUSES_CACHE).length > 0 && arguments.length === 0) {
-      // console.log("Returning cached ALL_LAB_SEAT_STATUSES_CACHE");
       return ALL_LAB_SEAT_STATUSES_CACHE;
     }
     
     try {
         const storedStatuses = localStorage.getItem(LAB_SEAT_STATUSES_STORAGE_KEY);
         ALL_LAB_SEAT_STATUSES_CACHE = storedStatuses ? JSON.parse(storedStatuses) : {};
-        // console.log("Loaded labSeatStatuses from localStorage:", ALL_LAB_SEAT_STATUSES_CACHE);
     } catch (e) {
         console.error("Error parsing labSeatStatuses from localStorage:", e);
         ALL_LAB_SEAT_STATUSES_CACHE = {}; 
@@ -130,12 +129,10 @@ function loadLabSeatStatuses() {
 
 function saveLabSeatStatuses(statuses) { 
     ALL_LAB_SEAT_STATUSES_CACHE = statuses; 
-    // console.log("Saving labSeatStatuses to localStorage:", statuses);
     try {
         localStorage.setItem(LAB_SEAT_STATUSES_STORAGE_KEY, JSON.stringify(statuses));
     } catch (e) {
         console.error("Error saving labSeatStatuses to localStorage:", e);
-        // Potentially add a user-facing error or retry mechanism
     }
 }
 
@@ -162,12 +159,10 @@ const yesterday = new Date(today);
 yesterday.setDate(today.getDate() - 1);
 
 function formatDate(dateInput) { 
-    if (!dateInput) return ''; // Gracefully handle null or undefined
+    if (!dateInput) return ''; 
     const d = dateInput instanceof Date ? dateInput : new Date(dateInput); 
-    // Check if date is valid after conversion
     if (isNaN(d.getTime())) {
-        // console.warn("formatDate received invalid dateInput:", dateInput);
-        return ''; // Return empty string for invalid dates
+        return ''; 
     }
     let month = '' + (d.getMonth() + 1);
     let day = '' + d.getDate();
@@ -179,6 +174,26 @@ function formatDate(dateInput) {
 
 
 let MOCK_BOOKINGS_VAR = []; // Renamed
+const MOCK_BOOKINGS_INITIAL = [
+    // Existing Bookings
+    { id: 'b1', labId: 'physics_lab_alpha', date: formatDate(today), timeSlotId: 'ts_0900_1000', userId: 'student1@example.com', purpose: 'Physics Experiment A', equipmentIds: ['eq_spectrometer_01'], status: 'booked', requestedByRole: USER_ROLES_OBJ.STUDENT},
+    { id: 'b3', labId: 'chemistry_lab_beta', date: formatDate(tomorrow), timeSlotId: 'ts_1400_1500', userId: 'faculty1@example.com', purpose: 'Chem 101 Class', equipmentIds: ['eq_microscope_01'], status: 'booked', requestedByRole: USER_ROLES_OBJ.FACULTY},
+    { id: 'b5_assistant_booked', labId: 'robotics_lab_zeta', date: formatDate(today), timeSlotId: 'ts_1000_1100', userId: 'assistant@example.com', purpose: 'Robotics Prep', equipmentIds: [], status: 'booked', batchIdentifier: 'Robotics Club', requestedByRole: USER_ROLES_OBJ.ASSISTANT },
+    { id: 'b5_past', labId: 'electronics_lab_delta', date: formatDate(yesterday), timeSlotId: 'ts_1500_1600', userId: 'student1@example.com', purpose: 'Circuit Design (Completed)', equipmentIds: ['eq_oscilloscope_01'], status: 'booked', requestedByRole: USER_ROLES_OBJ.STUDENT },
+    
+    // Pending Assistant Requests (for Admin to approve/reject)
+    { id: 'ar1', labId: 'physics_lab_alpha', date: formatDate(tomorrow), timeSlotId: 'ts_1300_1400', userId: 'assistant_new@example.com', purpose: 'Special Physics Tutoring', equipmentIds: ['eq_spectrometer_01'], status: 'pending', batchIdentifier: 'Physics Honors Group', requestedByRole: USER_ROLES_OBJ.ASSISTANT },
+    { id: 'ar2', labId: 'computer_lab_gamma', date: formatDate(dayAfterTomorrow), timeSlotId: 'ts_1500_1600', userId: 'assistant@example.com', purpose: 'Data Structures Workshop', equipmentIds: ['eq_pc_high_01', 'eq_projector_01'], status: 'pending', batchIdentifier: 'IT Year 1 - Section B', requestedByRole: USER_ROLES_OBJ.ASSISTANT },
+    { id: 'ar3', labId: 'chemistry_lab_beta', date: formatDate(tomorrow), timeSlotId: 'ts_0800_0900', userId: 'another_assistant@example.com', purpose: 'Organic Chem Practicals', equipmentIds: [], status: 'pending', batchIdentifier: 'Chemistry Advanced', requestedByRole: USER_ROLES_OBJ.ASSISTANT },
+    { id: 'ar4', labId: 'biology_lab_epsilon', date: formatDate(dayAfterTomorrow), timeSlotId: 'ts_0900_1000', userId: 'assistant@example.com', purpose: 'Microbiology Prep', equipmentIds: [], status: 'pending', batchIdentifier: 'Biology Majors', requestedByRole: USER_ROLES_OBJ.ASSISTANT },
+    { id: 'ar5', labId: 'computer_lab_gamma', date: formatDate(tomorrow), timeSlotId: 'ts_1600_1700', userId: 'assistant_new@example.com', purpose: 'Programming Basics', equipmentIds: ['eq_projector_01'], status: 'pending', batchIdentifier: 'Intro to CS', requestedByRole: USER_ROLES_OBJ.ASSISTANT },
+
+    // Faculty Requests for Admin Approval
+    { id: 'fr1', labId: null, date: null, timeSlotId: null, userId: 'faculty1@example.com', purpose: 'Requesting a new XYZ Spectrophotometer for advanced research.', equipmentIds: [], status: 'pending-admin-approval', requestedByRole: USER_ROLES_OBJ.FACULTY, requestType: 'equipment_procurement', submittedDate: formatDate(yesterday) },
+    { id: 'fr2', labId: 'physics_lab_alpha', date: null, timeSlotId: null, userId: 'faculty2@example.com', purpose: 'Request for extended lab hours for Project Minerva next Monday.', equipmentIds: [], status: 'pending-admin-approval', requestedByRole: USER_ROLES_OBJ.FACULTY, requestType: 'lab_policy_exception', submittedDate: formatDate(today) },
+    { id: 'fr3', labId: null, date: null, timeSlotId: null, userId: 'faculty1@example.com', purpose: 'Budget approval for 5 new Raspberry Pi units for IoT lab.', equipmentIds: [], status: 'pending-admin-approval', requestedByRole: USER_ROLES_OBJ.FACULTY, requestType: 'budget_request', submittedDate: formatDate(tomorrow) },
+];
+
 
 function initializeMockBookings() {
     const storedBookings = localStorage.getItem(MOCK_BOOKINGS_STORAGE_KEY);
@@ -187,31 +202,15 @@ function initializeMockBookings() {
             MOCK_BOOKINGS_VAR = JSON.parse(storedBookings);
         } catch (e) {
             console.error("Error parsing mockBookings from localStorage:", e);
-            MOCK_BOOKINGS_VAR = []; // Reset if corrupted
+            MOCK_BOOKINGS_VAR = MOCK_BOOKINGS_INITIAL; // Reset if corrupted
             localStorage.removeItem(MOCK_BOOKINGS_STORAGE_KEY);
+            saveMockBookings(); // Save the initial data
         }
     } else {
-        MOCK_BOOKINGS_VAR = [
-            // Existing Bookings
-            { id: 'b1', labId: 'physics_lab_alpha', date: formatDate(today), timeSlotId: 'ts_0900_1000', userId: 'student1@example.com', purpose: 'Physics Experiment A', equipmentIds: ['eq_spectrometer_01'], status: 'booked', requestedByRole: USER_ROLES_OBJ.STUDENT},
-            { id: 'b3', labId: 'chemistry_lab_beta', date: formatDate(tomorrow), timeSlotId: 'ts_1400_1500', userId: 'faculty1@example.com', purpose: 'Chem 101 Class', equipmentIds: ['eq_microscope_01'], status: 'booked', requestedByRole: USER_ROLES_OBJ.FACULTY},
-            { id: 'b5_assistant_booked', labId: 'robotics_lab_zeta', date: formatDate(today), timeSlotId: 'ts_1000_1100', userId: 'assistant@example.com', purpose: 'Robotics Prep', equipmentIds: [], status: 'booked', batchIdentifier: 'Robotics Club', requestedByRole: USER_ROLES_OBJ.ASSISTANT },
-            { id: 'b5_past', labId: 'electronics_lab_delta', date: formatDate(yesterday), timeSlotId: 'ts_1500_1600', userId: 'student1@example.com', purpose: 'Circuit Design (Completed)', equipmentIds: ['eq_oscilloscope_01'], status: 'booked', requestedByRole: USER_ROLES_OBJ.STUDENT },
-            
-            // Pending Assistant Requests (for Admin to approve/reject)
-            { id: 'ar1', labId: 'physics_lab_alpha', date: formatDate(tomorrow), timeSlotId: 'ts_1300_1400', userId: 'assistant_new@example.com', purpose: 'Special Physics Tutoring', equipmentIds: ['eq_spectrometer_01'], status: 'pending', batchIdentifier: 'Physics Honors Group', requestedByRole: USER_ROLES_OBJ.ASSISTANT },
-            { id: 'ar2', labId: 'computer_lab_gamma', date: formatDate(dayAfterTomorrow), timeSlotId: 'ts_1500_1600', userId: 'assistant@example.com', purpose: 'Data Structures Workshop', equipmentIds: ['eq_pc_high_01', 'eq_projector_01'], status: 'pending', batchIdentifier: 'IT Year 1 - Section B', requestedByRole: USER_ROLES_OBJ.ASSISTANT },
-            { id: 'ar3', labId: 'chemistry_lab_beta', date: formatDate(tomorrow), timeSlotId: 'ts_0800_0900', userId: 'another_assistant@example.com', purpose: 'Organic Chem Practicals', equipmentIds: [], status: 'pending', batchIdentifier: 'Chemistry Advanced', requestedByRole: USER_ROLES_OBJ.ASSISTANT },
-            { id: 'ar4', labId: 'biology_lab_epsilon', date: formatDate(dayAfterTomorrow), timeSlotId: 'ts_0900_1000', userId: 'assistant@example.com', purpose: 'Microbiology Prep', equipmentIds: [], status: 'pending', batchIdentifier: 'Biology Majors', requestedByRole: USER_ROLES_OBJ.ASSISTANT },
-            { id: 'ar5', labId: 'computer_lab_gamma', date: formatDate(tomorrow), timeSlotId: 'ts_1600_1700', userId: 'assistant_new@example.com', purpose: 'Programming Basics', equipmentIds: ['eq_projector_01'], status: 'pending', batchIdentifier: 'Intro to CS', requestedByRole: USER_ROLES_OBJ.ASSISTANT },
-
-            // Faculty Requests for Admin Approval
-            { id: 'fr1', labId: null, date: null, timeSlotId: null, userId: 'faculty1@example.com', purpose: 'Requesting a new XYZ Spectrophotometer for advanced research.', equipmentIds: [], status: 'pending-admin-approval', requestedByRole: USER_ROLES_OBJ.FACULTY, requestType: 'equipment_procurement', submittedDate: formatDate(yesterday) },
-            { id: 'fr2', labId: 'physics_lab_alpha', date: null, timeSlotId: null, userId: 'faculty2@example.com', purpose: 'Request for extended lab hours for Project Minerva next Monday.', equipmentIds: [], status: 'pending-admin-approval', requestedByRole: USER_ROLES_OBJ.FACULTY, requestType: 'lab_policy_exception', submittedDate: formatDate(today) },
-            { id: 'fr3', labId: null, date: null, timeSlotId: null, userId: 'faculty1@example.com', purpose: 'Budget approval for 5 new Raspberry Pi units for IoT lab.', equipmentIds: [], status: 'pending-admin-approval', requestedByRole: USER_ROLES_OBJ.FACULTY, requestType: 'budget_request', submittedDate: formatDate(tomorrow) },
-        ];
+        MOCK_BOOKINGS_VAR = MOCK_BOOKINGS_INITIAL;
         saveMockBookings();
     }
+    console.log("Initialized MOCK_BOOKINGS_VAR:", JSON.parse(JSON.stringify(MOCK_BOOKINGS_VAR)));
 }
 
 function saveMockBookings() {
@@ -268,4 +267,5 @@ window.saveLabSeatStatuses = saveLabSeatStatuses;
 loadLabSeatStatuses();
 console.log('[constants.js] Constants and mock data initialized and exposed to window. MOCK_BOOKINGS_STORAGE_KEY is now:', MOCK_BOOKINGS_STORAGE_KEY);
 console.log('[constants.js] window.USER_ROLES:', window.USER_ROLES);
+console.log('[constants.js] Initial window.MOCK_BOOKINGS length:', window.MOCK_BOOKINGS ? window.MOCK_BOOKINGS.length : 'undefined');
 
