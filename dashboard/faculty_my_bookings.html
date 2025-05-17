@@ -55,35 +55,29 @@
     <script src="../js/utils.js"></script>
     <script src="js/dashboard.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', async () => {
-            if (!window.roleGuard(window.USER_ROLES.FACULTY)) return; 
-            
-            window.initializeDashboard();
-            window.setDashboardHomeLink();
-            
-            const bookingsListContainer = document.getElementById('myBookingsListContainer');
-            const token = localStorage.getItem('token');
+        const bookingsListContainer = document.getElementById('myBookingsListContainer');
+        const token = localStorage.getItem('token');
 
+        async function loadAndRenderMyBookings() {
             if (!bookingsListContainer) {
-                console.error("myBookingsListContainer not found!");
+                // console.error("myBookingsListContainer not found!");
                 return;
             }
             bookingsListContainer.innerHTML = '<p>Loading your bookings...</p>';
 
             try {
-                const response = await fetch('/api/bookings/my', {
+                const response = await fetch(`${window.API_BASE_URL}/bookings/my`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (!response.ok) {
                     const errorData = await response.json();
                     throw new Error(errorData.msg || `Failed to fetch your bookings: ${response.status}`);
                 }
-                const facultyBookings = await response.json();
+                const myBookings = await response.json();
 
-                if (facultyBookings.length > 0) {
+                if (myBookings.length > 0) {
                     bookingsListContainer.innerHTML = ''; 
-                    // Backend sorts by date desc, timeSlotId asc
-                    facultyBookings.forEach(booking => {
+                    myBookings.forEach(booking => {
                         const card = document.createElement('div');
                         card.className = 'custom-card p-4 border rounded-md shadow-sm'; 
                         
@@ -91,16 +85,14 @@
                          if (booking.equipmentIds && booking.equipmentIds.length > 0) {
                              try {
                                 const eqIds = JSON.parse(booking.equipmentIds);
-                                // TODO: Fetch equipment names if needed
                                 equipmentNames = eqIds.join(', ');
-                            } catch (e) { equipmentNames = "Error parsing equipment"; }
+                            } catch (e) { equipmentNames = booking.equipmentIds; }
                         }
 
                         let statusColorClass = 'text-gray-600';
                         if (booking.status === 'booked') statusColorClass = 'text-green-600';
                         else if (booking.status === 'pending' || booking.status === 'pending-admin-approval') statusColorClass = 'text-yellow-600';
                         else if (['rejected', 'cancelled'].includes(booking.status)) statusColorClass = 'text-red-600';
-
 
                         card.innerHTML = `
                             <h3 class="text-lg font-semibold mb-1">${booking.labName || 'Unknown Lab'}</h3>
@@ -109,7 +101,7 @@
                             <p class="text-sm text-muted-foreground"><strong>Purpose:</strong> ${booking.purpose}</p>
                             <p class="text-sm text-muted-foreground"><strong>Status:</strong> <span class="font-medium ${statusColorClass}">${booking.status.toUpperCase().replace(/-/g,' ')}</span></p>
                             <p class="text-sm text-muted-foreground"><strong>Equipment:</strong> ${equipmentNames}</p>
-                            ${ (booking.status === 'booked' || booking.status === 'pending') ? `<button type="button" class="button button-outline button-sm mt-2" onclick="cancelFacultyBooking('${booking.id}')">Cancel Booking</button>` : ''}
+                            ${ (booking.status === 'booked' || booking.status === 'pending') ? `<button type="button" class="button button-outline button-sm mt-2" onclick="cancelMyBooking('${booking.id}')">Cancel Booking</button>` : ''}
                         `;
                         bookingsListContainer.appendChild(card);
                     });
@@ -117,30 +109,38 @@
                     bookingsListContainer.innerHTML = '<p class="text-muted-foreground">You have no bookings currently.</p>';
                 }
             } catch (error) {
-                 console.error("Error fetching faculty bookings:", error);
+                //  console.error("Error fetching faculty bookings:", error);
                 bookingsListContainer.innerHTML = `<p class="error-message visible">Error loading your bookings: ${error.message}</p>`;
             }
-
             if (window.lucide) window.lucide.createIcons();
+        }
+        
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Faculty or Assistant can view "My Bookings"
+            if (!window.roleGuard([window.USER_ROLES.FACULTY, window.USER_ROLES.ASSISTANT])) return; 
+            
+            window.initializeDashboard();
+            window.setDashboardHomeLink();
+            await loadAndRenderMyBookings();
         });
 
-        async function cancelFacultyBooking(bookingId) {
+
+        async function cancelMyBooking(bookingId) {
             if (confirm('Are you sure you want to cancel this booking?')) {
-                const token = localStorage.getItem('token');
                 try {
-                    const response = await fetch(`/api/bookings/${bookingId}`, {
+                    const response = await fetch(`${window.API_BASE_URL}/bookings/${bookingId}`, {
                         method: 'DELETE',
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
                     const result = await response.json();
                     if (response.ok) {
                         alert(result.msg || 'Booking cancelled successfully.');
-                        window.location.reload(); 
+                        await loadAndRenderMyBookings(); 
                     } else {
                         alert(`Failed to cancel booking: ${result.msg || 'Server error'}`);
                     }
                 } catch (error) {
-                    console.error('Error cancelling booking:', error);
+                    // console.error('Error cancelling booking:', error);
                     alert('An error occurred while cancelling the booking.');
                 }
             }
@@ -148,3 +148,5 @@
     </script>
 </body>
 </html>
+
+    

@@ -5,8 +5,6 @@ let currentEquipment = [];
 let editingLabId = null;
 let editingEquipmentId = null;
 
-const API_BASE_URL = '/api'; // Relative path, assumes frontend and backend are on same domain or proxied
-
 // --- Lab Management --- //
 async function initializeLabManagementPage() {
     const addNewLabBtn = document.getElementById('addNewLabBtn');
@@ -44,9 +42,9 @@ async function renderLabsList() {
     const token = localStorage.getItem('token');
 
     try {
-        const response = await fetch(`${API_BASE_URL}/labs`, {
+        const response = await fetch(`${window.API_BASE_URL}/labs`, {
             headers: { 
-                'Authorization': `Bearer ${token}` // Needed if GET /labs is protected
+                'Authorization': `Bearer ${token}`
             }
         });
         if (!response.ok) {
@@ -160,11 +158,11 @@ async function handleLabFormSubmit(event) {
     }
 
     const labData = { name, capacity, roomNumber, location: location || null };
-    let url = `${API_BASE_URL}/labs`;
+    let url = `${window.API_BASE_URL}/labs`;
     let method = 'POST';
 
     if (editingLabId) {
-        url = `${API_BASE_URL}/labs/${editingLabId}`;
+        url = `${window.API_BASE_URL}/labs/${editingLabId}`;
         method = 'PUT';
     }
 
@@ -195,7 +193,7 @@ async function deleteLab(labId) {
     const token = localStorage.getItem('token');
     if (confirm('Are you sure you want to delete this lab? This action cannot be undone and may affect related bookings and equipment assignments.')) {
         try {
-            const response = await fetch(`${API_BASE_URL}/labs/${labId}`, {
+            const response = await fetch(`${window.API_BASE_URL}/labs/${labId}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -247,9 +245,9 @@ async function populateEquipmentFormDropdowns() {
     const labSelect = document.getElementById('equipmentLabId');
     const token = localStorage.getItem('token');
 
-    if (statusSelect && window.EQUIPMENT_STATUSES_CONST) { // Use the one from constants
+    if (statusSelect && window.EQUIPMENT_STATUSES) {
         statusSelect.innerHTML = ''; 
-        window.EQUIPMENT_STATUSES_CONST.forEach(status => {
+        window.EQUIPMENT_STATUSES.forEach(status => {
             const option = document.createElement('option');
             option.value = status;
             option.textContent = status.charAt(0).toUpperCase() + status.slice(1);
@@ -260,13 +258,13 @@ async function populateEquipmentFormDropdowns() {
     if (labSelect) { 
         labSelect.innerHTML = '<option value="">Loading labs...</option>'; 
         try {
-            const response = await fetch(`${API_BASE_URL}/labs`, {
-                headers: { 'Authorization': `Bearer ${token}` } // Labs list might be protected too
+            const response = await fetch(`${window.API_BASE_URL}/labs`, {
+                headers: { 'Authorization': `Bearer ${token}` }
             });
             if (!response.ok) throw new Error('Failed to fetch labs for dropdown');
             const labsForDropdown = await response.json();
             
-            labSelect.innerHTML = '<option value="">None</option>'; // Clear loading and add default
+            labSelect.innerHTML = '<option value="">None</option>'; 
             labsForDropdown.forEach(lab => {
                 const option = document.createElement('option');
                 option.value = lab.id;
@@ -289,9 +287,9 @@ async function renderEquipmentList() {
     equipmentListContainer.innerHTML = '<p>Loading equipment...</p>';
     
     try {
-        const response = await fetch(`${API_BASE_URL}/equipment`, {
+        const response = await fetch(`${window.API_BASE_URL}/equipment`, {
             headers: { 
-                'Authorization': `Bearer ${token}` // if protected
+                'Authorization': `Bearer ${token}`
             }
         });
         if (!response.ok) {
@@ -403,11 +401,11 @@ async function handleEquipmentFormSubmit(event) {
     }
     
     const equipmentData = { name, type, status, labId };
-    let url = `${API_BASE_URL}/equipment`;
+    let url = `${window.API_BASE_URL}/equipment`;
     let method = 'POST';
 
     if (editingEquipmentId) {
-        url = `${API_BASE_URL}/equipment/${editingEquipmentId}`;
+        url = `${window.API_BASE_URL}/equipment/${editingEquipmentId}`;
         method = 'PUT';
     }
     
@@ -438,7 +436,7 @@ async function deleteEquipment(equipmentId) {
     const token = localStorage.getItem('token');
     if (confirm('Are you sure you want to delete this equipment? This action cannot be undone.')) {
          try {
-            const response = await fetch(`${API_BASE_URL}/equipment/${equipmentId}`, {
+            const response = await fetch(`${window.API_BASE_URL}/equipment/${equipmentId}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -454,3 +452,5 @@ async function deleteEquipment(equipmentId) {
         }
     }
 }
+
+    

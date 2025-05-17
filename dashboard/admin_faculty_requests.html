@@ -60,13 +60,13 @@
 
         async function loadAndRenderFacultyRequests() {
             if (!requestsListContainer) {
-                console.error("facultyRequestsListContainer not found!");
+                // console.error("facultyRequestsListContainer not found!");
                 return;
             }
             requestsListContainer.innerHTML = '<p>Loading Faculty-specific requests...</p>';
 
             try {
-                const response = await fetch('/api/admin/requests/faculty', {
+                const response = await fetch(`${window.API_BASE_URL}/admin/requests/faculty`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (!response.ok) {
@@ -78,11 +78,11 @@
 
                 if (facultyPendingAdminRequests.length > 0) {
                     requestsListContainer.innerHTML = ''; 
-                    // Backend sorts by submittedDate ASC
                     facultyPendingAdminRequests.forEach(request => {
                         const card = document.createElement('div');
                         card.className = 'custom-card p-4 border rounded-md shadow-sm';
                         
+                        // Assuming requestType might not always be present, fallback to purpose
                         const requestTitle = request.requestType ? request.requestType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : (request.purpose || 'Faculty Request');
                         
                         card.innerHTML = `
@@ -107,7 +107,7 @@
                 }
 
             } catch (error) {
-                console.error("Error loading faculty requests:", error);
+                // console.error("Error loading faculty requests:", error);
                 requestsListContainer.innerHTML = `<p class="error-message visible">Error loading requests: ${error.message}</p>`;
             }
             if (window.lucide) window.lucide.createIcons();
@@ -126,7 +126,7 @@
             if (!confirm(`Are you sure you want to ${actionText} this request?`)) return;
             
             try {
-                const response = await fetch(`/api/bookings/${bookingId}/status`, {
+                const response = await fetch(`${window.API_BASE_URL}/bookings/${bookingId}/status`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -138,15 +138,17 @@
 
                 if (response.ok) {
                     alert(`Request status updated to: ${result.status.toUpperCase().replace(/-/g, ' ')}`);
-                    await loadAndRenderFacultyRequests(); // Re-fetch and re-render
+                    await loadAndRenderFacultyRequests(); 
                 } else {
                     alert(`Failed to update request status: ${result.msg || 'Server error'}`);
                 }
             } catch (error) {
-                console.error('Error updating faculty request status:', error);
+                // console.error('Error updating faculty request status:', error);
                 alert('An error occurred while updating the request status.');
             }
         }
     </script>
 </body>
 </html>
+
+    

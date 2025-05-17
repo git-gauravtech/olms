@@ -1,7 +1,6 @@
 
 // Global variable for the current page context
 let ALL_LAB_SEAT_STATUSES = {}; // In-memory cache, labId -> { seatIndex: status }
-const API_BASE_URL_SEATS_ASSISTANT = '/api'; // Relative path
 
 async function initializeSeatUpdaterPage() {
     const labSelector = document.getElementById('labSelectorForSeatUpdate');
@@ -10,7 +9,7 @@ async function initializeSeatUpdaterPage() {
 
     if (labSelector && layoutContainer) {
         try {
-            const labsResponse = await fetch(`${API_BASE_URL_SEATS_ASSISTANT}/labs`, {
+            const labsResponse = await fetch(`${window.API_BASE_URL}/labs`, {
                  headers: { 'Authorization': `Bearer ${token}` }
             });
             if (!labsResponse.ok) throw new Error('Failed to fetch labs for selector');
@@ -46,11 +45,11 @@ async function initializeSeatUpdaterPage() {
 async function loadSeatStatusesForLab(labId) {
     const token = localStorage.getItem('token');
     try {
-        const response = await fetch(`${API_BASE_URL_SEATS_ASSISTANT}/labs/${labId}/seats`, {
+        const response = await fetch(`${window.API_BASE_URL}/labs/${labId}/seats`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!response.ok) {
-            if (response.status === 404) {
+            if (response.status === 404) { // No statuses set for this lab yet
                  ALL_LAB_SEAT_STATUSES[labId] = {}; 
                  return {};
             }
@@ -58,30 +57,30 @@ async function loadSeatStatusesForLab(labId) {
             throw new Error(errorData.msg || `Failed to fetch seat statuses for lab ${labId}`);
         }
         const statuses = await response.json();
-        ALL_LAB_SEAT_STATUSES[labId] = statuses;
+        ALL_LAB_SEAT_STATUSES[labId] = statuses; // Update cache
         return statuses;
     } catch (error) {
         // console.error(`Error fetching seat statuses for lab ${labId}:`, error);
-        ALL_LAB_SEAT_STATUSES[labId] = {}; 
-        return {};
+        ALL_LAB_SEAT_STATUSES[labId] = {}; // Reset on error
+        return {}; // Return empty object on error
     }
 }
 
 
 function getSeatStatus(labId, seatIndex) {
     const labStatuses = ALL_LAB_SEAT_STATUSES[labId] || {};
-    return labStatuses[String(seatIndex)] || 'working'; // Default to 'working'
+    return labStatuses[String(seatIndex)] || 'working'; // Default to 'working' if not found
 }
 
 async function setSeatStatus(labId, seatIndex, status) {
     const token = localStorage.getItem('token');
-    if (!ALL_LAB_SEAT_STATUSES[labId]) { // Ensure labId key exists
+    if (!ALL_LAB_SEAT_STATUSES[labId]) { // Ensure labId key exists in cache
         ALL_LAB_SEAT_STATUSES[labId] = {};
     }
-    ALL_LAB_SEAT_STATUSES[labId][String(seatIndex)] = status;
+    ALL_LAB_SEAT_STATUSES[labId][String(seatIndex)] = status; // Update cache
     
     try {
-        const response = await fetch(`${API_BASE_URL_SEATS_ASSISTANT}/labs/${labId}/seats/${seatIndex}`, {
+        const response = await fetch(`${window.API_BASE_URL}/labs/${labId}/seats/${seatIndex}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -107,13 +106,13 @@ async function renderInteractiveLabLayout(labId, container) {
 
     let lab;
     try {
-        const labResponse = await fetch(`${API_BASE_URL_SEATS_ASSISTANT}/labs/${labId}`,{
+        const labResponse = await fetch(`${window.API_BASE_URL}/labs/${labId}`,{
              headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!labResponse.ok) throw new Error('Failed to fetch lab details');
         lab = await labResponse.json();
         
-        await loadSeatStatusesForLab(labId); 
+        await loadSeatStatusesForLab(labId); // Pre-load statuses into cache
 
     } catch (error) {
         // console.error("Error fetching lab details for layout:", error);
@@ -151,7 +150,7 @@ async function renderInteractiveLabLayout(labId, container) {
     }
 
     const mainLayoutContainer = document.createElement('div');
-    mainLayoutContainer.className = 'dialog-lab-layout-container'; // Reuse dialog styles for layout
+    mainLayoutContainer.className = 'dialog-lab-layout-container'; 
 
     let numLeftDesks = Math.round(capacity * (25 / 70));
     let numMiddleDesks = Math.round(capacity * (20 / 70));
@@ -159,12 +158,29 @@ async function renderInteractiveLabLayout(labId, container) {
     if (numRightDesks < 0) { numMiddleDesks += numRightDesks; numRightDesks = 0; }
     if (numMiddleDesks < 0) { numLeftDesks += numMiddleDesks; numMiddleDesks = 0; }
     if (numLeftDesks < 0) { numLeftDesks = 0; }
+     let currentTotal = numLeftDesks + numMiddleDesks + numRightDesks;
+        let diff = capacity - currentTotal;
+        if (diff > 0) { 
+            numLeftDesks += Math.floor(diff / 2);
+            numRightDesks += Math.ceil(diff / 2);
+        } else if (diff < 0) { 
+             let reduceAmount = Math.abs(diff);
+             while(reduceAmount > 0) {
+                if(numLeftDesks > numMiddleDesks && numLeftDesks > numRightDesks && numLeftDesks > 0) { numLeftDesks--; reduceAmount--; }
+                else if (numRightDesks > numMiddleDesks && numRightDesks > 0) { numRightDesks--; reduceAmount--;}
+                else if (numMiddleDesks > 0) { numMiddleDesks--; reduceAmount--;}
+                else if (numLeftDesks > 0) { numLeftDesks--; reduceAmount--;}
+                else if (numRightDesks > 0) { numRightDesks--; reduceAmount--;} // Added to ensure reduction if left and middle are zero
+                else { break; } 
+             }
+        }
+
 
     let seatIndexCounter = 0;
 
     function createInteractiveDeskSection(totalDesksInSec, desksPerRow) {
         const section = document.createElement('div');
-        section.className = 'dialog-lab-layout-section'; // Reuse dialog styles for layout
+        section.className = 'dialog-lab-layout-section'; 
         if (totalDesksInSec <= 0) return section;
 
         let desksRenderedInSec = 0;
@@ -183,6 +199,7 @@ async function renderInteractiveLabLayout(labId, container) {
                 iconTag.setAttribute('data-lucide', 'armchair');
                 
                 deskDiv.appendChild(iconTag);
+                // Pass deskDiv to handleSeatClick so it can find the SVG icon within it
                 deskDiv.addEventListener('click', () => handleSeatClick(labId, currentSeatIndexStr, deskDiv));
                 row.appendChild(deskDiv);
                 
@@ -202,14 +219,17 @@ async function renderInteractiveLabLayout(labId, container) {
 
     if (window.lucide) {
         window.lucide.createIcons(); 
+        // After icons are created, apply initial styling based on loaded statuses
         const allSeatDivs = mainLayoutContainer.querySelectorAll('.interactive-seat');
         allSeatDivs.forEach(seatDiv => {
             const seatIdx = seatDiv.getAttribute('data-seat-index');
             const initialStatus = getSeatStatus(labId, seatIdx); 
-            const svgIcon = seatDiv.querySelector('svg.lucide-armchair');
+            const svgIcon = seatDiv.querySelector('svg.lucide-armchair'); // Target the SVG
             if (svgIcon) {
                 svgIcon.classList.remove('system-working', 'system-not-working'); // Clear previous
                 svgIcon.classList.add(initialStatus === 'not-working' ? 'system-not-working' : 'system-working');
+            } else {
+                 // console.warn("Could not find SVG icon for seat index:", seatIdx, "in div:", seatDiv);
             }
         });
     }
@@ -219,17 +239,22 @@ async function handleSeatClick(labId, seatIndexStr, seatContainerElement) {
     const svgIconElement = seatContainerElement.querySelector('svg.lucide-armchair'); 
 
     if (!svgIconElement) {
-        // console.error("Armchair SVG icon not found for click handling:", seatContainerElement);
+        // console.error("Armchair SVG icon not found for click handling in:", seatContainerElement);
+        // Check if it's still an <i> tag (Lucide might have failed for this one)
+        const iTag = seatContainerElement.querySelector('i.lucide-armchair');
+        if(iTag) {
+            // console.error("Found <i> tag instead of <svg>. Lucide might not have processed this icon.");
+        }
         return;
     }
 
     const currentStatus = getSeatStatus(labId, seatIndexStr); 
     const newStatus = currentStatus === 'working' ? 'not-working' : 'working';
 
-    // Update visual style
     svgIconElement.classList.remove('system-working', 'system-not-working');
     svgIconElement.classList.add(newStatus === 'not-working' ? 'system-not-working' : 'system-working');
 
-    // Asynchronously save to backend, which also updates the local cache
     await setSeatStatus(labId, seatIndexStr, newStatus); 
 }
+
+    

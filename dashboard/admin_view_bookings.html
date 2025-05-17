@@ -84,12 +84,16 @@
         const token = localStorage.getItem('token');
 
         let allBookingsData = []; 
+        let allLabsData = []; // To store lab names for display
 
-        async function fetchDataAndRender() {
+        async function fetchData() {
             if (!bookingsListContainer) return;
             bookingsListContainer.innerHTML = '<p>Loading bookings...</p>';
             try {
-                const response = await fetch('/api/bookings', {
+                if (!window.API_BASE_URL) {
+                    throw new Error("API_BASE_URL is not defined.");
+                }
+                const response = await fetch(`${window.API_BASE_URL}/bookings`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (!response.ok) {
@@ -100,12 +104,11 @@
                 // console.log("Fetched All Bookings:", allBookingsData);
                 
                 // Only populate filters if they haven't been populated before or if data changes significantly
-                // For simplicity, we might populate them once or on data load
-                if (filterLabSelect.options.length <= 1) populateFilters(); 
+                if (filterLabSelect.options.length <= 1) await populateFilters(); 
                 
                 renderBookings();
             } catch (error) {
-                console.error("Error fetching all bookings:", error);
+                // console.error("Error fetching all bookings:", error);
                 bookingsListContainer.innerHTML = `<p class="error-message visible">Error loading bookings: ${error.message}</p>`;
             }
         }
@@ -114,27 +117,26 @@
             // Populate Lab Filter
             if (filterLabSelect) {
                 try {
-                    const labsResponse = await fetch('/api/labs', { headers: { 'Authorization': `Bearer ${token}` }});
+                    const labsResponse = await fetch(`${window.API_BASE_URL}/labs`, { headers: { 'Authorization': `Bearer ${token}` }});
                     if (!labsResponse.ok) throw new Error('Failed to fetch labs for filter');
-                    const labs = await labsResponse.json();
-                    filterLabSelect.innerHTML = '<option value="">All Labs</option>'; // Clear existing
-                    labs.forEach(lab => {
+                    allLabsData = await labsResponse.json();
+                    filterLabSelect.innerHTML = '<option value="">All Labs</option>'; 
+                    allLabsData.forEach(lab => {
                         const option = document.createElement('option');
                         option.value = lab.id;
                         option.textContent = lab.name;
                         filterLabSelect.appendChild(option);
                     });
                 } catch (e) {
-                    console.error("Error populating lab filter:", e);
+                    // console.error("Error populating lab filter:", e);
                     filterLabSelect.innerHTML = '<option value="">Error loading labs</option>';
                 }
             }
 
-            // Populate Status Filter (dynamically from fetched bookings or predefined list)
+            // Populate Status Filter
             if (filterStatusSelect) {
                 filterStatusSelect.innerHTML = '<option value="">All Statuses</option>';
-                const predefinedStatuses = ['pending', 'booked', 'rejected', 'cancelled', 'pending-admin-approval', 'approved-by-admin', 'rejected-by-admin']; // Add more as needed
-                // const statuses = [...new Set(allBookingsData.map(b => b.status))];
+                const predefinedStatuses = ['pending', 'booked', 'rejected', 'cancelled', 'pending-admin-approval', 'approved-by-admin', 'rejected-by-admin']; 
                 predefinedStatuses.sort().forEach(status => {
                     const option = document.createElement('option');
                     option.value = status;
@@ -160,11 +162,10 @@
                 return matches;
             });
             
-            // Client-side sort if needed, backend may already sort
             filteredBookings.sort((a,b) => {
                  const dateA = new Date(a.date + 'T' + (window.MOCK_TIME_SLOTS.find(ts=>ts.id===a.timeSlotId)?.startTime || '00:00'));
                  const dateB = new Date(b.date + 'T' + (window.MOCK_TIME_SLOTS.find(ts=>ts.id===b.timeSlotId)?.startTime || '00:00'));
-                 return dateB - dateA; // Sort descending by date/time
+                 return dateB - dateA; 
             });
 
 
@@ -181,8 +182,8 @@
                 if (booking.equipmentIds && booking.equipmentIds.length > 0) {
                      try {
                         const eqIds = JSON.parse(booking.equipmentIds);
-                        equipmentNames = eqIds.join(', '); // Placeholder, actual names would need a join or separate fetch
-                    } catch (e) { equipmentNames = "Error parsing equipment"; }
+                        equipmentNames = eqIds.join(', '); 
+                    } catch (e) { equipmentNames = booking.equipmentIds; } // Show as is if not parsable JSON
                 }
                 
                 let statusColorClass = 'text-gray-600';
@@ -203,7 +204,7 @@
                             <p class="text-sm text-muted-foreground"><strong>Status:</strong> <span class="font-medium ${statusColorClass}">${booking.status.toUpperCase().replace(/-/g, ' ')}</span></p>
                             <button type="button" class="button button-outline button-sm" onclick="modifyBooking('${booking.id}')">Modify (Placeholder)</button>
                             ${(booking.status !== 'cancelled' && booking.status !== 'rejected' && booking.status !== 'rejected-by-admin') ? `
-                            <button type="button" class="button button-secondary button-sm" onclick="cancelBookingWrapper('${booking.id}')">Cancel</button>
+                            <button type="button" class="button button-secondary button-sm" onclick="cancelBooking('${booking.id}')">Cancel</button>
                             ` : ''}
                         </div>
                     </div>
@@ -231,25 +232,25 @@
         }
         
         window.modifyBooking = function(bookingId) {
-            alert('Modify booking (ID: ' + bookingId + ') functionality is a placeholder. In a real app, this would open an edit form or dialog.');
+            alert('Modify booking (ID: ' + bookingId + ') functionality is a placeholder. In a real app, this would open an edit form or dialog that calls PUT /api/bookings/:id or similar.');
         }
 
-        window.cancelBookingWrapper = async function(bookingId) { // Renamed to avoid conflict
+        window.cancelBooking = async function(bookingId) {
             if (confirm('Are you sure you want to cancel this booking?')) {
                 try {
-                    const response = await fetch(`/api/bookings/${bookingId}`, {
+                    const response = await fetch(`${window.API_BASE_URL}/bookings/${bookingId}`, {
                         method: 'DELETE',
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
                     const result = await response.json();
                     if (response.ok) {
                         alert(result.msg || 'Booking cancelled successfully.');
-                        await fetchDataAndRender(); // Re-fetch and re-render
+                        await fetchData(); 
                     } else {
                         alert(`Failed to cancel booking: ${result.msg || 'Server error'}`);
                     }
                 } catch (error) {
-                    console.error('Error cancelling booking:', error);
+                    // console.error('Error cancelling booking:', error);
                     alert('An error occurred while cancelling the booking.');
                 }
             }
@@ -260,7 +261,7 @@
             window.initializeDashboard();
             window.setDashboardHomeLink();
             
-            await fetchDataAndRender();
+            await fetchData();
             setupEventListeners();
 
             if (window.lucide) window.lucide.createIcons();
@@ -268,3 +269,5 @@
     </script>
 </body>
 </html>
+
+    

@@ -10,8 +10,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (signupForm) {
         signupForm.addEventListener('submit', handleSignup);
         const departmentSelect = document.getElementById('department');
-        if (departmentSelect && window.DEPARTMENTS_CONST) {
-            window.DEPARTMENTS_CONST.forEach(dept => {
+        if (departmentSelect && window.DEPARTMENTS) { // Ensure window.DEPARTMENTS is used
+            window.DEPARTMENTS.forEach(dept => {
                 const option = document.createElement('option');
                 option.value = dept;
                 option.textContent = dept;
@@ -74,8 +74,17 @@ async function handleLogin(event) {
         return;
     }
 
+    if (!window.API_BASE_URL) {
+        // console.error("API_BASE_URL is not defined. Cannot make API call.");
+        showError('roleError', "Configuration error: API URL missing.");
+        loginButton.disabled = false;
+        loginButton.innerHTML = originalButtonText;
+        if (window.lucide) window.lucide.createIcons();
+        return;
+    }
+
     try {
-        const response = await fetch('/api/auth/login', { 
+        const response = await fetch(`${window.API_BASE_URL}/auth/login`, { 
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -91,13 +100,12 @@ async function handleLogin(event) {
             localStorage.setItem('userRole', data.user.role);
             localStorage.setItem('userEmail', data.user.email);
             localStorage.setItem('userName', data.user.name);
+            localStorage.setItem('userId', data.user.id); // Store user ID
             localStorage.setItem('userDepartment', data.user.department || '');
-
-            // alert(`Login Successful. Welcome, ${data.user.name}! Redirecting to your dashboard...`);
             
-            const currentUserRoleConst = window.USER_ROLES_OBJ; 
+            const currentUserRoleConst = window.USER_ROLES; 
             if (!currentUserRoleConst) {
-                //  console.error("CRITICAL ERROR: window.USER_ROLES_OBJ not defined on frontend!");
+                 // console.error("CRITICAL ERROR: window.USER_ROLES not defined on frontend!");
                  showError('roleError', 'Frontend configuration error. Cannot redirect.');
                  loginButton.disabled = false;
                  loginButton.innerHTML = originalButtonText;
@@ -126,7 +134,7 @@ async function handleLogin(event) {
                     break;
                 default:
                     // console.error("Login: No matching role for redirection. Role from backend:", data.user.role);
-                    showError('roleError', 'Invalid role received from server. Cannot redirect.');
+                    showError('roleError', `Invalid role (${data.user.role}) received from server. Cannot redirect.`);
             }
         } else {
             // console.error("Login failed from backend:", data);
@@ -189,8 +197,17 @@ async function handleSignup(event) {
         return;
     }
     
+    if (!window.API_BASE_URL) {
+        // console.error("API_BASE_URL is not defined. Cannot make API call.");
+        showError('roleError', "Configuration error: API URL missing.");
+        signupButton.disabled = false;
+        signupButton.innerHTML = originalButtonText;
+        if (window.lucide) window.lucide.createIcons();
+        return;
+    }
+
     try {
-        const response = await fetch('/api/auth/signup', {
+        const response = await fetch(`${window.API_BASE_URL}/auth/signup`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ fullName, email, password, role, department }),
@@ -219,19 +236,22 @@ function togglePasswordVisibility(fieldId, buttonElement) {
         // console.error('Password input field or toggle button not found:', fieldId);
         return;
     }
+    const currentType = passwordInput.getAttribute('type');
     let newIconName;
-    if (passwordInput.type === 'password') {
-        passwordInput.type = 'text';
+    if (currentType === 'password') {
+        passwordInput.setAttribute('type', 'text');
         newIconName = 'eye-off';
     } else {
-        passwordInput.type = 'password';
+        passwordInput.setAttribute('type', 'password');
         newIconName = 'eye';
     }
-    buttonElement.innerHTML = `<i data-lucide="${newIconName}"></i>`; // Recreate the <i> tag
+    // Re-create the <i> tag to ensure Lucide processes it correctly
+    buttonElement.innerHTML = `<i data-lucide="${newIconName}"></i>`;
     if (window.lucide) {
-        window.lucide.createIcons(); // Tell Lucide to process the new icon
+        window.lucide.createIcons();
     }
 }
+
 
 function showError(elementId, message) {
     const errorElement = document.getElementById(elementId);
@@ -239,12 +259,15 @@ function showError(elementId, message) {
         errorElement.textContent = message;
         errorElement.classList.add('visible');
     } else {
-        const generalErrorArea = document.getElementById('generalAuthError'); 
+        // Fallback if specific error element isn't found
+        const generalErrorArea = document.getElementById('generalAuthError'); // Assuming a general error div might exist
         if (generalErrorArea) {
             generalErrorArea.textContent = message;
             generalErrorArea.classList.add('visible');
         } else {
-            // alert(message); // Last resort
+            // console.warn(`Error element with ID '${elementId}' not found. Message: ${message}`);
+            // As a last resort, you might alert, but it's generally disruptive.
+            // alert(message);
         }
     }
 }
@@ -261,3 +284,5 @@ function clearErrors() {
         generalErrorArea.classList.remove('visible');
     }
 }
+
+    

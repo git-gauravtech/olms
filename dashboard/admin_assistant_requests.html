@@ -60,13 +60,13 @@
 
         async function loadAndRenderAssistantRequests() {
             if (!requestsListContainer) {
-                console.error("assistantRequestsListContainer not found!");
+                // console.error("assistantRequestsListContainer not found!");
                 return;
             }
             requestsListContainer.innerHTML = '<p>Loading Assistant requests...</p>';
 
             try {
-                const response = await fetch('/api/admin/requests/assistant', {
+                const response = await fetch(`${window.API_BASE_URL}/admin/requests/assistant`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (!response.ok) {
@@ -78,7 +78,6 @@
 
                 if (assistantPendingRequests.length > 0) {
                     requestsListContainer.innerHTML = ''; 
-                    // Assuming backend sorts by submittedDate ASC
                     assistantPendingRequests.forEach(request => {
                         const card = document.createElement('div');
                         card.className = 'custom-card p-4 border rounded-md shadow-sm';
@@ -86,13 +85,12 @@
                         let equipmentNames = 'None';
                         if (request.equipmentIds && request.equipmentIds.length > 0) {
                             try {
+                                // equipmentIds from backend is already a JSON string
                                 const eqIds = JSON.parse(request.equipmentIds);
-                                // In a real app, fetch equipment details or ensure they are part of request object
-                                // For now, just showing IDs if names aren't directly available
-                                equipmentNames = eqIds.join(', '); // Placeholder: actual names would require another fetch or join
+                                equipmentNames = eqIds.join(', '); // Placeholder, ideally map to names
                             } catch (e) {
-                                console.warn("Could not parse equipmentIds for request:", request.id, request.equipmentIds);
-                                equipmentNames = "Error parsing equipment";
+                                // console.warn("Could not parse equipmentIds for request:", request.id, request.equipmentIds);
+                                equipmentNames = request.equipmentIds; // Show as is if not parsable
                             }
                         }
 
@@ -117,7 +115,7 @@
                 }
 
             } catch (error) {
-                console.error("Error loading assistant requests:", error);
+                // console.error("Error loading assistant requests:", error);
                 requestsListContainer.innerHTML = `<p class="error-message visible">Error loading requests: ${error.message}</p>`;
             }
             if (window.lucide) window.lucide.createIcons();
@@ -136,7 +134,7 @@
             if (!confirm(`Are you sure you want to ${actionText} this booking request?`)) return;
 
             try {
-                const response = await fetch(`/api/bookings/${bookingId}/status`, {
+                const response = await fetch(`${window.API_BASE_URL}/bookings/${bookingId}/status`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -147,15 +145,17 @@
                 const result = await response.json();
                 if (response.ok) {
                     alert(`Request ${actionText}d successfully.`);
-                    await loadAndRenderAssistantRequests(); // Re-fetch and re-render
+                    await loadAndRenderAssistantRequests(); 
                 } else {
                     alert(`Failed to ${actionText} request: ${result.msg || 'Server error'}`);
                 }
             } catch (error) {
-                console.error(`Error ${actionText}ing request:`, error);
+                // console.error(`Error ${actionText}ing request:`, error);
                 alert(`An error occurred while ${actionText}ing the request.`);
             }
         }
     </script>
 </body>
 </html>
+
+    

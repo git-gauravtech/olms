@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -43,16 +44,16 @@
                         </p>
                         
                         <div class="grid sm-grid-cols-2 gap-4">
-                            <button class="button button-primary" onclick="runAlgorithm('Graph Coloring Scheduling', 'run-scheduling')">
+                            <button type="button" class="button button-primary" onclick="runAlgorithm('Graph Coloring Scheduling', 'run-scheduling')">
                                 <i data-lucide="palette" style="margin-right: 0.5rem;"></i> Run Scheduling (Graph Coloring)
                             </button>
-                            <button class="button button-primary" onclick="runAlgorithm('0/1 Knapsack Resource Allocation', 'run-resource-allocation')">
+                            <button type="button" class="button button-primary" onclick="runAlgorithm('0/1 Knapsack Resource Allocation', 'run-resource-allocation')">
                                 <i data-lucide="box" style="margin-right: 0.5rem;"></i> Run Resource Allocation (0/1 Knapsack)
                             </button>
-                            <button class="button button-primary" onclick="runAlgorithm('Greedy Lab Usage Optimization', 'optimize-lab-usage')">
+                            <button type="button" class="button button-primary" onclick="runAlgorithm('Greedy Lab Usage Optimization', 'optimize-lab-usage')">
                                 <i data-lucide="trending-up" style="margin-right: 0.5rem;"></i> Optimize Lab Usage (Greedy)
                             </button>
-                            <button class="button button-primary" onclick="runAlgorithm('Dijkstra Nearest Lab Assignment', 'assign-nearest-labs')">
+                            <button type="button" class="button button-primary" onclick="runAlgorithm('Dijkstra Nearest Lab Assignment', 'assign-nearest-labs')">
                                 <i data-lucide="map-pin" style="margin-right: 0.5rem;"></i> Assign Nearest Labs (Dijkstra)
                             </button>
                         </div>
@@ -72,8 +73,8 @@
     <script src="js/dashboard.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            if (!roleGuard(USER_ROLES.ADMIN)) return;
-            initializeDashboard();
+            if (!window.roleGuard(window.USER_ROLES.ADMIN)) return;
+            window.initializeDashboard();
             if (window.lucide) window.lucide.createIcons();
         });
 
@@ -86,13 +87,17 @@
                 alert('Authentication token not found. Please log in again.');
                 return;
             }
+             if (!window.API_BASE_URL) {
+                alert('API URL is not configured. Cannot run algorithm.');
+                return;
+            }
             
             statusMessage.innerHTML = `<i data-lucide="loader-2" style="animation: spin 1s linear infinite; display: inline-block; margin-right: 0.5rem;"></i> Running ${algorithmDisplayName}... Please wait.`;
             statusDiv.style.display = 'block';
             if (window.lucide) window.lucide.createIcons();
 
             try {
-                const response = await fetch(`/api/admin/algorithms/${algorithmEndpointName}`, {
+                const response = await fetch(`${window.API_BASE_URL}/admin/algorithms/${algorithmEndpointName}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -108,7 +113,7 @@
                     statusMessage.innerHTML = `<i data-lucide="x-circle" style="color: red; display: inline-block; margin-right: 0.5rem;"></i> ${algorithmDisplayName} failed: ${result.message || 'Unknown error from server'}`;
                 }
             } catch (error) {
-                console.error(`Error running ${algorithmDisplayName}:`, error);
+                // console.error(`Error running ${algorithmDisplayName}:`, error);
                 statusMessage.innerHTML = `<i data-lucide="alert-triangle" style="color: orange; display: inline-block; margin-right: 0.5rem;"></i> Error communicating with server for ${algorithmDisplayName}. Check console for details.`;
             } finally {
                 if (window.lucide) window.lucide.createIcons();
@@ -117,3 +122,5 @@
     </script>
 </body>
 </html>
+
+    
