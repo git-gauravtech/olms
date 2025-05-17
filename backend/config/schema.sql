@@ -1,8 +1,8 @@
 
 -- Database: lab_management_db
 -- Make sure to create the database first if it doesn't exist:
--- CREATE DATABASE IF NOT EXISTS lab_management_db;
--- USE lab_management_db;
+CREATE DATABASE IF NOT EXISTS lab_management_db;
+USE lab_management_db;
 
 -- Table structure for table `users`
 CREATE TABLE IF NOT EXISTS `users` (
