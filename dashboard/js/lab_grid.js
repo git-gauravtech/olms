@@ -14,21 +14,24 @@ function initializeLabGrid() {
     const dialogSlotInfoContainer = document.getElementById('dialogSlotInfo'); 
     const dialogLabLayoutVisualization = document.getElementById('dialogLabLayoutVisualization');
     const dialogBookButton = document.getElementById('dialogBookButton');
-    const dialogCloseButton = document.getElementById('dialogCloseButton');
+    const dialogCloseButton = document.getElementById('dialogCloseButton'); // header close
+    const dialogCloseButtonSecondary = document.getElementById('dialogCloseButtonSecondary'); // footer close
+
 
     let currentSelectedLabId = '';
     let currentDate = new Date(); // Start with today
+    let ALL_LAB_SEAT_STATUSES_CACHE = {}; // Cache for seat statuses
 
     // Populate lab selector
     if (labSelector) {
-        MOCK_LABS.forEach(lab => {
+        window.MOCK_LABS.forEach(lab => {
             const option = document.createElement('option');
             option.value = lab.id;
             option.textContent = `${lab.name} (Capacity: ${lab.capacity})`;
             labSelector.appendChild(option);
         });
-        if (MOCK_LABS.length > 0) {
-            currentSelectedLabId = MOCK_LABS[0].id;
+        if (window.MOCK_LABS.length > 0) {
+            currentSelectedLabId = window.MOCK_LABS[0].id;
             labSelector.value = currentSelectedLabId;
         }
 
@@ -54,71 +57,70 @@ function initializeLabGrid() {
         renderGrid();
     });
 
-    if (dialogCloseButton) dialogCloseButton.addEventListener('click', () => {
-        slotDetailDialog.classList.remove('open');
-    });
+    function closeDialog() {
+        if(slotDetailDialog) slotDetailDialog.classList.remove('open');
+    }
+
+    if (dialogCloseButton) dialogCloseButton.addEventListener('click', closeDialog);
+    if (dialogCloseButtonSecondary) dialogCloseButtonSecondary.addEventListener('click', closeDialog);
+
 
     if (slotDetailDialog) slotDetailDialog.addEventListener('click', (event) => {
         if (event.target === slotDetailDialog) { // Clicked on overlay
-            slotDetailDialog.classList.remove('open');
+            closeDialog();
         }
     });
     
     function getWeekDateRange(date) {
         const startOfWeek = new Date(date);
         const day = startOfWeek.getDay();
-        // Adjust to make Monday the start of the week (day 1) and Sunday the end (day 0 or 7)
         const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1); 
         startOfWeek.setDate(diff);
 
         const endOfWeek = new Date(startOfWeek);
-        endOfWeek.setDate(startOfWeek.getDate() + 6); // Monday + 6 days = Sunday
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
         
         return { start: startOfWeek, end: endOfWeek };
     }
 
     function renderGrid() {
         if (!currentSelectedLabId || !gridContainer) return;
-        gridContainer.innerHTML = ''; // Clear previous grid
+        gridContainer.innerHTML = ''; 
 
         const { start, end } = getWeekDateRange(currentDate);
         if (currentWeekDisplay) {
-            currentWeekDisplay.textContent = `${formatDate(start)} - ${formatDate(end)}`;
+            currentWeekDisplay.textContent = `${window.formatDate(start)} - ${window.formatDate(end)}`;
         }
 
-
-        // Set grid columns: 1 for time + 7 for days (Mon-Sun)
-        gridContainer.style.gridTemplateColumns = `minmax(80px, auto) repeat(${DAYS_OF_WEEK.length}, 1fr)`;
+        gridContainer.style.gridTemplateColumns = `minmax(80px, auto) repeat(${window.DAYS_OF_WEEK.length}, 1fr)`;
         
-        // Header Row (Days of Week)
         const emptyHeaderCell = document.createElement('div');
         emptyHeaderCell.className = 'lab-grid-header-cell';
-        gridContainer.appendChild(emptyHeaderCell); // Top-left empty cell
+        gridContainer.appendChild(emptyHeaderCell);
 
         const weekDates = [];
-        for (let i = 0; i < DAYS_OF_WEEK.length; i++) {
+        for (let i = 0; i < window.DAYS_OF_WEEK.length; i++) {
             const dayCell = document.createElement('div');
             dayCell.className = 'lab-grid-header-cell';
             const currentDayDate = new Date(start);
             currentDayDate.setDate(start.getDate() + i);
             weekDates.push(currentDayDate);
-            dayCell.textContent = `${DAYS_OF_WEEK[i]} (${currentDayDate.getDate()})`;
+            dayCell.textContent = `${window.DAYS_OF_WEEK[i]} (${currentDayDate.getDate()})`;
             gridContainer.appendChild(dayCell);
         }
 
-        // Grid Cells (Time Slots vs Days)
-        MOCK_TIME_SLOTS.forEach(slot => {
+        window.MOCK_TIME_SLOTS.forEach(slot => {
             const timeCell = document.createElement('div');
             timeCell.className = 'lab-grid-time-cell';
-            timeCell.textContent = slot.displayTime.replace(' - ', '\n');
+            timeCell.textContent = slot.displayTime.replace(' - ', '\\n');
             gridContainer.appendChild(timeCell);
 
             weekDates.forEach(date => {
                 const cell = document.createElement('div');
-                cell.className = 'lab-grid-cell interactive'; // All cells interactive initially
-                const dateString = formatDate(date);
+                cell.className = 'lab-grid-cell interactive';
+                const dateString = window.formatDate(date);
                 
-                const booking = MOCK_BOOKINGS.find(b => 
+                const booking = window.MOCK_BOOKINGS.find(b => 
                     b.labId === currentSelectedLabId &&
                     b.date === dateString &&
                     b.timeSlotId === slot.id
@@ -130,10 +132,9 @@ function initializeLabGrid() {
                 const cellPurposeSpan = document.createElement('span');
                 cellPurposeSpan.className = 'lab-grid-cell-purpose';
 
-                // Check if the slot is in the past
                 const slotDateTime = new Date(`${dateString}T${slot.startTime}`);
                 const now = new Date();
-                if (slotDateTime < now && !booking) { // Past and not booked (implicitly available but past)
+                if (slotDateTime < now && !booking) {
                      cell.classList.add('status-past');
                      cellStatusSpan.textContent = 'Past';
                      cell.classList.remove('interactive');
@@ -158,25 +159,24 @@ function initializeLabGrid() {
         if (window.lucide) window.lucide.createIcons(); 
     }
 
-    function renderDesk() {
+    // Modified renderDesk to fetch status from localStorage via constants.js functions
+    function renderDeskWithPersistedStatus(labId, seatIndex) {
         const deskDiv = document.createElement('div');
         deskDiv.className = 'lab-layout-desk';
 
         const icon = document.createElement('i');
         icon.setAttribute('data-lucide', 'armchair');
+        
+        const labStatuses = ALL_LAB_SEAT_STATUSES_CACHE[labId] || {};
+        const seatStatus = labStatuses[seatIndex.toString()] || 'working'; // Default to 'working'
 
-        // Simulate system status: 85% chance working (green), 15% not working (red)
-        if (Math.random() < 0.15) { // 15% chance of being not working
-            icon.classList.add('system-not-working');
-        } else {
-            icon.classList.add('system-working');
-        }
+        icon.classList.add(seatStatus === 'not-working' ? 'system-not-working' : 'system-working');
         
         deskDiv.appendChild(icon);
         return deskDiv;
     }
 
-    function createDeskSection(totalDesks, desksPerRow) {
+    function createDeskSection(labId, totalDesks, desksPerRow, currentSeatIndexRef) {
         const section = document.createElement('div');
         section.className = 'dialog-lab-layout-section';
         if (totalDesks <= 0) return section; 
@@ -187,7 +187,7 @@ function initializeLabGrid() {
             row.className = 'lab-layout-row';
             const desksInThisRow = Math.min(desksPerRow, totalDesks - desksCreated);
             for (let i = 0; i < desksInThisRow; i++) {
-                row.appendChild(renderDesk()); // renderDesk now determines its own color
+                row.appendChild(renderDeskWithPersistedStatus(labId, currentSeatIndexRef.index++));
                 desksCreated++;
             }
             section.appendChild(row);
@@ -196,9 +196,12 @@ function initializeLabGrid() {
     }
 
     function renderLabLayoutVisualization(labId) {
+        if (!dialogLabLayoutVisualization) return;
         dialogLabLayoutVisualization.innerHTML = ''; 
 
-        const lab = MOCK_LABS.find(l => l.id === labId);
+        ALL_LAB_SEAT_STATUSES_CACHE = window.loadLabSeatStatuses(); // Load latest statuses
+
+        const lab = window.MOCK_LABS.find(l => l.id === labId);
         const capacity = lab ? lab.capacity : 0;
 
         const title = document.createElement('h4');
@@ -206,66 +209,50 @@ function initializeLabGrid() {
         title.textContent = `Lab Layout for ${capacity} Desks`;
         dialogLabLayoutVisualization.appendChild(title);
 
-        // Teacher's Desk
         const teacherDeskContainer = document.createElement('div');
         teacherDeskContainer.className = 'lab-layout-teacher-desk';
-
         const teacherIcon = document.createElement('i');
         teacherIcon.setAttribute('data-lucide', 'user-cog'); 
         teacherDeskContainer.appendChild(teacherIcon);
-
         const teacherLabel = document.createElement('span');
         teacherLabel.textContent = 'Teacher';
         teacherLabel.className = 'teacher-desk-label';
         teacherDeskContainer.appendChild(teacherLabel);
         dialogLabLayoutVisualization.appendChild(teacherDeskContainer);
 
-
         if (capacity === 0) {
             const noDesksMsg = document.createElement('p');
             noDesksMsg.className = 'text-xs text-center text-muted-foreground mt-2';
             noDesksMsg.textContent = 'This lab has no student desks.';
             dialogLabLayoutVisualization.appendChild(noDesksMsg);
-            if (window.lucide) window.lucide.createIcons(); // Render teacher icon if capacity is 0
+            if (window.lucide) window.lucide.createIcons();
             return;
         }
         
         const mainLayoutContainer = document.createElement('div');
         mainLayoutContainer.className = 'dialog-lab-layout-container';
 
-        // Define proportions based on the 70-seat example (25-20-25)
-        const proportionLeft = 25 / 70;
-        const proportionMiddle = 20 / 70;
-        // Right proportion is 1 - left - middle to ensure total is capacity
-
-        let numLeftDesks = Math.round(capacity * proportionLeft);
-        let numMiddleDesks = Math.round(capacity * proportionMiddle);
-        // Ensure rightDesks makes up the remainder to match capacity exactly
+        let numLeftDesks = Math.round(capacity * (25 / 70));
+        let numMiddleDesks = Math.round(capacity * (20 / 70));
         let numRightDesks = capacity - numLeftDesks - numMiddleDesks;
-
-        // Adjust if rounding leads to negative numRightDesks (can happen with small capacities)
         if (numRightDesks < 0) {
-            // Prioritize filling left and middle, then adjust if still negative
-            numMiddleDesks += numRightDesks; // numRightDesks is negative, so this reduces middle
-            numRightDesks = 0;
-            if (numMiddleDesks < 0) {
-                numLeftDesks += numMiddleDesks; // numMiddleDesks is negative
-                numMiddleDesks = 0;
-            }
-             if (numLeftDesks < 0) numLeftDesks = 0; // Safety, shouldn't happen with positive capacity
+            numMiddleDesks += numRightDesks; numRightDesks = 0;
+            if (numMiddleDesks < 0) { numLeftDesks += numMiddleDesks; numMiddleDesks = 0; }
+            if (numLeftDesks < 0) numLeftDesks = 0;
         }
 
+        let seatIndexRef = { index: 0 }; // Use an object to pass by reference
 
-        mainLayoutContainer.appendChild(createDeskSection(numLeftDesks, 3));   // Left section, 3 desks per row
-        mainLayoutContainer.appendChild(createDeskSection(numMiddleDesks, 2)); // Middle section, 2 desks per row
-        mainLayoutContainer.appendChild(createDeskSection(numRightDesks, 3));  // Right section, 3 desks per row
+        mainLayoutContainer.appendChild(createDeskSection(labId, numLeftDesks, 3, seatIndexRef));
+        mainLayoutContainer.appendChild(createDeskSection(labId, numMiddleDesks, 2, seatIndexRef));
+        mainLayoutContainer.appendChild(createDeskSection(labId, numRightDesks, 3, seatIndexRef));
         
         dialogLabLayoutVisualization.appendChild(mainLayoutContainer);
     }
 
 
     function showSlotDetails(labId, date, timeSlot, booking) {
-        const lab = MOCK_LABS.find(l => l.id === labId);
+        const lab = window.MOCK_LABS.find(l => l.id === labId);
         if (dialogTitle) dialogTitle.textContent = `Details for ${lab.name}`;
         if (dialogDescription) dialogDescription.textContent = `Date: ${date}, Time: ${timeSlot.displayTime}`;
         
@@ -297,13 +284,13 @@ function initializeLabGrid() {
                 pBatch.innerHTML = `<strong>Batch/Class:</strong> ${booking.batchIdentifier}`;
                 if (dialogSlotInfoContainer) dialogSlotInfoContainer.appendChild(pBatch);
             }
-        } else { // Available
+        } else { 
             const pStatus = document.createElement('p');
             pStatus.innerHTML = `<strong>Status:</strong> <span class="font-bold text-lg text-green-600">Available</span>`;
             if (dialogSlotInfoContainer) dialogSlotInfoContainer.appendChild(pStatus);
             
-            const currentUserRole = getCurrentUserRole();
-            if ((currentUserRole === USER_ROLES.FACULTY || currentUserRole === USER_ROLES.CR) && dialogBookButton) {
+            const currentUserRole = window.getCurrentUserRole();
+            if ((currentUserRole === window.USER_ROLES.FACULTY || currentUserRole === window.USER_ROLES.ASSISTANT) && dialogBookButton) { // Changed CR to ASSISTANT
                  dialogBookButton.style.display = 'inline-flex';
                  dialogBookButton.onclick = () => {
                     window.location.href = `book_slot.html?labId=${labId}&date=${date}&timeSlotId=${timeSlot.id}`;
@@ -313,17 +300,14 @@ function initializeLabGrid() {
         
         renderLabLayoutVisualization(labId); 
         if (slotDetailDialog) slotDetailDialog.classList.add('open');
-        if (window.lucide) window.lucide.createIcons(); // Ensure icons are created after dialog content is set
+        if (window.lucide) window.lucide.createIcons(); 
     }
 
-    renderGrid(); // Initial render
+    renderGrid(); 
 }
 
-// Ensure this script runs after the DOM is fully loaded
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initializeLabGrid);
 } else {
     initializeLabGrid();
 }
-
-    
