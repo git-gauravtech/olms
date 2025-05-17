@@ -32,14 +32,19 @@ function initializeSeatUpdaterPage() {
 }
 
 function getSeatStatus(labId, seatIndex) {
-    return ALL_LAB_SEAT_STATUSES[labId]?.[seatIndex.toString()] || 'working'; // Default to 'working'
+    // Ensure seatIndex is a string for consistent key access
+    const status = ALL_LAB_SEAT_STATUSES[labId]?.[seatIndex.toString()] || 'working';
+    // console.log(`getSeatStatus for lab ${labId}, seat ${seatIndex}: ${status}`);
+    return status; 
 }
 
 function setSeatStatus(labId, seatIndex, status) {
     if (!ALL_LAB_SEAT_STATUSES[labId]) {
         ALL_LAB_SEAT_STATUSES[labId] = {};
     }
+    // Ensure seatIndex is a string for consistent key storage
     ALL_LAB_SEAT_STATUSES[labId][seatIndex.toString()] = status;
+    // console.log(`setSeatStatus for lab ${labId}, seat ${seatIndex} to ${status}. Current ALL_LAB_SEAT_STATUSES:`, JSON.parse(JSON.stringify(ALL_LAB_SEAT_STATUSES)));
     window.saveLabSeatStatuses(ALL_LAB_SEAT_STATUSES); // From constants.js
 }
 
@@ -54,8 +59,8 @@ function renderInteractiveLabLayout(labId, container) {
     const capacity = lab.capacity;
 
     const title = document.createElement('h4');
-    title.className = 'text-sm font-medium mb-3 text-center text-muted-foreground';
-    title.textContent = `Interactive Layout for ${lab.name} (${capacity} Desks)`;
+    title.className = 'text-lg font-semibold mb-3 text-center text-gray-700'; // Adjusted title class
+    title.textContent = `Lab Layout: ${lab.name} (${capacity} Desks)`;
     container.appendChild(title);
 
     // Teacher's Desk (non-interactive for status updates)
@@ -80,20 +85,21 @@ function renderInteractiveLabLayout(labId, container) {
     }
 
     const mainLayoutContainer = document.createElement('div');
-    mainLayoutContainer.className = 'dialog-lab-layout-container'; // Re-use styling
-
+    mainLayoutContainer.className = 'dialog-lab-layout-container'; 
+    
+    // Proportional distribution based on 70-seat example (25-20-25)
     let numLeftDesks = Math.round(capacity * (25 / 70));
     let numMiddleDesks = Math.round(capacity * (20 / 70));
     let numRightDesks = capacity - numLeftDesks - numMiddleDesks;
-    if (numRightDesks < 0) {
-        numMiddleDesks += numRightDesks; numRightDesks = 0;
-        if (numMiddleDesks < 0) { numLeftDesks += numMiddleDesks; numMiddleDesks = 0; }
-        if (numLeftDesks < 0) numLeftDesks = 0;
-    }
-    
-    let seatIndexCounter = 0;
+     // Ensure no negative numbers if capacity is very small
+    if (numRightDesks < 0) { numMiddleDesks += numRightDesks; numRightDesks = 0; }
+    if (numMiddleDesks < 0) { numLeftDesks += numMiddleDesks; numMiddleDesks = 0; }
+    if (numLeftDesks < 0) { numLeftDesks = 0; }
 
-    function createInteractiveDeskSection(totalDesks, desksPerRow, sectionId) {
+
+    let seatIndexCounter = 0; // Use a simple counter for unique seat IDs within this lab
+
+    function createInteractiveDeskSection(totalDesks, desksPerRow) {
         const section = document.createElement('div');
         section.className = 'dialog-lab-layout-section';
         if (totalDesks <= 0) return section;
@@ -104,18 +110,18 @@ function renderInteractiveLabLayout(labId, container) {
             row.className = 'lab-layout-row';
             const desksInThisRow = Math.min(desksPerRow, totalDesks - desksCreated);
             for (let i = 0; i < desksInThisRow; i++) {
-                const currentSeatIndex = seatIndexCounter++;
+                const currentSeatIndex = seatIndexCounter++; // Unique index for this seat
                 const deskDiv = document.createElement('div');
-                deskDiv.className = 'lab-layout-desk interactive-seat'; // Add interactive class
-                deskDiv.setAttribute('data-seat-index', currentSeatIndex);
+                deskDiv.className = 'lab-layout-desk interactive-seat';
+                deskDiv.setAttribute('data-seat-index', currentSeatIndex.toString()); // Store index as string
 
                 const icon = document.createElement('i');
                 icon.setAttribute('data-lucide', 'armchair');
-                const currentStatus = getSeatStatus(labId, currentSeatIndex);
+                const currentStatus = getSeatStatus(labId, currentSeatIndex.toString());
                 icon.classList.add(currentStatus === 'not-working' ? 'system-not-working' : 'system-working');
                 
                 deskDiv.appendChild(icon);
-                deskDiv.addEventListener('click', () => handleSeatClick(labId, currentSeatIndex, icon));
+                deskDiv.addEventListener('click', () => handleSeatClick(labId, currentSeatIndex.toString(), icon));
                 row.appendChild(deskDiv);
                 desksCreated++;
             }
@@ -124,15 +130,15 @@ function renderInteractiveLabLayout(labId, container) {
         return section;
     }
     
-    mainLayoutContainer.appendChild(createInteractiveDeskSection(numLeftDesks, 3, 'left'));
-    mainLayoutContainer.appendChild(createInteractiveDeskSection(numMiddleDesks, 2, 'middle'));
-    mainLayoutContainer.appendChild(createInteractiveDeskSection(numRightDesks, 3, 'right'));
+    mainLayoutContainer.appendChild(createInteractiveDeskSection(numLeftDesks, 3));
+    mainLayoutContainer.appendChild(createInteractiveDeskSection(numMiddleDesks, 2));
+    mainLayoutContainer.appendChild(createInteractiveDeskSection(numRightDesks, 3));
     
     container.appendChild(mainLayoutContainer);
     if (window.lucide) window.lucide.createIcons();
 }
 
-function handleSeatClick(labId, seatIndex, iconElement) {
+function handleSeatClick(labId, seatIndex, iconElement) { // seatIndex is already a string
     const currentStatus = getSeatStatus(labId, seatIndex);
     const newStatus = currentStatus === 'working' ? 'not-working' : 'working';
 
@@ -142,10 +148,9 @@ function handleSeatClick(labId, seatIndex, iconElement) {
     iconElement.classList.remove('system-working', 'system-not-working');
     iconElement.classList.add(newStatus === 'not-working' ? 'system-not-working' : 'system-working');
     
-    // Persist all statuses (though setSeatStatus already does this for the specific seat)
-    // No, saveLabSeatStatuses in constants.js saves the entire ALL_LAB_SEAT_STATUSES object
-    // window.saveLabSeatStatuses(ALL_LAB_SEAT_STATUSES); // This is correct.
+    // No need to call saveLabSeatStatuses here, setSeatStatus already does it.
+    // console.log(`Seat ${seatIndex} in lab ${labId} changed to ${newStatus}`);
 }
 
 // Ensure this script runs after the DOM is fully loaded if it's not deferred
-// Handled by DOMContentLoaded in the HTML
+// Handled by DOMContentLoaded in the HTML (assistant_update_seat_status.html)

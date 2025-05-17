@@ -844,8 +844,8 @@ code {
 /* Lab Slot Detail Dialog Enhancements & Interactive Seat Updater Layout */
 .dialog-lab-layout-container {
     display: flex;
-    justify-content: space-around;
-    gap: 1rem; 
+    justify-content: space-around; /* Distributes sections */
+    gap: 0.75rem; /* Gap between main sections */
     margin-top: 1rem;
     padding: 1rem;
     border: 1px solid #e9ecef; 
@@ -854,40 +854,41 @@ code {
 }
 .dialog-lab-layout-section {
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.35rem; 
+    flex-direction: column; /* Stacks rows vertically */
+    align-items: center; /* Centers rows if they don't fill width */
+    gap: 0.25rem; /* Gap between rows within a section */
 }
 .lab-layout-row {
     display: flex;
-    gap: 0.35rem; 
+    gap: 0.25rem; /* Gap between desks in a row */
 }
 
 .lab-layout-desk { 
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0.1rem; 
+    padding: 0.1rem; /* Minimal padding around the icon */
 }
 .lab-layout-desk.interactive-seat { /* For Assistant Seat Updater page */
     cursor: pointer;
     border-radius: 4px;
-    transition: background-color 0.2s;
+    transition: background-color 0.2s, transform 0.1s;
 }
 .lab-layout-desk.interactive-seat:hover {
     background-color: rgba(20, 153, 122, 0.1); /* Light teal hover */
+    transform: scale(1.1);
 }
 
 .lab-layout-desk .lucide-armchair {
-    width: 20px; 
-    height: 20px;
-    stroke-width: 1.5;
+    width: 24px; /* Increased size */
+    height: 24px; /* Increased size */
+    stroke-width: 2; /* Thicker stroke */
 }
 .lab-layout-desk .lucide-armchair.system-working {
-    color: #28a745; /* Green for working system */
+    stroke: #28a745; /* Green for working system */
 }
 .lab-layout-desk .lucide-armchair.system-not-working {
-    color: #dc3545; /* Red for non-working system */
+    stroke: #dc3545; /* Red for non-working system */
 }
 
 
@@ -900,11 +901,11 @@ code {
     padding: 0.5rem;
 }
 .lab-layout-teacher-desk .lucide-user-cog {
-    width: 28px; 
-    height: 28px;
+    width: 32px; /* Slightly larger teacher icon */
+    height: 32px;
     color: #14997A; /* Teal for teacher icon */
     margin-bottom: 0.25rem;
-    stroke-width: 1.5;
+    stroke-width: 1.75;
 }
 .teacher-desk-label {
     font-size: 0.75rem;

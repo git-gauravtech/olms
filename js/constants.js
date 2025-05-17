@@ -32,7 +32,7 @@ const NAV_LINKS = {
   [USER_ROLES.ASSISTANT]: [ 
     { href: 'assistant.html', label: 'Assistant Dashboard', icon: 'layout-dashboard' },
     { href: 'labs.html', label: 'Lab Availability', icon: 'flask-conical' },
-    { href: 'student_my_bookings.html', label: 'View My Schedule', icon: 'calendar-check' }, 
+    // { href: 'student_my_bookings.html', label: 'View My Schedule', icon: 'calendar-check' }, Removed as per request
     { href: 'assistant_request_lab.html', label: 'Request Lab Slot', icon: 'user-plus' }, 
     { href: 'assistant_update_seat_status.html', label: 'Update Seat Status', icon: 'edit-3' } 
   ],
@@ -61,7 +61,7 @@ const EQUIPMENT_STATUSES = ['available', 'in-use', 'maintenance', 'broken'];
 
 const MOCK_LABS_STORAGE_KEY = 'adminManagedLabs';
 const MOCK_EQUIPMENT_STORAGE_KEY = 'adminManagedEquipment';
-const LAB_SEAT_STATUSES_STORAGE_KEY = 'labSeatStatuses'; 
+const LAB_SEAT_STATUSES_STORAGE_KEY = 'labSeatStatusesV1'; // Changed key to ensure fresh start if needed
 
 function loadLabs() {
     const storedLabs = localStorage.getItem(MOCK_LABS_STORAGE_KEY);
@@ -91,10 +91,12 @@ function saveEquipment(equipment) {
 
 function loadLabSeatStatuses() {
     const storedStatuses = localStorage.getItem(LAB_SEAT_STATUSES_STORAGE_KEY);
+    // console.log("Loaded statuses from localStorage:", storedStatuses);
     return storedStatuses ? JSON.parse(storedStatuses) : {};
 }
 
 function saveLabSeatStatuses(statuses) {
+    // console.log("Saving statuses to localStorage:", statuses);
     localStorage.setItem(LAB_SEAT_STATUSES_STORAGE_KEY, JSON.stringify(statuses));
 }
 
@@ -128,7 +130,7 @@ function formatDate(date) {
     return [year, month, day].join('-');
 }
 
-const MOCK_BOOKINGS_STORAGE_KEY = 'mockBookings';
+const MOCK_BOOKINGS_STORAGE_KEY = 'mockBookingsV1'; // Changed key to ensure fresh start if needed
 let MOCK_BOOKINGS = []; 
 
 function initializeMockBookings() {
@@ -138,7 +140,7 @@ function initializeMockBookings() {
     } else {
         MOCK_BOOKINGS = [
             { id: 'b1', labId: 'physics_lab_alpha', date: formatDate(today), timeSlotId: 'ts_0900_1000', userId: 'student1@example.com', purpose: 'Physics Experiment A', equipmentIds: ['eq_spectrometer_01'], status: 'booked', requestedByRole: USER_ROLES.STUDENT},
-            { id: 'b2', labId: 'physics_lab_alpha', date: formatDate(today), timeSlotId: 'ts_1000_1100', userId: 'student2@example.com', purpose: 'Quantum Study', equipmentIds: [], status: 'pending', requestedByRole: USER_ROLES.STUDENT},
+            { id: 'b2', labId: 'physics_lab_alpha', date: formatDate(today), timeSlotId: 'ts_1000_1100', userId: 'student2@example.com', purpose: 'Quantum Study', equipmentIds: [], status: 'pending', requestedByRole: USER_ROLES.STUDENT}, // Student pending for admin/faculty approval? Or should this be 'booked'?
             { id: 'b3', labId: 'chemistry_lab_beta', date: formatDate(tomorrow), timeSlotId: 'ts_1400_1500', userId: 'faculty1@example.com', purpose: 'Chem 101 Class', equipmentIds: ['eq_microscope_01'], status: 'booked', requestedByRole: USER_ROLES.FACULTY},
             { id: 'b4', labId: 'computer_lab_gamma', date: formatDate(new Date(new Date().setDate(new Date().getDate() + 2))), timeSlotId: 'ts_1100_1200', userId: 'assistant@example.com', purpose: 'AI Project Work', equipmentIds: ['eq_pc_high_01'], status: 'pending', batchIdentifier: 'CSE Year 2 - Section A', requestedByRole: USER_ROLES.ASSISTANT }, 
             { id: 'b5', labId: 'electronics_lab_delta', date: formatDate(yesterday), timeSlotId: 'ts_1500_1600', userId: 'student1@example.com', purpose: 'Circuit Design (Completed)', equipmentIds: ['eq_oscilloscope_01'], status: 'booked', requestedByRole: USER_ROLES.STUDENT },

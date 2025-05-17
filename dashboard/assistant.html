@@ -40,7 +40,7 @@
                     </div>
                     <div class="custom-card-content">
                         <p class="text-lg text-muted-foreground mb-4">
-                            Welcome, Assistant! View schedules, request lab slots, and update seat statuses.
+                            Welcome, Assistant! Request lab slots and update lab seat statuses.
                         </p>
                     </div>
                 </div>
@@ -61,11 +61,10 @@
             initializeDashboard(); 
 
             const featureCardsContainer = document.getElementById('featureCardsContainer');
-            if (featureCardsContainer) { // Check if container exists
+            if (featureCardsContainer) { 
                 const assistantFeatures = [
                     { title: "Lab Availability", description: "View current lab schedules and availability.", icon: "flask-conical", href: "labs.html", label: "View Labs" },
-                    { title: "View My Schedule", description: "Check booked lab slots.", icon: "calendar-check", href: "student_my_bookings.html", label: "View Schedule" },
-                    { title: "Request Lab Slot", description: "Submit a request for a lab slot.", icon: "user-plus", href: "assistant_request_lab.html", label: "Request Slot" },
+                    { title: "Request Lab Slot", description: "Submit a request for a lab slot to faculty.", icon: "user-plus", href: "assistant_request_lab.html", label: "Request Slot" },
                     { title: "Update Seat Status", description: "Update working status of seats in labs.", icon: "edit-3", href: "assistant_update_seat_status.html", label: "Update Seats" }
                 ];
 

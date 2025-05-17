@@ -63,14 +63,14 @@
 
             const requestsListContainer = document.getElementById('assistantRequestsList');
             
-            console.log("MOCK_BOOKINGS on faculty_assistant_requests page:", JSON.parse(JSON.stringify(MOCK_BOOKINGS))); // Debug log
-            console.log("Filtering for USER_ROLES.ASSISTANT:", USER_ROLES.ASSISTANT);
+            // console.log("MOCK_BOOKINGS on faculty_assistant_requests page:", JSON.parse(JSON.stringify(MOCK_BOOKINGS))); 
+            // console.log("Filtering for USER_ROLES.ASSISTANT:", USER_ROLES.ASSISTANT);
 
             const assistantPendingRequests = MOCK_BOOKINGS.filter(
                 booking => booking.requestedByRole === USER_ROLES.ASSISTANT && booking.status === 'pending'
             );
 
-            console.log("Filtered assistantPendingRequests:", JSON.parse(JSON.stringify(assistantPendingRequests))); // Debug log
+            // console.log("Filtered assistantPendingRequests:", JSON.parse(JSON.stringify(assistantPendingRequests))); 
 
             if (requestsListContainer) {
                 if (assistantPendingRequests.length > 0) {
@@ -82,7 +82,7 @@
                         const timeSlot = MOCK_TIME_SLOTS.find(ts => ts.id === request.timeSlotId);
                         
                         const card = document.createElement('div');
-                        card.className = 'custom-card p-4 border rounded-md';
+                        card.className = 'custom-card p-4 border rounded-md shadow-sm'; // Added shadow-sm
                         
                         let equipmentNames = 'None';
                         if (request.equipmentIds && request.equipmentIds.length > 0) {
@@ -90,22 +90,22 @@
                         }
 
                         card.innerHTML = `
-                            <h3 class="custom-card-title text-lg font-semibold">${lab ? lab.name : 'Unknown Lab'} ${request.batchIdentifier ? `for ${request.batchIdentifier}`:''}</h3>
+                            <h3 class="text-lg font-semibold mb-1">${lab ? lab.name : 'Unknown Lab'} ${request.batchIdentifier ? `for ${request.batchIdentifier}`:''}</h3>
                             <p class="text-sm text-muted-foreground"><strong>Requested by:</strong> Assistant (${request.userId})</p>
-                            <p class="text-sm text-muted-foreground"><strong>Date:</strong> ${request.date}</p>
+                            <p class="text-sm text-muted-foreground"><strong>Date:</strong> ${formatDate(new Date(request.date))}</p> <!-- Ensure date formatting -->
                             <p class="text-sm text-muted-foreground"><strong>Time:</strong> ${timeSlot ? timeSlot.displayTime : 'Unknown Time'}</p>
                             <p class="text-sm text-muted-foreground"><strong>Purpose:</strong> ${request.purpose}</p>
                             <p class="text-sm text-muted-foreground"><strong>Equipment:</strong> ${equipmentNames}</p>
                             <p class="text-sm text-muted-foreground"><strong>Status:</strong> <span class="font-medium text-yellow-600">${request.status.toUpperCase()}</span></p>
-                            <div class="mt-2">
-                                <button type="button" class="button button-primary button-sm mr-2" onclick="approveRequest('${request.id}')">Approve</button>
+                            <div class="mt-3 flex gap-2"> <!-- Use flex and gap for button spacing -->
+                                <button type="button" class="button button-primary button-sm" onclick="approveRequest('${request.id}')">Approve</button>
                                 <button type="button" class="button button-secondary button-sm" onclick="rejectRequest('${request.id}')">Reject</button>
                             </div>
                         `;
                         requestsListContainer.appendChild(card);
                     });
                 } else {
-                    requestsListContainer.innerHTML = '<p>No pending Assistant booking requests at this time.</p>';
+                    requestsListContainer.innerHTML = '<p class="text-muted-foreground">No pending Assistant booking requests at this time.</p>';
                 }
             }
 
@@ -140,11 +140,13 @@
              if (confirm('Are you sure you want to reject this booking request?')) {
                 const booking = MOCK_BOOKINGS.find(b => b.id === bookingId);
                 if (booking) {
+                    // Instead of splicing, it might be better to mark as 'rejected' or filter out from view, 
+                    // but for this simple mock, splicing is okay.
                     const bookingIndex = MOCK_BOOKINGS.findIndex(b => b.id === bookingId);
                      if (bookingIndex > -1) {
                         MOCK_BOOKINGS.splice(bookingIndex, 1); 
                         saveMockBookings();
-                        alert('Request rejected.');
+                        alert('Request rejected and removed.');
                         window.location.reload();
                     }
                 }
