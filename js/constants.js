@@ -16,7 +16,7 @@ const NAV_LINKS = {
     { href: 'labs.html', label: 'Lab Availability', icon: 'flask-conical' },
     { href: 'admin_view_bookings.html', label: 'View All Bookings', icon: 'calendar-days' },
     { href: 'admin_assistant_requests.html', label: 'Assistant Requests', icon: 'clipboard-list' },
-    { href: 'admin_faculty_requests.html', label: 'Faculty Requests', icon: 'user-check' }, // Reinstated/Ensured
+    { href: 'admin_faculty_requests.html', label: 'Faculty Requests', icon: 'user-check' },
     { href: 'admin_run_algorithms.html', label: 'Run Algorithms', icon: 'brain-circuit' },
   ],
   [USER_ROLES.FACULTY]: [
@@ -89,19 +89,22 @@ function saveEquipment(equipment) {
     localStorage.setItem(MOCK_EQUIPMENT_STORAGE_KEY, JSON.stringify(equipment));
 }
 
+// Global cache for seat statuses, initialized once.
 let ALL_LAB_SEAT_STATUSES_CACHE; 
 
 function loadLabSeatStatuses() {
+    // If cache is already populated, return it.
     if (ALL_LAB_SEAT_STATUSES_CACHE && Object.keys(ALL_LAB_SEAT_STATUSES_CACHE).length > 0) {
       return ALL_LAB_SEAT_STATUSES_CACHE;
     }
+    // Otherwise, load from localStorage.
     const storedStatuses = localStorage.getItem(LAB_SEAT_STATUSES_STORAGE_KEY);
     ALL_LAB_SEAT_STATUSES_CACHE = storedStatuses ? JSON.parse(storedStatuses) : {};
     return ALL_LAB_SEAT_STATUSES_CACHE;
 }
 
-function saveLabSeatStatuses(statuses) { 
-    ALL_LAB_SEAT_STATUSES_CACHE = statuses; 
+function saveLabSeatStatuses(statuses) { // Function now accepts the statuses object
+    ALL_LAB_SEAT_STATUSES_CACHE = statuses; // Update the cache
     localStorage.setItem(LAB_SEAT_STATUSES_STORAGE_KEY, JSON.stringify(statuses));
 }
 
@@ -122,11 +125,13 @@ const MOCK_TIME_SLOTS = [
 const today = new Date();
 const tomorrow = new Date(today);
 tomorrow.setDate(today.getDate() + 1);
+const dayAfterTomorrow = new Date(today);
+dayAfterTomorrow.setDate(today.getDate() + 2);
 const yesterday = new Date(today);
 yesterday.setDate(today.getDate() - 1);
 
-function formatDate(dateObj) {
-    const d = new Date(dateObj); // Ensure it's a date object
+function formatDate(dateInput) { // Accepts date object or string
+    const d = new Date(dateInput);
     let month = '' + (d.getMonth() + 1);
     let day = '' + d.getDate();
     const year = d.getFullYear();
@@ -146,9 +151,14 @@ function initializeMockBookings() {
         MOCK_BOOKINGS = [
             { id: 'b1', labId: 'physics_lab_alpha', date: formatDate(today), timeSlotId: 'ts_0900_1000', userId: 'student1@example.com', purpose: 'Physics Experiment A', equipmentIds: ['eq_spectrometer_01'], status: 'booked', requestedByRole: USER_ROLES.STUDENT},
             { id: 'b3', labId: 'chemistry_lab_beta', date: formatDate(tomorrow), timeSlotId: 'ts_1400_1500', userId: 'faculty1@example.com', purpose: 'Chem 101 Class', equipmentIds: ['eq_microscope_01'], status: 'booked', requestedByRole: USER_ROLES.FACULTY},
-            { id: 'b4_assistant_pending', labId: 'computer_lab_gamma', date: formatDate(new Date(new Date().setDate(new Date().getDate() + 2))), timeSlotId: 'ts_1100_1200', userId: 'assistant@example.com', purpose: 'AI Project Work', equipmentIds: ['eq_pc_high_01'], status: 'pending', batchIdentifier: 'CSE Year 2 - Section A', requestedByRole: USER_ROLES.ASSISTANT },
+            { id: 'b4_assistant_pending_old', labId: 'computer_lab_gamma', date: formatDate(dayAfterTomorrow), timeSlotId: 'ts_1100_1200', userId: 'assistant@example.com', purpose: 'AI Project Work', equipmentIds: ['eq_pc_high_01'], status: 'pending', batchIdentifier: 'CSE Year 2 - Section A', requestedByRole: USER_ROLES.ASSISTANT },
             { id: 'b5_assistant_booked', labId: 'robotics_lab_zeta', date: formatDate(today), timeSlotId: 'ts_1000_1100', userId: 'assistant@example.com', purpose: 'Robotics Prep', equipmentIds: [], status: 'booked', batchIdentifier: 'Robotics Club', requestedByRole: USER_ROLES.ASSISTANT },
             { id: 'b5', labId: 'electronics_lab_delta', date: formatDate(yesterday), timeSlotId: 'ts_1500_1600', userId: 'student1@example.com', purpose: 'Circuit Design (Completed)', equipmentIds: ['eq_oscilloscope_01'], status: 'booked', requestedByRole: USER_ROLES.STUDENT },
+            // More dummy data for assistant requests
+            { id: 'b6_assistant_pending_new_1', labId: 'physics_lab_alpha', date: formatDate(tomorrow), timeSlotId: 'ts_1300_1400', userId: 'assistant_new@example.com', purpose: 'Special Physics Tutoring', equipmentIds: ['eq_spectrometer_01'], status: 'pending', batchIdentifier: 'Physics Honors Group', requestedByRole: USER_ROLES.ASSISTANT },
+            { id: 'b7_assistant_pending_new_2', labId: 'computer_lab_gamma', date: formatDate(dayAfterTomorrow), timeSlotId: 'ts_1500_1600', userId: 'assistant@example.com', purpose: 'Data Structures Workshop', equipmentIds: ['eq_pc_high_01', 'eq_projector_01'], status: 'pending', batchIdentifier: 'IT Year 1 - Section B', requestedByRole: USER_ROLES.ASSISTANT },
+            { id: 'b8_assistant_pending_new_3', labId: 'chemistry_lab_beta', date: formatDate(tomorrow), timeSlotId: 'ts_0800_0900', userId: 'another_assistant@example.com', purpose: 'Organic Chem Practicals', equipmentIds: [], status: 'pending', batchIdentifier: 'Chemistry Advanced', requestedByRole: USER_ROLES.ASSISTANT },
+
         ];
         saveMockBookings();
     }
@@ -178,25 +188,24 @@ const DEPARTMENTS = [
   'Other',
 ];
 
+// Expose to global window object for access in other JS files
 window.USER_ROLES = USER_ROLES;
 window.ROLES_ARRAY = ROLES_ARRAY;
 window.NAV_LINKS = NAV_LINKS;
 window.COMMON_NAV_LINKS = COMMON_NAV_LINKS;
-window.MOCK_LABS = loadLabs();
-window.MOCK_EQUIPMENT = loadEquipment();
+window.MOCK_LABS = loadLabs(); // Load labs from localStorage or initial set
+window.MOCK_EQUIPMENT = loadEquipment(); // Load equipment
 window.EQUIPMENT_STATUSES = EQUIPMENT_STATUSES;
 window.saveLabs = saveLabs;
 window.saveEquipment = saveEquipment;
 window.MOCK_TIME_SLOTS = MOCK_TIME_SLOTS;
-window.MOCK_BOOKINGS = MOCK_BOOKINGS; 
+window.MOCK_BOOKINGS = MOCK_BOOKINGS; // Uses initialized MOCK_BOOKINGS
 window.saveMockBookings = saveMockBookings;
 window.DAYS_OF_WEEK = DAYS_OF_WEEK;
 window.DEPARTMENTS = DEPARTMENTS;
-window.formatDate = formatDate;
-window.loadLabs = loadLabs;
-window.loadEquipment = loadEquipment;
+window.formatDate = formatDate; // Make formatDate globally available
+window.loadLabs = loadLabs; // Make loadLabs globally available
+window.loadEquipment = loadEquipment; // Make loadEquipment globally available
 window.LAB_SEAT_STATUSES_STORAGE_KEY = LAB_SEAT_STATUSES_STORAGE_KEY;
-window.loadLabSeatStatuses = loadLabSeatStatuses;
-window.saveLabSeatStatuses = saveLabSeatStatuses; 
-
-    
+window.loadLabSeatStatuses = loadLabSeatStatuses; // Expose for other scripts
+window.saveLabSeatStatuses = saveLabSeatStatuses; // Expose for other scripts
