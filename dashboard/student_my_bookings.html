@@ -59,8 +59,8 @@
         const token = localStorage.getItem('token');
 
         async function loadAndRenderMySchedule() {
-            if (!scheduleListContainer) {
-                // console.error("myScheduleListContainer not found!");
+            if (!scheduleListContainer || !window.API_BASE_URL) {
+                if (scheduleListContainer) scheduleListContainer.innerHTML = '<p class="error-message visible">Page setup error.</p>';
                 return;
             }
             scheduleListContainer.innerHTML = '<p>Loading your schedule...</p>';
@@ -70,56 +70,55 @@
                      headers: { 'Authorization': `Bearer ${token}` }
                 });
                  if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.msg || `Failed to fetch your schedule: ${response.status}`);
+                    const errorData = await response.json().catch(() => ({ msg: `Server error: ${response.status}` }));
+                    throw new Error(errorData.msg || `Failed to fetch your schedule`);
                 }
                 const userBookings = await response.json();
-
 
                 if (userBookings.length > 0) {
                     scheduleListContainer.innerHTML = ''; 
                     userBookings.forEach(booking => {
                         const card = document.createElement('div');
-                        card.className = 'custom-card p-4 border rounded-md shadow-sm';
+                        card.className = 'custom-card p-4 border rounded-md shadow-sm mb-3';
                         
                         let equipmentNames = 'None';
-                        if (booking.equipmentIds && booking.equipmentIds.length > 0) {
+                        if (booking.equipmentIds && String(booking.equipmentIds).length > 2) {
                             try {
                                 const eqIds = JSON.parse(booking.equipmentIds);
-                                equipmentNames = eqIds.join(', ');
-                            } catch (e) { equipmentNames = booking.equipmentIds; }
+                                if (Array.isArray(eqIds) && eqIds.length > 0) {
+                                     equipmentNames = eqIds.join(', ');
+                                }
+                            } catch (e) { equipmentNames = String(booking.equipmentIds); }
                         }
                         
-                        const timeSlotObj = window.MOCK_TIME_SLOTS.find(ts => ts.id === booking.timeSlotId);
+                        const timeSlotObj = (window.MOCK_TIME_SLOTS && booking.timeSlotId) ? window.MOCK_TIME_SLOTS.find(ts => ts.id === booking.timeSlotId) : null;
                         const isPast = timeSlotObj ? new Date(booking.date + 'T' + timeSlotObj.startTime) < new Date() : false;
 
                         let statusColorClass = 'text-gray-600';
                         if (booking.status === 'booked') statusColorClass = isPast ? 'text-gray-500' : 'text-green-600';
                         else if (booking.status === 'pending' || booking.status === 'pending-admin-approval') statusColorClass = 'text-yellow-600';
-                        else if (['rejected', 'cancelled'].includes(booking.status)) statusColorClass = 'text-red-600';
-
+                        else if (['rejected', 'cancelled', 'rejected-by-admin'].includes(booking.status)) statusColorClass = 'text-red-600';
 
                         card.innerHTML = `
                             <h3 class="text-lg font-semibold mb-1 ${isPast ? 'text-gray-500' : ''}">${booking.labName || 'Unknown Lab'} ${booking.batchIdentifier ? `(${booking.batchIdentifier})` : ''}</h3>
-                            <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Date:</strong> ${window.formatDate(new Date(booking.date))}</p>
-                            <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Time:</strong> ${timeSlotObj?.displayTime || booking.timeSlotId}</p>
-                            <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Purpose:</strong> ${booking.purpose}</p>
+                            <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Date:</strong> ${booking.date ? window.formatDate(new Date(booking.date)) : 'N/A'}</p>
+                            <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Time:</strong> ${timeSlotObj?.displayTime || booking.timeSlotId || 'N/A'}</p>
+                            <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Purpose:</strong> ${booking.purpose || 'N/A'}</p>
                             <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Status:</strong> 
                                 <span class="font-medium ${statusColorClass}">
-                                    ${booking.status.toUpperCase().replace(/-/g,' ')} ${isPast && booking.status === 'booked' ? '(Completed)' : ''}
+                                    ${booking.status ? booking.status.toUpperCase().replace(/-/g,' ') : 'N/A'} ${isPast && booking.status === 'booked' ? '(Completed)' : ''}
                                 </span>
                             </p>
                             <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Equipment:</strong> ${equipmentNames}</p>
-                             ${ (booking.requestedByRole === window.USER_ROLES.ASSISTANT && (booking.status === 'booked' || booking.status === 'pending')) ? `<button type="button" class="button button-outline button-sm mt-2" onclick="cancelMyBooking('${booking.id}')">Cancel Request</button>` : ''}
-
+                            ${ (booking.requestedByRole === window.USER_ROLES.ASSISTANT && (booking.status === 'booked' || booking.status === 'pending')) ? `<button type="button" class="button button-outline button-sm mt-2" onclick="cancelAssistantBooking('${booking.id}')">Cancel Request</button>` : ''}
                         `;
+                        // Student role doesn't get a cancel button here
                         scheduleListContainer.appendChild(card);
                     });
                 } else {
                     scheduleListContainer.innerHTML = '<p class="text-muted-foreground">You have no scheduled lab sessions or pending requests.</p>';
                 }
             } catch (error) {
-                // console.error("Error fetching user schedule:", error);
                 scheduleListContainer.innerHTML = `<p class="error-message visible">Error loading your schedule: ${error.message}</p>`;
             }
 
@@ -127,7 +126,7 @@
         }
         
         document.addEventListener('DOMContentLoaded', async () => {
-            // Students and Assistants can view their schedules here
+            const currentUserRole = window.getCurrentUserRole();
             if (!window.roleGuard([window.USER_ROLES.STUDENT, window.USER_ROLES.ASSISTANT])) return; 
             
             window.initializeDashboard();
@@ -135,7 +134,9 @@
             await loadAndRenderMySchedule();
         });
         
-        async function cancelMyBooking(bookingId) { // Renamed to avoid conflict with admin page
+        async function cancelAssistantBooking(bookingId) { // Renamed to be specific for Assistants
+            if (window.getCurrentUserRole() !== window.USER_ROLES.ASSISTANT) return; // Extra check
+
             if (confirm('Are you sure you want to cancel this booking/request?')) {
                 try {
                     const response = await fetch(`${window.API_BASE_URL}/bookings/${bookingId}`, {
@@ -150,8 +151,7 @@
                         alert(`Failed to cancel: ${result.msg || 'Server error'}`);
                     }
                 } catch (error) {
-                    // console.error('Error cancelling booking/request:', error);
-                    alert('An error occurred during cancellation.');
+                    alert(`An error occurred during cancellation: ${error.message}`);
                 }
             }
         }

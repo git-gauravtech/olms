@@ -19,7 +19,7 @@ router.get('/requests/assistant', [auth, isAdmin], async (req, res) => {
         `);
         res.json(requests);
     } catch (err) {
-        console.error(err.message);
+        console.error('Error fetching assistant requests:', err.message);
         res.status(500).send('Server Error: Could not fetch assistant requests');
     }
 });
@@ -39,7 +39,7 @@ router.get('/requests/faculty', [auth, isAdmin], async (req, res) => {
         `);
         res.json(requests);
     } catch (err) {
-        console.error(err.message);
+        console.error('Error fetching faculty admin requests:', err.message);
         res.status(500).send('Server Error: Could not fetch faculty admin requests');
     }
 });
@@ -50,7 +50,7 @@ router.get('/requests/faculty', [auth, isAdmin], async (req, res) => {
 // @access  Private (Admin only)
 router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
     const { algorithmName } = req.params;
-    console.log(`Admin triggered algorithm: ${algorithmName}`);
+    // console.log(`Admin triggered algorithm: ${algorithmName}`);
     // Placeholder for actual C++ algorithm execution via child_process or other means
     try {
         // Simulate processing time
@@ -73,7 +73,7 @@ router.get('/users', [auth, isAdmin], async (req, res) => {
         // Exclude passwordHash from the selection for security
         const [users] = await pool.query('SELECT id, fullName, email, role, department, createdAt FROM users ORDER BY fullName ASC');
         res.json(users);
-    } catch (err)
+    } catch (err) {
         console.error('Error fetching users in /api/admin/users:', err.message);
         res.status(500).send('Server Error: Could not fetch users');
     }
@@ -86,3 +86,5 @@ router.get('/users', [auth, isAdmin], async (req, res) => {
 
 
 module.exports = router;
+
+    

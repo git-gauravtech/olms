@@ -10,13 +10,13 @@ async function initializeBookingForm() {
     const formSubmissionMessageEl = document.getElementById('formSubmissionMessage'); 
     const token = localStorage.getItem('token');
 
-    const currentUserRole = getCurrentUserRole();
+    const currentUserRole = window.getCurrentUserRole();
     if (!currentUserRole) {
         if(formSubmissionMessageEl) showFormSubmissionMessage('Error: User role not found. Cannot initialize form.', true, formSubmissionMessageEl);
         return;
     }
 
-    if (batchIdentifierGroup) { // Ensure element exists before trying to style
+    if (batchIdentifierGroup) {
         if (currentUserRole === window.USER_ROLES.ASSISTANT) {
             batchIdentifierGroup.style.display = 'block'; 
             if (batchIdentifierInput) batchIdentifierInput.required = true;
@@ -25,7 +25,6 @@ async function initializeBookingForm() {
             if (batchIdentifierInput) batchIdentifierInput.required = false;
         }
     }
-
 
     try {
         // Populate Labs
@@ -44,7 +43,7 @@ async function initializeBookingForm() {
         }
 
         // Populate Time Slots
-        if (timeSlotIdSelect && window.MOCK_TIME_SLOTS) {
+        if (timeSlotIdSelect && window.MOCK_TIME_SLOTS) { // MOCK_TIME_SLOTS are constants
             timeSlotIdSelect.innerHTML = '<option value="">Select Time Slot</option>';
             window.MOCK_TIME_SLOTS.forEach(slot => {
                 const option = document.createElement('option');
@@ -74,10 +73,9 @@ async function initializeBookingForm() {
                     checkbox.name = 'equipment';
                     checkbox.className = 'mr-2 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500';
 
-
                     const label = document.createElement('label');
                     label.htmlFor = `equip_${equipment.id}`;
-                    label.textContent = equipment.name;
+                    label.textContent = `${equipment.name} (${equipment.type})`;
                     label.className = "text-sm";
                     
                     div.appendChild(checkbox);
@@ -90,12 +88,10 @@ async function initializeBookingForm() {
         if(formSubmissionMessageEl) showFormSubmissionMessage(`Error initializing form: ${error.message}`, true, formSubmissionMessageEl);
     }
 
-
     const urlParams = new URLSearchParams(window.location.search);
     if (labIdSelect && urlParams.has('labId')) labIdSelect.value = urlParams.get('labId');
     if (bookingDateInput && urlParams.has('date')) bookingDateInput.value = urlParams.get('date');
     if (timeSlotIdSelect && urlParams.has('timeSlotId')) timeSlotIdSelect.value = urlParams.get('timeSlotId');
-
 
     if (bookingDateInput) {
       bookingDateInput.min = window.formatDate(new Date());
@@ -104,7 +100,6 @@ async function initializeBookingForm() {
     if (bookingForm) {
         bookingForm.addEventListener('submit', async function(event) {
             event.preventDefault();
-            // console.log("Booking form submitted by role:", currentUserRole);
             clearFormErrors(bookingForm);
             if(formSubmissionMessageEl) showFormSubmissionMessage('', false, formSubmissionMessageEl); 
 
@@ -139,17 +134,16 @@ async function initializeBookingForm() {
                 date: bookingDate,
                 timeSlotId: timeSlotId,
                 purpose: purpose,
-                equipmentIds: selectedEquipment, 
+                equipmentIds: selectedEquipment.length > 0 ? selectedEquipment : null, 
                 batchIdentifier: currentUserRole === window.USER_ROLES.ASSISTANT ? batchId : null,
             };
-            console.log("Frontend: New booking data to send:", JSON.parse(JSON.stringify(bookingData)));
+            // console.log("Frontend: New booking data to send:", JSON.parse(JSON.stringify(bookingData)));
 
             const submitButton = bookingForm.querySelector('button[type="submit"]');
             const originalButtonHtml = submitButton.innerHTML;
             submitButton.disabled = true;
             submitButton.innerHTML = `<i data-lucide="loader-2" style="animation: spin 1s linear infinite; display: inline-block; margin-right: 0.5rem;"></i> Submitting...`;
             if(window.lucide) window.lucide.createIcons();
-
 
             try {
                 const response = await fetch(`${window.API_BASE_URL}/bookings`, {
@@ -164,7 +158,6 @@ async function initializeBookingForm() {
                 const result = await response.json();
 
                 if (response.ok) {
-                    // To get labName, we might need to fetch labs if not already available or rely on result from backend
                     const labNameFromResult = result.labName || (labIdSelect.options[labIdSelect.selectedIndex]?.textContent.split(' (')[0] || 'Selected Lab');
                     
                     const successMessage = currentUserRole === window.USER_ROLES.FACULTY 
@@ -179,7 +172,6 @@ async function initializeBookingForm() {
                     }
                     if (bookingDateInput) bookingDateInput.min = window.formatDate(new Date()); 
                     
-                    // Clear query params from URL if any
                     if (history.pushState) {
                         const newURL = window.location.pathname; 
                         history.pushState({path:newURL}, '', newURL);
@@ -201,7 +193,6 @@ async function initializeBookingForm() {
     const checkAvailabilityBtn = document.getElementById('checkAvailabilityBtn');
     if (checkAvailabilityBtn) {
         checkAvailabilityBtn.addEventListener('click', () => {
-            // Navigate to labs.html, potentially with current selections as query params
             const labId = labIdSelect ? labIdSelect.value : '';
             const date = bookingDateInput ? bookingDateInput.value : '';
             const timeSlot = timeSlotIdSelect ? timeSlotIdSelect.value : '';
@@ -214,7 +205,6 @@ async function initializeBookingForm() {
             window.location.href = `labs.html${params.toString() ? '?' + params.toString() : ''}`;
         });
     }
-
 
     function showError(elementId, message) {
         const errorElement = document.getElementById(elementId);

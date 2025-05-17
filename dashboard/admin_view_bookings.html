@@ -14,7 +14,7 @@
             <div class="sidebar-header">
                 <a href="admin.html" class="sidebar-header-link" id="dashboardHomeLink">
                     <i data-lucide="atom"></i>
-                    <span class="sidebar-title">Optimized Lab Management</span>
+                    <span class="sidebar-title">Optimized Lab Management System</span>
                 </a>
             </div>
             <ul class="sidebar-nav" id="sidebarNav">
@@ -84,38 +84,34 @@
         const token = localStorage.getItem('token');
 
         let allBookingsData = []; 
-        let allLabsData = []; // To store lab names for display
+        let allLabsData = []; 
 
         async function fetchData() {
-            if (!bookingsListContainer) return;
+            if (!bookingsListContainer || !window.API_BASE_URL) {
+                if (bookingsListContainer) bookingsListContainer.innerHTML = '<p class="error-message visible">Page setup error.</p>';
+                return;
+            }
             bookingsListContainer.innerHTML = '<p>Loading bookings...</p>';
             try {
-                if (!window.API_BASE_URL) {
-                    throw new Error("API_BASE_URL is not defined.");
-                }
                 const response = await fetch(`${window.API_BASE_URL}/bookings`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (!response.ok) {
-                     const errorData = await response.json();
-                     throw new Error(errorData.msg || `Failed to fetch bookings: ${response.status}`);
+                     const errorData = await response.json().catch(() => ({ msg: `Server error: ${response.status}` }));
+                     throw new Error(errorData.msg || `Failed to fetch bookings`);
                 }
                 allBookingsData = await response.json();
-                // console.log("Fetched All Bookings:", allBookingsData);
                 
-                // Only populate filters if they haven't been populated before or if data changes significantly
                 if (filterLabSelect.options.length <= 1) await populateFilters(); 
                 
                 renderBookings();
             } catch (error) {
-                // console.error("Error fetching all bookings:", error);
                 bookingsListContainer.innerHTML = `<p class="error-message visible">Error loading bookings: ${error.message}</p>`;
             }
         }
 
         async function populateFilters() {
-            // Populate Lab Filter
-            if (filterLabSelect) {
+            if (filterLabSelect && window.API_BASE_URL) {
                 try {
                     const labsResponse = await fetch(`${window.API_BASE_URL}/labs`, { headers: { 'Authorization': `Bearer ${token}` }});
                     if (!labsResponse.ok) throw new Error('Failed to fetch labs for filter');
@@ -128,15 +124,20 @@
                         filterLabSelect.appendChild(option);
                     });
                 } catch (e) {
-                    // console.error("Error populating lab filter:", e);
                     filterLabSelect.innerHTML = '<option value="">Error loading labs</option>';
                 }
             }
 
-            // Populate Status Filter
-            if (filterStatusSelect) {
+            if (filterStatusSelect && window.BOOKING_STATUSES_ARRAY) { // Assuming BOOKING_STATUSES_ARRAY is globally available
                 filterStatusSelect.innerHTML = '<option value="">All Statuses</option>';
-                const predefinedStatuses = ['pending', 'booked', 'rejected', 'cancelled', 'pending-admin-approval', 'approved-by-admin', 'rejected-by-admin']; 
+                window.BOOKING_STATUSES_ARRAY.sort().forEach(status => {
+                    const option = document.createElement('option');
+                    option.value = status;
+                    option.textContent = status.charAt(0).toUpperCase() + status.slice(1).replace(/-/g, ' ');
+                    filterStatusSelect.appendChild(option);
+                });
+            } else if (filterStatusSelect) { // Fallback if global array not present
+                 const predefinedStatuses = ['pending', 'booked', 'rejected', 'cancelled', 'pending-admin-approval', 'approved-by-admin', 'rejected-by-admin']; 
                 predefinedStatuses.sort().forEach(status => {
                     const option = document.createElement('option');
                     option.value = status;
@@ -163,11 +164,10 @@
             });
             
             filteredBookings.sort((a,b) => {
-                 const dateA = new Date(a.date + 'T' + (window.MOCK_TIME_SLOTS.find(ts=>ts.id===a.timeSlotId)?.startTime || '00:00'));
-                 const dateB = new Date(b.date + 'T' + (window.MOCK_TIME_SLOTS.find(ts=>ts.id===b.timeSlotId)?.startTime || '00:00'));
+                 const dateA = new Date(a.date + 'T' + ((window.MOCK_TIME_SLOTS && window.MOCK_TIME_SLOTS.find(ts=>ts.id===a.timeSlotId)?.startTime) || '00:00'));
+                 const dateB = new Date(b.date + 'T' + ((window.MOCK_TIME_SLOTS && window.MOCK_TIME_SLOTS.find(ts=>ts.id===b.timeSlotId)?.startTime) || '00:00'));
                  return dateB - dateA; 
             });
-
 
             if (filteredBookings.length === 0) {
                 bookingsListContainer.innerHTML = '<p class="text-muted-foreground">No bookings match the current filters.</p>';
@@ -179,11 +179,13 @@
                 card.className = 'custom-card p-4 border rounded-md shadow-sm mb-3'; 
 
                 let equipmentNames = 'None';
-                if (booking.equipmentIds && booking.equipmentIds.length > 0) {
+                if (booking.equipmentIds && String(booking.equipmentIds).length > 2) { // Check if JSON string is not just '[]' or null
                      try {
                         const eqIds = JSON.parse(booking.equipmentIds);
-                        equipmentNames = eqIds.join(', '); 
-                    } catch (e) { equipmentNames = booking.equipmentIds; } // Show as is if not parsable JSON
+                         if (Array.isArray(eqIds) && eqIds.length > 0) {
+                            equipmentNames = eqIds.join(', '); 
+                        }
+                    } catch (e) { equipmentNames = String(booking.equipmentIds); } 
                 }
                 
                 let statusColorClass = 'text-gray-600';
@@ -191,25 +193,24 @@
                 else if (booking.status === 'pending' || booking.status === 'pending-admin-approval') statusColorClass = 'text-yellow-600';
                 else if (['rejected', 'cancelled', 'rejected-by-admin'].includes(booking.status)) statusColorClass = 'text-red-600';
 
-
                 card.innerHTML = `
                     <div class="flex justify-between items-start">
                         <div>
                             <h3 class="text-lg font-semibold mb-1">${booking.labName || 'Unknown Lab'} ${booking.batchIdentifier ? `for ${booking.batchIdentifier}` : ''}</h3>
-                            <p class="text-sm text-muted-foreground"><strong>User:</strong> ${booking.userName || booking.userId} (${booking.userEmail || 'N/A'}) - Role: ${booking.requestedByRole || 'N/A'}</p>
+                            <p class="text-sm text-muted-foreground"><strong>User:</strong> ${booking.userName || 'N/A'} (${booking.userEmail || 'N/A'}) - Role: ${booking.requestedByRole || 'N/A'}</p>
                             ${booking.date ? `<p class="text-sm text-muted-foreground"><strong>Date:</strong> ${window.formatDate(new Date(booking.date))}</p>` : ''}
-                            ${booking.timeSlotId ? `<p class="text-sm text-muted-foreground"><strong>Time:</strong> ${window.MOCK_TIME_SLOTS.find(ts=>ts.id === booking.timeSlotId)?.displayTime || booking.timeSlotId}</p>` : ''}
+                            ${booking.timeSlotId ? `<p class="text-sm text-muted-foreground"><strong>Time:</strong> ${ (window.MOCK_TIME_SLOTS && booking.timeSlotId) ? (window.MOCK_TIME_SLOTS.find(ts=>ts.id === booking.timeSlotId)?.displayTime || booking.timeSlotId) : (booking.timeSlotId || 'N/A')}</p>` : ''}
                         </div>
                         <div class="flex flex-col gap-2 items-end">
-                            <p class="text-sm text-muted-foreground"><strong>Status:</strong> <span class="font-medium ${statusColorClass}">${booking.status.toUpperCase().replace(/-/g, ' ')}</span></p>
+                            <p class="text-sm text-muted-foreground"><strong>Status:</strong> <span class="font-medium ${statusColorClass}">${booking.status ? booking.status.toUpperCase().replace(/-/g, ' ') : 'N/A'}</span></p>
                             <button type="button" class="button button-outline button-sm" onclick="modifyBooking('${booking.id}')">Modify (Placeholder)</button>
                             ${(booking.status !== 'cancelled' && booking.status !== 'rejected' && booking.status !== 'rejected-by-admin') ? `
                             <button type="button" class="button button-secondary button-sm" onclick="cancelBooking('${booking.id}')">Cancel</button>
                             ` : ''}
                         </div>
                     </div>
-                    <p class="text-sm text-muted-foreground mt-2"><strong>Purpose/Details:</strong> ${booking.purpose}</p>
-                    ${booking.equipmentIds && booking.equipmentIds.length > 0 ? `<p class="text-sm text-muted-foreground"><strong>Equipment:</strong> ${equipmentNames}</p>` : ''}
+                    <p class="text-sm text-muted-foreground mt-2"><strong>Purpose/Details:</strong> ${booking.purpose || 'N/A'}</p>
+                    ${booking.equipmentIds && String(booking.equipmentIds).length > 2 ? `<p class="text-sm text-muted-foreground"><strong>Equipment:</strong> ${equipmentNames}</p>` : ''}
                     ${booking.submittedDate ? `<p class="text-xs text-gray-500 mt-1">Submitted: ${window.formatDate(new Date(booking.submittedDate))}</p>` : ''}
                 `;
                 bookingsListContainer.appendChild(card);
@@ -250,8 +251,7 @@
                         alert(`Failed to cancel booking: ${result.msg || 'Server error'}`);
                     }
                 } catch (error) {
-                    // console.error('Error cancelling booking:', error);
-                    alert('An error occurred while cancelling the booking.');
+                    alert(`An error occurred while cancelling the booking: ${error.message}`);
                 }
             }
         }
@@ -261,7 +261,7 @@
             window.initializeDashboard();
             window.setDashboardHomeLink();
             
-            await fetchData();
+            await fetchData(); // This will populate filters and render bookings
             setupEventListeners();
 
             if (window.lucide) window.lucide.createIcons();

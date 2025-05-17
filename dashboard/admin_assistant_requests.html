@@ -59,8 +59,8 @@
         const token = localStorage.getItem('token');
 
         async function loadAndRenderAssistantRequests() {
-            if (!requestsListContainer) {
-                // console.error("assistantRequestsListContainer not found!");
+            if (!requestsListContainer || !window.API_BASE_URL) {
+                if (requestsListContainer) requestsListContainer.innerHTML = '<p class="error-message visible">Page setup error.</p>';
                 return;
             }
             requestsListContainer.innerHTML = '<p>Loading Assistant requests...</p>';
@@ -70,39 +70,40 @@
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.msg || `Failed to fetch assistant requests: ${response.status}`);
+                    const errorData = await response.json().catch(() => ({ msg: `Server error: ${response.status}` }));
+                    throw new Error(errorData.msg || `Failed to fetch assistant requests`);
                 }
                 const assistantPendingRequests = await response.json();
-                // console.log("Fetched Assistant Pending Requests:", assistantPendingRequests);
-
+                
                 if (assistantPendingRequests.length > 0) {
                     requestsListContainer.innerHTML = ''; 
                     assistantPendingRequests.forEach(request => {
                         const card = document.createElement('div');
-                        card.className = 'custom-card p-4 border rounded-md shadow-sm';
+                        card.className = 'custom-card p-4 border rounded-md shadow-sm mb-3';
                         
                         let equipmentNames = 'None';
                         if (request.equipmentIds && request.equipmentIds.length > 0) {
                             try {
-                                // equipmentIds from backend is already a JSON string
                                 const eqIds = JSON.parse(request.equipmentIds);
-                                equipmentNames = eqIds.join(', '); // Placeholder, ideally map to names
+                                if (Array.isArray(eqIds)) { // Check if it's an array before trying to join
+                                    equipmentNames = eqIds.join(', ') || 'None specified'; 
+                                } else {
+                                    equipmentNames = String(eqIds); // Fallback if not an array
+                                }
                             } catch (e) {
-                                // console.warn("Could not parse equipmentIds for request:", request.id, request.equipmentIds);
-                                equipmentNames = request.equipmentIds; // Show as is if not parsable
+                                equipmentNames = String(request.equipmentIds); // Show as is if not parsable
                             }
                         }
 
                         card.innerHTML = `
                             <h3 class="text-lg font-semibold mb-1">${request.labName || 'Unknown Lab'} ${request.batchIdentifier ? `for ${request.batchIdentifier}`:''}</h3>
-                            <p class="text-sm text-muted-foreground"><strong>Requested by:</strong> ${request.userName} (${request.userEmail})</p>
-                            <p class="text-sm text-muted-foreground"><strong>Date:</strong> ${window.formatDate(new Date(request.date))}</p>
-                            <p class="text-sm text-muted-foreground"><strong>Time:</strong> ${window.MOCK_TIME_SLOTS.find(ts => ts.id === request.timeSlotId)?.displayTime || request.timeSlotId}</p>
-                            <p class="text-sm text-muted-foreground"><strong>Purpose:</strong> ${request.purpose}</p>
+                            <p class="text-sm text-muted-foreground"><strong>Requested by:</strong> ${request.userName || 'N/A'} (${request.userEmail || 'N/A'})</p>
+                            <p class="text-sm text-muted-foreground"><strong>Date:</strong> ${request.date ? window.formatDate(new Date(request.date)) : 'N/A'}</p>
+                            <p class="text-sm text-muted-foreground"><strong>Time:</strong> ${ (window.MOCK_TIME_SLOTS && request.timeSlotId) ? (window.MOCK_TIME_SLOTS.find(ts => ts.id === request.timeSlotId)?.displayTime || request.timeSlotId) : (request.timeSlotId || 'N/A')}</p>
+                            <p class="text-sm text-muted-foreground"><strong>Purpose:</strong> ${request.purpose || 'N/A'}</p>
                             <p class="text-sm text-muted-foreground"><strong>Equipment:</strong> ${equipmentNames}</p>
-                            <p class="text-sm text-muted-foreground"><strong>Status:</strong> <span class="font-medium text-yellow-600">${request.status.toUpperCase().replace(/-/g, ' ')}</span></p>
-                             <p class="text-xs text-gray-500 mt-1">Submitted: ${window.formatDate(new Date(request.submittedDate))}</p>
+                            <p class="text-sm text-muted-foreground"><strong>Status:</strong> <span class="font-medium text-yellow-600">${request.status ? request.status.toUpperCase().replace(/-/g, ' ') : 'N/A'}</span></p>
+                             <p class="text-xs text-gray-500 mt-1">Submitted: ${request.submittedDate ? window.formatDate(new Date(request.submittedDate)) : 'N/A'}</p>
                             <div class="mt-3 flex gap-2">
                                 <button type="button" class="button button-primary button-sm" onclick="handleRequestAction(${request.id}, 'booked')">Approve</button>
                                 <button type="button" class="button button-secondary button-sm" onclick="handleRequestAction(${request.id}, 'rejected')">Reject</button>
@@ -115,7 +116,6 @@
                 }
 
             } catch (error) {
-                // console.error("Error loading assistant requests:", error);
                 requestsListContainer.innerHTML = `<p class="error-message visible">Error loading requests: ${error.message}</p>`;
             }
             if (window.lucide) window.lucide.createIcons();
@@ -150,8 +150,7 @@
                     alert(`Failed to ${actionText} request: ${result.msg || 'Server error'}`);
                 }
             } catch (error) {
-                // console.error(`Error ${actionText}ing request:`, error);
-                alert(`An error occurred while ${actionText}ing the request.`);
+                alert(`An error occurred while ${actionText}ing the request: ${error.message}`);
             }
         }
     </script>
