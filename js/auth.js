@@ -28,12 +28,14 @@ async function handleLogin(event) {
 
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
-    const roleInput = document.getElementById('role');
-    const loginButton = document.querySelector('#loginForm button[type="submit"]'); 
+    // Role input removed
+    const loginButton = document.querySelector('#loginForm button[type="submit"]');
+    const generalErrorElement = document.getElementById('generalLoginError');
 
-    if (!emailInput || !passwordInput || !roleInput || !loginButton) {
+
+    if (!emailInput || !passwordInput || !loginButton) {
         // console.error("Login form elements not found!");
-        showError('roleError', 'Login form elements missing. Please refresh.');
+        showError('generalLoginError', 'Login form elements missing. Please refresh.');
         return;
     }
     
@@ -45,9 +47,9 @@ async function handleLogin(event) {
 
     const email = emailInput.value;
     const password = passwordInput.value;
-    const role = roleInput.value;
+    // Role from form removed
 
-    // console.log("Login attempt:", { email, role });
+    // console.log("Login attempt:", { email }); // Role removed from log
 
     let isValid = true;
     if (!email) {
@@ -61,10 +63,7 @@ async function handleLogin(event) {
         showError('passwordError', 'Password is required.');
         isValid = false;
     }
-    if (!role) {
-        showError('roleError', 'Please select a role.');
-        isValid = false;
-    }
+    // Role validation removed
 
     if (!isValid) {
         // console.log("Login validation failed on frontend.");
@@ -76,7 +75,7 @@ async function handleLogin(event) {
 
     if (!window.API_BASE_URL) {
         // console.error("API_BASE_URL is not defined. Cannot make API call.");
-        showError('roleError', "Configuration error: API URL missing.");
+        showError('generalLoginError', "Configuration error: API URL missing.");
         loginButton.disabled = false;
         loginButton.innerHTML = originalButtonText;
         if (window.lucide) window.lucide.createIcons();
@@ -89,7 +88,7 @@ async function handleLogin(event) {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ email, password, role }),
+            body: JSON.stringify({ email, password }), // Role removed from body
         });
 
         const data = await response.json();
@@ -97,25 +96,25 @@ async function handleLogin(event) {
         if (response.ok) {
             // console.log("Login successful from backend:", data);
             localStorage.setItem('token', data.token); 
-            localStorage.setItem('userRole', data.user.role);
+            localStorage.setItem('userRole', data.user.role); // Role from backend response
             localStorage.setItem('userEmail', data.user.email);
             localStorage.setItem('userName', data.user.name);
-            localStorage.setItem('userId', data.user.id); // Store user ID
+            localStorage.setItem('userId', data.user.id);
             localStorage.setItem('userDepartment', data.user.department || '');
             
             const currentUserRoleConst = window.USER_ROLES; 
             if (!currentUserRoleConst) {
                  // console.error("CRITICAL ERROR: window.USER_ROLES not defined on frontend!");
-                 showError('roleError', 'Frontend configuration error. Cannot redirect.');
+                 showError('generalLoginError', 'Frontend configuration error. Cannot redirect.');
                  loginButton.disabled = false;
                  loginButton.innerHTML = originalButtonText;
                  if (window.lucide) window.lucide.createIcons();
                  return;
             }
-            // console.log("Alert shown. Current role for switch:", data.user.role);
+            // console.log("Role from backend for redirection:", data.user.role);
             // console.log("USER_ROLES for comparison:", currentUserRoleConst);
 
-            switch (data.user.role) {
+            switch (data.user.role) { // Use role from backend data
                 case currentUserRoleConst.ADMIN:
                     // console.log("Redirecting to Admin dashboard...");
                     window.location.href = 'dashboard/admin.html';
@@ -134,15 +133,15 @@ async function handleLogin(event) {
                     break;
                 default:
                     // console.error("Login: No matching role for redirection. Role from backend:", data.user.role);
-                    showError('roleError', `Invalid role (${data.user.role}) received from server. Cannot redirect.`);
+                    showError('generalLoginError', `Invalid role (${data.user.role}) received from server. Cannot redirect.`);
             }
         } else {
             // console.error("Login failed from backend:", data);
-            showError('roleError', data.msg || 'Login failed. Please check your credentials and role.');
+            showError('generalLoginError', data.msg || 'Login failed. Please check your credentials.');
         }
     } catch (error) {
         // console.error('Login request failed:', error);
-        showError('roleError', 'An error occurred during login. Could not connect to server.');
+        showError('generalLoginError', 'An error occurred during login. Could not connect to server.');
     } finally {
         loginButton.disabled = false;
         loginButton.innerHTML = originalButtonText;
@@ -154,6 +153,7 @@ async function handleSignup(event) {
     event.preventDefault();
     clearErrors();
     const signupButton = document.getElementById('signupButton');
+    const generalErrorElement = document.getElementById('generalSignupError'); // Assuming you might add this
     if (!signupButton) return;
 
     const originalButtonText = signupButton.innerHTML;
@@ -199,7 +199,7 @@ async function handleSignup(event) {
     
     if (!window.API_BASE_URL) {
         // console.error("API_BASE_URL is not defined. Cannot make API call.");
-        showError('roleError', "Configuration error: API URL missing.");
+        showError(generalErrorElement ? 'generalSignupError' : 'roleError', "Configuration error: API URL missing.");
         signupButton.disabled = false;
         signupButton.innerHTML = originalButtonText;
         if (window.lucide) window.lucide.createIcons();
@@ -218,11 +218,11 @@ async function handleSignup(event) {
             alert(`Account Created! ${data.msg || `Welcome, ${fullName}! Please login.`}`);
             window.location.href = 'index.html'; 
         } else {
-            showError('roleError', data.msg || 'Signup failed. Please try again.'); 
+            showError(generalErrorElement ? 'generalSignupError' : 'roleError', data.msg || 'Signup failed. Please try again.'); 
         }
     } catch (error) {
         // console.error('Signup request failed:', error);
-        showError('roleError', 'An error occurred during signup. Could not connect to server.');
+        showError(generalErrorElement ? 'generalSignupError' : 'roleError', 'An error occurred during signup. Could not connect to server.');
     } finally {
         signupButton.disabled = false;
         signupButton.innerHTML = originalButtonText;
@@ -260,14 +260,13 @@ function showError(elementId, message) {
         errorElement.classList.add('visible');
     } else {
         // Fallback if specific error element isn't found
-        const generalErrorArea = document.getElementById('generalAuthError'); // Assuming a general error div might exist
+        const generalErrorArea = document.getElementById('generalLoginError') || document.getElementById('generalSignupError');
         if (generalErrorArea) {
             generalErrorArea.textContent = message;
             generalErrorArea.classList.add('visible');
         } else {
             // console.warn(`Error element with ID '${elementId}' not found. Message: ${message}`);
-            // As a last resort, you might alert, but it's generally disruptive.
-            // alert(message);
+            alert(message); // Fallback to alert if no designated error area
         }
     }
 }
@@ -278,11 +277,15 @@ function clearErrors() {
         el.textContent = '';
         el.classList.remove('visible');
     });
-    const generalErrorArea = document.getElementById('generalAuthError');
-    if (generalErrorArea) {
-        generalErrorArea.textContent = '';
-        generalErrorArea.classList.remove('visible');
+    // Clear general error areas if they exist
+    const generalLoginError = document.getElementById('generalLoginError');
+    if (generalLoginError) {
+        generalLoginError.textContent = '';
+        generalLoginError.classList.remove('visible');
+    }
+    const generalSignupError = document.getElementById('generalSignupError');
+     if (generalSignupError) {
+        generalSignupError.textContent = '';
+        generalSignupError.classList.remove('visible');
     }
 }
-
-    

@@ -11,7 +11,7 @@ const pool = require('../config/db');
 router.post('/signup', async (req, res) => {
     const { fullName, email, password, role, department } = req.body;
 
-    // Basic validation (can be expanded with a library like Joi or express-validator)
+    // Basic validation
     if (!fullName || !email || !password || !role) {
         return res.status(400).json({ msg: 'Please enter all required fields' });
     }
@@ -24,7 +24,7 @@ router.post('/signup', async (req, res) => {
         }
 
         // Hash password
-        const salt = await bcrypt.genSalt(10); // process.env.BCRYPT_SALT_ROUNDS
+        const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
         // Insert user into database
@@ -37,7 +37,6 @@ router.post('/signup', async (req, res) => {
         };
         await pool.query('INSERT INTO users SET ?', newUser);
 
-        // For simplicity, not returning JWT on signup, user should login after.
         res.status(201).json({ msg: 'User registered successfully. Please login.' });
 
     } catch (err) {
@@ -51,10 +50,10 @@ router.post('/signup', async (req, res) => {
 // @desc    Authenticate user & get token
 // @access  Public
 router.post('/login', async (req, res) => {
-    const { email, password, role } = req.body;
+    const { email, password } = req.body; // Role removed from request body
 
-    if (!email || !password || !role) {
-        return res.status(400).json({ msg: 'Please provide email, password, and role' });
+    if (!email || !password) {
+        return res.status(400).json({ msg: 'Please provide email and password' });
     }
 
     try {
@@ -71,24 +70,19 @@ router.post('/login', async (req, res) => {
             return res.status(400).json({ msg: 'Invalid credentials (password incorrect)' });
         }
 
-        // Check role (important: frontend sends role, backend should verify if it matches stored role)
-        if (user.role !== role) {
-             return res.status(400).json({ msg: `Login role (${role}) does not match stored role for this user (${user.role}).` });
-        }
-
+        // User matched, role is taken from DB (user.role)
         // User matched, create JWT payload
         const payload = {
             user: {
                 id: user.id,
-                role: user.role
-                // Add other fields you might want in the token, but keep it minimal
+                role: user.role // Use role from database
             }
         };
 
         jwt.sign(
             payload,
             process.env.JWT_SECRET,
-            { expiresIn: 3600 * 24 }, // 24 hours (adjust as needed)
+            { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }, // 24 hours or from .env
             (err, token) => {
                 if (err) throw err;
                 res.json({
@@ -97,7 +91,7 @@ router.post('/login', async (req, res) => {
                         id: user.id,
                         name: user.fullName,
                         email: user.email,
-                        role: user.role,
+                        role: user.role, // Send actual role from DB
                         department: user.department
                     }
                 });
@@ -111,5 +105,3 @@ router.post('/login', async (req, res) => {
 });
 
 module.exports = router;
-
-    

@@ -3,12 +3,13 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const pool = require('./config/db'); // Database connection pool
+const { auth, isAdmin } = require('./middleware/authMiddleware'); // Import auth middleware
 
 const authRoutes = require('./routes/authRoutes');
 const labRoutes = require('./routes/labRoutes');
 const equipmentRoutes = require('./routes/equipmentRoutes');
-const bookingRoutes = require('./routes/bookingRoutes'); // Placeholder
-const adminRoutes = require('./routes/adminRoutes'); // Placeholder
+const bookingRoutes = require('./routes/bookingRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 
@@ -34,14 +35,22 @@ app.get('/', (req, res) => {
 });
 
 // API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/labs', labRoutes);
-app.use('/api/equipment', equipmentRoutes);
-app.use('/api/bookings', bookingRoutes); // Placeholder routes
-app.use('/api/admin', adminRoutes); // Placeholder routes
+app.use('/api/auth', authRoutes); // Public: /signup, /login
+
+// Labs: GET is public, CUD operations are Admin only
+app.use('/api/labs', labRoutes); // labRoutes internal checks will use auth and isAdmin
+
+// Equipment: GET is public, CUD operations are Admin only
+app.use('/api/equipment', equipmentRoutes); // equipmentRoutes internal checks use auth and isAdmin
+
+// Bookings: Needs fine-grained protection
+app.use('/api/bookings', bookingRoutes); // bookingRoutes internal checks use auth and isAdmin
+
+// Admin: All routes need Admin role
+app.use('/api/admin', auth, isAdmin, adminRoutes);
 
 
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT_BACKEND || 5001; // Ensure consistent PORT variable name
 app.listen(PORT, () => {
     console.log(`Backend server running on port ${PORT}`);
 });
