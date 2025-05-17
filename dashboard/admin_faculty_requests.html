@@ -55,15 +55,10 @@
     <script src="../js/utils.js"></script>
     <script src="js/dashboard.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', async () => {
-            if (!window.roleGuard(window.USER_ROLES.ADMIN)) return;
-            
-            window.initializeDashboard();
-            window.setDashboardHomeLink();
+        const requestsListContainer = document.getElementById('facultyRequestsListContainer');
+        const token = localStorage.getItem('token');
 
-            const requestsListContainer = document.getElementById('facultyRequestsListContainer');
-            const token = localStorage.getItem('token');
-            
+        async function loadAndRenderFacultyRequests() {
             if (!requestsListContainer) {
                 console.error("facultyRequestsListContainer not found!");
                 return;
@@ -79,20 +74,16 @@
                     throw new Error(errorData.msg || `Failed to fetch faculty requests: ${response.status}`);
                 }
                 const facultyPendingAdminRequests = await response.json();
-                console.log("Fetched Faculty Pending Admin Requests:", facultyPendingAdminRequests);
-
+                // console.log("Fetched Faculty Pending Admin Requests:", facultyPendingAdminRequests);
 
                 if (facultyPendingAdminRequests.length > 0) {
                     requestsListContainer.innerHTML = ''; 
-                     // Backend sorts by submittedDate ASC
-                    // facultyPendingAdminRequests.sort((a,b) => new Date(a.submittedDate || a.date || 0) - new Date(b.submittedDate || b.date || 0));
-
+                    // Backend sorts by submittedDate ASC
                     facultyPendingAdminRequests.forEach(request => {
                         const card = document.createElement('div');
                         card.className = 'custom-card p-4 border rounded-md shadow-sm';
                         
-                        // Assuming faculty requests might have a specific 'requestType' field or use 'purpose'
-                        const requestTitle = request.requestType ? request.requestType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Faculty Request';
+                        const requestTitle = request.requestType ? request.requestType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : (request.purpose || 'Faculty Request');
                         
                         card.innerHTML = `
                             <h3 class="text-lg font-semibold mb-1">${requestTitle} ${request.labName ? `(Lab: ${request.labName})` : ''}</h3>
@@ -104,8 +95,8 @@
                              ${request.timeSlotId ? `<p class="text-sm text-muted-foreground"><strong>Requested Time:</strong> ${window.MOCK_TIME_SLOTS.find(ts=>ts.id === request.timeSlotId)?.displayTime || request.timeSlotId}</p>` : ''}
                             <p class="text-sm text-muted-foreground"><strong>Status:</strong> <span class="font-medium text-yellow-600">${request.status.toUpperCase().replace(/-/g, ' ')}</span></p>
                             <div class="mt-3 flex gap-2">
-                                <button type="button" class="button button-primary button-sm" onclick="handleFacultyRequestAction(${request.id}, 'booked')">Approve (Book Slot)</button>
-                                <button type="button" class="button button-outline button-sm" onclick="handleFacultyRequestAction(${request.id}, 'approved-by-admin')">Approve (General)</button>
+                                ${request.status === 'pending-admin-approval' && request.labId && request.timeSlotId ? `<button type="button" class="button button-primary button-sm" onclick="handleFacultyRequestAction(${request.id}, 'booked')">Approve (Book Slot)</button>` : ''}
+                                <button type="button" class="button button-outline button-sm" onclick="handleFacultyRequestAction(${request.id}, 'approved-by-admin')">Mark Approved</button>
                                 <button type="button" class="button button-secondary button-sm" onclick="handleFacultyRequestAction(${request.id}, 'rejected-by-admin')">Reject</button>
                             </div>
                         `;
@@ -119,13 +110,19 @@
                 console.error("Error loading faculty requests:", error);
                 requestsListContainer.innerHTML = `<p class="error-message visible">Error loading requests: ${error.message}</p>`;
             }
-
             if (window.lucide) window.lucide.createIcons();
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!window.roleGuard(window.USER_ROLES.ADMIN)) return;
+            
+            window.initializeDashboard();
+            window.setDashboardHomeLink();
+            await loadAndRenderFacultyRequests();
         });
 
         async function handleFacultyRequestAction(bookingId, newStatus) {
-            const token = localStorage.getItem('token');
-            const actionText = newStatus.includes('approve') ? 'approve' : (newStatus.includes('reject') ? 'reject' : 'update');
+            const actionText = newStatus.includes('approve') || newStatus.includes('book') ? 'approve' : (newStatus.includes('reject') ? 'reject' : 'update');
             if (!confirm(`Are you sure you want to ${actionText} this request?`)) return;
             
             try {
@@ -141,7 +138,7 @@
 
                 if (response.ok) {
                     alert(`Request status updated to: ${result.status.toUpperCase().replace(/-/g, ' ')}`);
-                    window.location.reload(); 
+                    await loadAndRenderFacultyRequests(); // Re-fetch and re-render
                 } else {
                     alert(`Failed to update request status: ${result.msg || 'Server error'}`);
                 }

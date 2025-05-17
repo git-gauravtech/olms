@@ -55,15 +55,10 @@
     <script src="../js/utils.js"></script>
     <script src="js/dashboard.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', async () => {
-            if (!window.roleGuard(window.USER_ROLES.ADMIN)) return; 
-            
-            window.initializeDashboard();
-            window.setDashboardHomeLink();
+        const requestsListContainer = document.getElementById('assistantRequestsListContainer');
+        const token = localStorage.getItem('token');
 
-            const requestsListContainer = document.getElementById('assistantRequestsListContainer');
-            const token = localStorage.getItem('token');
-
+        async function loadAndRenderAssistantRequests() {
             if (!requestsListContainer) {
                 console.error("assistantRequestsListContainer not found!");
                 return;
@@ -79,23 +74,26 @@
                     throw new Error(errorData.msg || `Failed to fetch assistant requests: ${response.status}`);
                 }
                 const assistantPendingRequests = await response.json();
-                console.log("Fetched Assistant Pending Requests:", assistantPendingRequests);
+                // console.log("Fetched Assistant Pending Requests:", assistantPendingRequests);
 
                 if (assistantPendingRequests.length > 0) {
                     requestsListContainer.innerHTML = ''; 
                     // Assuming backend sorts by submittedDate ASC
-                    // assistantPendingRequests.sort((a,b) => new Date(a.submittedDate) - new Date(b.submittedDate));
-
-
                     assistantPendingRequests.forEach(request => {
                         const card = document.createElement('div');
                         card.className = 'custom-card p-4 border rounded-md shadow-sm';
                         
                         let equipmentNames = 'None';
                         if (request.equipmentIds && request.equipmentIds.length > 0) {
-                            // In a real app, fetch equipment details or ensure they are part of request object
-                            // For now, just showing IDs if names aren't directly available
-                            equipmentNames = JSON.parse(request.equipmentIds).join(', ');
+                            try {
+                                const eqIds = JSON.parse(request.equipmentIds);
+                                // In a real app, fetch equipment details or ensure they are part of request object
+                                // For now, just showing IDs if names aren't directly available
+                                equipmentNames = eqIds.join(', '); // Placeholder: actual names would require another fetch or join
+                            } catch (e) {
+                                console.warn("Could not parse equipmentIds for request:", request.id, request.equipmentIds);
+                                equipmentNames = "Error parsing equipment";
+                            }
                         }
 
                         card.innerHTML = `
@@ -105,7 +103,7 @@
                             <p class="text-sm text-muted-foreground"><strong>Time:</strong> ${window.MOCK_TIME_SLOTS.find(ts => ts.id === request.timeSlotId)?.displayTime || request.timeSlotId}</p>
                             <p class="text-sm text-muted-foreground"><strong>Purpose:</strong> ${request.purpose}</p>
                             <p class="text-sm text-muted-foreground"><strong>Equipment:</strong> ${equipmentNames}</p>
-                            <p class="text-sm text-muted-foreground"><strong>Status:</strong> <span class="font-medium text-yellow-600">${request.status.toUpperCase()}</span></p>
+                            <p class="text-sm text-muted-foreground"><strong>Status:</strong> <span class="font-medium text-yellow-600">${request.status.toUpperCase().replace(/-/g, ' ')}</span></p>
                              <p class="text-xs text-gray-500 mt-1">Submitted: ${window.formatDate(new Date(request.submittedDate))}</p>
                             <div class="mt-3 flex gap-2">
                                 <button type="button" class="button button-primary button-sm" onclick="handleRequestAction(${request.id}, 'booked')">Approve</button>
@@ -122,12 +120,18 @@
                 console.error("Error loading assistant requests:", error);
                 requestsListContainer.innerHTML = `<p class="error-message visible">Error loading requests: ${error.message}</p>`;
             }
-
             if (window.lucide) window.lucide.createIcons();
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!window.roleGuard(window.USER_ROLES.ADMIN)) return; 
+            
+            window.initializeDashboard();
+            window.setDashboardHomeLink();
+            await loadAndRenderAssistantRequests();
         });
 
         async function handleRequestAction(bookingId, newStatus) {
-            const token = localStorage.getItem('token');
             const actionText = newStatus === 'booked' ? 'approve' : 'reject';
             if (!confirm(`Are you sure you want to ${actionText} this booking request?`)) return;
 
@@ -143,7 +147,7 @@
                 const result = await response.json();
                 if (response.ok) {
                     alert(`Request ${actionText}d successfully.`);
-                    window.location.reload(); 
+                    await loadAndRenderAssistantRequests(); // Re-fetch and re-render
                 } else {
                     alert(`Failed to ${actionText} request: ${result.msg || 'Server error'}`);
                 }

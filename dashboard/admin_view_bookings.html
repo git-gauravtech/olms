@@ -25,7 +25,7 @@
 
         <div class="main-content-wrapper">
             <header class="dashboard-header">
-                <button class="mobile-menu-button" id="mobileMenuButton" type="button">
+                <button type="button" class="mobile-menu-button" id="mobileMenuButton">
                     <i data-lucide="menu"></i>
                 </button>
                 <div class="user-nav" id="userNavContainer">
@@ -76,180 +76,191 @@
     <script src="../js/utils.js"></script>
     <script src="js/dashboard.js"></script>
     <script>
+        const filterDateInput = document.getElementById('filterDate');
+        const filterLabSelect = document.getElementById('filterLab');
+        const filterStatusSelect = document.getElementById('filterStatus');
+        const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+        const bookingsListContainer = document.getElementById('allBookingsListContainer');
+        const token = localStorage.getItem('token');
+
+        let allBookingsData = []; 
+
+        async function fetchDataAndRender() {
+            if (!bookingsListContainer) return;
+            bookingsListContainer.innerHTML = '<p>Loading bookings...</p>';
+            try {
+                const response = await fetch('/api/bookings', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) {
+                     const errorData = await response.json();
+                     throw new Error(errorData.msg || `Failed to fetch bookings: ${response.status}`);
+                }
+                allBookingsData = await response.json();
+                // console.log("Fetched All Bookings:", allBookingsData);
+                
+                // Only populate filters if they haven't been populated before or if data changes significantly
+                // For simplicity, we might populate them once or on data load
+                if (filterLabSelect.options.length <= 1) populateFilters(); 
+                
+                renderBookings();
+            } catch (error) {
+                console.error("Error fetching all bookings:", error);
+                bookingsListContainer.innerHTML = `<p class="error-message visible">Error loading bookings: ${error.message}</p>`;
+            }
+        }
+
+        async function populateFilters() {
+            // Populate Lab Filter
+            if (filterLabSelect) {
+                try {
+                    const labsResponse = await fetch('/api/labs', { headers: { 'Authorization': `Bearer ${token}` }});
+                    if (!labsResponse.ok) throw new Error('Failed to fetch labs for filter');
+                    const labs = await labsResponse.json();
+                    filterLabSelect.innerHTML = '<option value="">All Labs</option>'; // Clear existing
+                    labs.forEach(lab => {
+                        const option = document.createElement('option');
+                        option.value = lab.id;
+                        option.textContent = lab.name;
+                        filterLabSelect.appendChild(option);
+                    });
+                } catch (e) {
+                    console.error("Error populating lab filter:", e);
+                    filterLabSelect.innerHTML = '<option value="">Error loading labs</option>';
+                }
+            }
+
+            // Populate Status Filter (dynamically from fetched bookings or predefined list)
+            if (filterStatusSelect) {
+                filterStatusSelect.innerHTML = '<option value="">All Statuses</option>';
+                const predefinedStatuses = ['pending', 'booked', 'rejected', 'cancelled', 'pending-admin-approval', 'approved-by-admin', 'rejected-by-admin']; // Add more as needed
+                // const statuses = [...new Set(allBookingsData.map(b => b.status))];
+                predefinedStatuses.sort().forEach(status => {
+                    const option = document.createElement('option');
+                    option.value = status;
+                    option.textContent = status.charAt(0).toUpperCase() + status.slice(1).replace(/-/g, ' ');
+                    filterStatusSelect.appendChild(option);
+                });
+            }
+        }
+
+        function renderBookings() {
+            if (!bookingsListContainer) return;
+            bookingsListContainer.innerHTML = ''; 
+
+            const selectedDate = filterDateInput.value;
+            const selectedLabId = filterLabSelect.value;
+            const selectedStatus = filterStatusSelect.value;
+
+            const filteredBookings = allBookingsData.filter(booking => {
+                let matches = true;
+                if (selectedDate && booking.date !== selectedDate) matches = false;
+                if (selectedLabId && String(booking.labId) !== selectedLabId) matches = false;
+                if (selectedStatus && booking.status !== selectedStatus) matches = false;
+                return matches;
+            });
+            
+            // Client-side sort if needed, backend may already sort
+            filteredBookings.sort((a,b) => {
+                 const dateA = new Date(a.date + 'T' + (window.MOCK_TIME_SLOTS.find(ts=>ts.id===a.timeSlotId)?.startTime || '00:00'));
+                 const dateB = new Date(b.date + 'T' + (window.MOCK_TIME_SLOTS.find(ts=>ts.id===b.timeSlotId)?.startTime || '00:00'));
+                 return dateB - dateA; // Sort descending by date/time
+            });
+
+
+            if (filteredBookings.length === 0) {
+                bookingsListContainer.innerHTML = '<p class="text-muted-foreground">No bookings match the current filters.</p>';
+                return;
+            }
+
+            filteredBookings.forEach(booking => {
+                const card = document.createElement('div');
+                card.className = 'custom-card p-4 border rounded-md shadow-sm mb-3'; 
+
+                let equipmentNames = 'None';
+                if (booking.equipmentIds && booking.equipmentIds.length > 0) {
+                     try {
+                        const eqIds = JSON.parse(booking.equipmentIds);
+                        equipmentNames = eqIds.join(', '); // Placeholder, actual names would need a join or separate fetch
+                    } catch (e) { equipmentNames = "Error parsing equipment"; }
+                }
+                
+                let statusColorClass = 'text-gray-600';
+                if (booking.status === 'booked') statusColorClass = 'text-green-600';
+                else if (booking.status === 'pending' || booking.status === 'pending-admin-approval') statusColorClass = 'text-yellow-600';
+                else if (['rejected', 'cancelled', 'rejected-by-admin'].includes(booking.status)) statusColorClass = 'text-red-600';
+
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="text-lg font-semibold mb-1">${booking.labName || 'Unknown Lab'} ${booking.batchIdentifier ? `for ${booking.batchIdentifier}` : ''}</h3>
+                            <p class="text-sm text-muted-foreground"><strong>User:</strong> ${booking.userName || booking.userId} (${booking.userEmail || 'N/A'}) - Role: ${booking.requestedByRole || 'N/A'}</p>
+                            ${booking.date ? `<p class="text-sm text-muted-foreground"><strong>Date:</strong> ${window.formatDate(new Date(booking.date))}</p>` : ''}
+                            ${booking.timeSlotId ? `<p class="text-sm text-muted-foreground"><strong>Time:</strong> ${window.MOCK_TIME_SLOTS.find(ts=>ts.id === booking.timeSlotId)?.displayTime || booking.timeSlotId}</p>` : ''}
+                        </div>
+                        <div class="flex flex-col gap-2 items-end">
+                            <p class="text-sm text-muted-foreground"><strong>Status:</strong> <span class="font-medium ${statusColorClass}">${booking.status.toUpperCase().replace(/-/g, ' ')}</span></p>
+                            <button type="button" class="button button-outline button-sm" onclick="modifyBooking('${booking.id}')">Modify (Placeholder)</button>
+                            ${(booking.status !== 'cancelled' && booking.status !== 'rejected' && booking.status !== 'rejected-by-admin') ? `
+                            <button type="button" class="button button-secondary button-sm" onclick="cancelBookingWrapper('${booking.id}')">Cancel</button>
+                            ` : ''}
+                        </div>
+                    </div>
+                    <p class="text-sm text-muted-foreground mt-2"><strong>Purpose/Details:</strong> ${booking.purpose}</p>
+                    ${booking.equipmentIds && booking.equipmentIds.length > 0 ? `<p class="text-sm text-muted-foreground"><strong>Equipment:</strong> ${equipmentNames}</p>` : ''}
+                    ${booking.submittedDate ? `<p class="text-xs text-gray-500 mt-1">Submitted: ${window.formatDate(new Date(booking.submittedDate))}</p>` : ''}
+                `;
+                bookingsListContainer.appendChild(card);
+            });
+             if (window.lucide) window.lucide.createIcons();
+        }
+
+        function setupEventListeners() {
+            if(filterDateInput) filterDateInput.addEventListener('input', renderBookings);
+            if(filterLabSelect) filterLabSelect.addEventListener('change', renderBookings);
+            if(filterStatusSelect) filterStatusSelect.addEventListener('change', renderBookings);
+            if(clearFiltersBtn) {
+                clearFiltersBtn.addEventListener('click', () => {
+                    if(filterDateInput) filterDateInput.value = '';
+                    if(filterLabSelect) filterLabSelect.value = '';
+                    if(filterStatusSelect) filterStatusSelect.value = '';
+                    renderBookings();
+                });
+            }
+        }
+        
+        window.modifyBooking = function(bookingId) {
+            alert('Modify booking (ID: ' + bookingId + ') functionality is a placeholder. In a real app, this would open an edit form or dialog.');
+        }
+
+        window.cancelBookingWrapper = async function(bookingId) { // Renamed to avoid conflict
+            if (confirm('Are you sure you want to cancel this booking?')) {
+                try {
+                    const response = await fetch(`/api/bookings/${bookingId}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const result = await response.json();
+                    if (response.ok) {
+                        alert(result.msg || 'Booking cancelled successfully.');
+                        await fetchDataAndRender(); // Re-fetch and re-render
+                    } else {
+                        alert(`Failed to cancel booking: ${result.msg || 'Server error'}`);
+                    }
+                } catch (error) {
+                    console.error('Error cancelling booking:', error);
+                    alert('An error occurred while cancelling the booking.');
+                }
+            }
+        }
+        
         document.addEventListener('DOMContentLoaded', async () => {
             if (!window.roleGuard(window.USER_ROLES.ADMIN)) return;
             window.initializeDashboard();
             window.setDashboardHomeLink();
-
-            const filterDateInput = document.getElementById('filterDate');
-            const filterLabSelect = document.getElementById('filterLab');
-            const filterStatusSelect = document.getElementById('filterStatus');
-            const clearFiltersBtn = document.getElementById('clearFiltersBtn');
-            const bookingsListContainer = document.getElementById('allBookingsListContainer');
-            const token = localStorage.getItem('token');
-
-            let allBookingsData = []; 
-
-            async function fetchData() {
-                if (!bookingsListContainer) return;
-                bookingsListContainer.innerHTML = '<p>Loading bookings...</p>';
-                try {
-                    const response = await fetch('/api/bookings', {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
-                    if (!response.ok) {
-                         const errorData = await response.json();
-                         throw new Error(errorData.msg || `Failed to fetch bookings: ${response.status}`);
-                    }
-                    allBookingsData = await response.json();
-                    console.log("Fetched All Bookings:", allBookingsData);
-                    populateFilters();
-                    renderBookings();
-                } catch (error) {
-                    console.error("Error fetching all bookings:", error);
-                    bookingsListContainer.innerHTML = `<p class="error-message visible">Error loading bookings: ${error.message}</p>`;
-                }
-            }
-
-            function populateFilters() {
-                // Populate Lab Filter
-                if (filterLabSelect && window.MOCK_LABS) { // For now, using MOCK_LABS for lab names. Ideally fetch from /api/labs
-                     // Fetch labs from backend instead of MOCK_LABS for filter
-                    fetch('/api/labs', { headers: { 'Authorization': `Bearer ${token}` }})
-                    .then(res => res.json())
-                    .then(labs => {
-                        filterLabSelect.innerHTML = '<option value="">All Labs</option>'; // Clear existing
-                        labs.forEach(lab => {
-                            const option = document.createElement('option');
-                            option.value = lab.id;
-                            option.textContent = lab.name;
-                            filterLabSelect.appendChild(option);
-                        });
-                    }).catch(err => console.error("Error fetching labs for filter:", err));
-                }
-
-                // Populate Status Filter (dynamically from fetched bookings)
-                if (allBookingsData.length > 0 && filterStatusSelect) {
-                    filterStatusSelect.innerHTML = '<option value="">All Statuses</option>'; // Clear existing
-                    const statuses = [...new Set(allBookingsData.map(b => b.status))];
-                    statuses.sort().forEach(status => {
-                        const option = document.createElement('option');
-                        option.value = status;
-                        option.textContent = status.charAt(0).toUpperCase() + status.slice(1).replace(/-/g, ' ');
-                        filterStatusSelect.appendChild(option);
-                    });
-                }
-            }
-
-            function renderBookings() {
-                if (!bookingsListContainer) return;
-                bookingsListContainer.innerHTML = ''; 
-
-                const selectedDate = filterDateInput.value;
-                const selectedLabId = filterLabSelect.value;
-                const selectedStatus = filterStatusSelect.value;
-
-                const filteredBookings = allBookingsData.filter(booking => {
-                    let matches = true;
-                    if (selectedDate && booking.date !== selectedDate) matches = false;
-                    if (selectedLabId && String(booking.labId) !== selectedLabId) matches = false;
-                    if (selectedStatus && booking.status !== selectedStatus) matches = false;
-                    return matches;
-                });
-                
-                // Backend already sorts, but if client-side sort is desired:
-                // filteredBookings.sort((a,b) => new Date(`${a.date}T${window.MOCK_TIME_SLOTS.find(ts=>ts.id===a.timeSlotId)?.startTime || '00:00'}`) - new Date(`${b.date}T${window.MOCK_TIME_SLOTS.find(ts=>ts.id===b.timeSlotId)?.startTime || '00:00'}`));
-
-
-                if (filteredBookings.length === 0) {
-                    bookingsListContainer.innerHTML = '<p class="text-muted-foreground">No bookings match the current filters.</p>';
-                    return;
-                }
-
-                filteredBookings.forEach(booking => {
-                    const card = document.createElement('div');
-                    card.className = 'custom-card p-4 border rounded-md shadow-sm mb-3'; 
-
-                    let equipmentNames = 'None';
-                    if (booking.equipmentIds && booking.equipmentIds.length > 0) {
-                         try {
-                            const eqIds = JSON.parse(booking.equipmentIds);
-                            // TODO: Fetch equipment names if needed, for now display IDs
-                            equipmentNames = eqIds.join(', ');
-                        } catch (e) { equipmentNames = "Error parsing equipment"; }
-                    }
-                    
-                    let statusColorClass = 'text-gray-600';
-                    if (booking.status === 'booked') statusColorClass = 'text-green-600';
-                    else if (booking.status === 'pending' || booking.status === 'pending-admin-approval') statusColorClass = 'text-yellow-600';
-                    else if (['rejected', 'cancelled', 'rejected-by-admin'].includes(booking.status)) statusColorClass = 'text-red-600';
-
-
-                    card.innerHTML = `
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h3 class="text-lg font-semibold mb-1">${booking.labName || 'Unknown Lab'} ${booking.batchIdentifier ? `for ${booking.batchIdentifier}` : ''}</h3>
-                                <p class="text-sm text-muted-foreground"><strong>User:</strong> ${booking.userName || booking.userId} (${booking.requestedByRole || 'N/A'})</p>
-                                ${booking.date ? `<p class="text-sm text-muted-foreground"><strong>Date:</strong> ${window.formatDate(new Date(booking.date))}</p>` : ''}
-                                ${booking.timeSlotId ? `<p class="text-sm text-muted-foreground"><strong>Time:</strong> ${window.MOCK_TIME_SLOTS.find(ts=>ts.id === booking.timeSlotId)?.displayTime || booking.timeSlotId}</p>` : ''}
-                            </div>
-                            <div class="flex flex-col gap-2 items-end">
-                                <p class="text-sm text-muted-foreground"><strong>Status:</strong> <span class="font-medium ${statusColorClass}">${booking.status.toUpperCase().replace(/-/g, ' ')}</span></p>
-                                ${(booking.status === 'booked' || booking.status === 'pending' || booking.status === 'pending-admin-approval') ? `
-                                <button type="button" class="button button-outline button-sm" onclick="modifyBooking('${booking.id}')">Modify</button>
-                                <button type="button" class="button button-secondary button-sm" onclick="cancelBooking('${booking.id}')">Cancel</button>
-                                ` : ''}
-                            </div>
-                        </div>
-                        <p class="text-sm text-muted-foreground mt-2"><strong>Purpose/Details:</strong> ${booking.purpose}</p>
-                        ${booking.equipmentIds && booking.equipmentIds.length > 0 ? `<p class="text-sm text-muted-foreground"><strong>Equipment:</strong> ${equipmentNames}</p>` : ''}
-                        ${booking.submittedDate ? `<p class="text-xs text-gray-500 mt-1">Submitted: ${window.formatDate(new Date(booking.submittedDate))}</p>` : ''}
-                    `;
-                    bookingsListContainer.appendChild(card);
-                });
-                 if (window.lucide) window.lucide.createIcons();
-            }
-
-            function setupEventListeners() {
-                if(filterDateInput) filterDateInput.addEventListener('input', renderBookings); // Use input for immediate feedback
-                if(filterLabSelect) filterLabSelect.addEventListener('change', renderBookings);
-                if(filterStatusSelect) filterStatusSelect.addEventListener('change', renderBookings);
-                if(clearFiltersBtn) {
-                    clearFiltersBtn.addEventListener('click', () => {
-                        if(filterDateInput) filterDateInput.value = '';
-                        if(filterLabSelect) filterLabSelect.value = '';
-                        if(filterStatusSelect) filterStatusSelect.value = '';
-                        renderBookings();
-                    });
-                }
-            }
             
-            window.modifyBooking = function(bookingId) {
-                alert('Modify booking (ID: ' + bookingId + ') functionality is a placeholder. In a real app, this would open an edit form or dialog.');
-            }
-
-            window.cancelBooking = async function(bookingId) {
-                if (confirm('Are you sure you want to cancel this booking?')) {
-                    try {
-                        const response = await fetch(`/api/bookings/${bookingId}`, {
-                            method: 'DELETE',
-                            headers: { 'Authorization': `Bearer ${token}` }
-                        });
-                        const result = await response.json();
-                        if (response.ok) {
-                            alert(result.msg || 'Booking cancelled successfully.');
-                            fetchData(); // Refresh the list
-                        } else {
-                            alert(`Failed to cancel booking: ${result.msg || 'Server error'}`);
-                        }
-                    } catch (error) {
-                        console.error('Error cancelling booking:', error);
-                        alert('An error occurred while cancelling the booking.');
-                    }
-                }
-            }
-            
-            fetchData();
+            await fetchDataAndRender();
             setupEventListeners();
 
             if (window.lucide) window.lucide.createIcons();
