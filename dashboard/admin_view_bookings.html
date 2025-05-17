@@ -80,8 +80,9 @@
     <script src="js/dashboard.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            if (!roleGuard(USER_ROLES.ADMIN)) return;
+            if (!roleGuard(window.USER_ROLES.ADMIN)) return;
             initializeDashboard();
+            setDashboardHomeLink();
 
             const filterDateInput = document.getElementById('filterDate');
             const filterLabSelect = document.getElementById('filterLab');
@@ -89,7 +90,7 @@
             const clearFiltersBtn = document.getElementById('clearFiltersBtn');
             const bookingsListContainer = document.getElementById('allBookingsListContainer');
 
-            let allBookings = []; // To store a copy of MOCK_BOOKINGS
+            let allBookings = []; 
 
             function populateFilters() {
                 // Populate Lab Filter
@@ -108,7 +109,7 @@
                     statuses.sort().forEach(status => {
                         const option = document.createElement('option');
                         option.value = status;
-                        option.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+                        option.textContent = status.charAt(0).toUpperCase() + status.slice(1).replace(/-/g, ' ');
                         filterStatusSelect.appendChild(option);
                     });
                 }
@@ -116,7 +117,7 @@
 
             function renderBookings() {
                 if (!bookingsListContainer) return;
-                bookingsListContainer.innerHTML = ''; // Clear previous list
+                bookingsListContainer.innerHTML = ''; 
 
                 const selectedDate = filterDateInput.value;
                 const selectedLabId = filterLabSelect.value;
@@ -155,7 +156,7 @@
                     const timeSlot = window.MOCK_TIME_SLOTS.find(ts => ts.id === booking.timeSlotId);
                     
                     const card = document.createElement('div');
-                    card.className = 'custom-card p-4 border rounded-md shadow-sm mb-3'; // Reusing custom-card styling
+                    card.className = 'custom-card p-4 border rounded-md shadow-sm mb-3'; 
 
                     let equipmentNames = 'None';
                     if (booking.equipmentIds && booking.equipmentIds.length > 0) {
@@ -165,7 +166,7 @@
                     let statusColorClass = 'text-gray-600';
                     if (booking.status === 'booked') statusColorClass = 'text-green-600';
                     else if (booking.status === 'pending' || booking.status === 'pending-admin-approval') statusColorClass = 'text-yellow-600';
-                    else if (booking.status === 'rejected-by-admin' || booking.status === 'cancelled') statusColorClass = 'text-red-600';
+                    else if (booking.status === 'rejected-by-admin' || booking.status === 'cancelled' || booking.status === 'rejected') statusColorClass = 'text-red-600';
 
 
                     card.innerHTML = \`
@@ -184,19 +185,22 @@
             }
 
             function setupEventListeners() {
-                filterDateInput.addEventListener('change', renderBookings);
-                filterLabSelect.addEventListener('change', renderBookings);
-                filterStatusSelect.addEventListener('change', renderBookings);
-                clearFiltersBtn.addEventListener('click', () => {
-                    filterDateInput.value = '';
-                    filterLabSelect.value = '';
-                    filterStatusSelect.value = '';
-                    renderBookings();
-                });
+                if(filterDateInput) filterDateInput.addEventListener('change', renderBookings);
+                if(filterLabSelect) filterLabSelect.addEventListener('change', renderBookings);
+                if(filterStatusSelect) filterStatusSelect.addEventListener('change', renderBookings);
+                if(clearFiltersBtn) {
+                    clearFiltersBtn.addEventListener('click', () => {
+                        if(filterDateInput) filterDateInput.value = '';
+                        if(filterLabSelect) filterLabSelect.value = '';
+                        if(filterStatusSelect) filterStatusSelect.value = '';
+                        renderBookings();
+                    });
+                }
             }
             
             // Initialize
             allBookings = [...window.MOCK_BOOKINGS]; // Make a copy
+            console.log("Initial 'allBookings' on admin_view_bookings.html:", JSON.parse(JSON.stringify(allBookings)));
             populateFilters();
             renderBookings();
             setupEventListeners();

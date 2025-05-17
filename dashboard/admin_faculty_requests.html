@@ -56,24 +56,25 @@
     <script src="js/dashboard.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            if (!roleGuard(USER_ROLES.ADMIN)) return;
+            if (!roleGuard(window.USER_ROLES.ADMIN)) return;
             
             initializeDashboard();
             setDashboardHomeLink();
 
             const requestsListContainer = document.getElementById('facultyRequestsListContainer');
             
+            console.log("All MOCK_BOOKINGS on admin_faculty_requests.html:", JSON.parse(JSON.stringify(window.MOCK_BOOKINGS)));
+
             const facultyPendingAdminRequests = window.MOCK_BOOKINGS.filter(
-                booking => booking.requestedByRole === USER_ROLES.FACULTY && booking.status === 'pending-admin-approval'
+                booking => booking.requestedByRole === window.USER_ROLES.FACULTY && booking.status === 'pending-admin-approval'
             );
 
-            // console.log("All MOCK_BOOKINGS for faculty requests:", JSON.parse(JSON.stringify(window.MOCK_BOOKINGS)));
-            // console.log("Filtered Faculty Pending Admin Requests:", JSON.parse(JSON.stringify(facultyPendingAdminRequests)));
+            console.log("Filtered Faculty Pending Admin Requests on admin_faculty_requests.html:", JSON.parse(JSON.stringify(facultyPendingAdminRequests)));
 
             if (requestsListContainer) {
                 if (facultyPendingAdminRequests.length > 0) {
                     requestsListContainer.innerHTML = ''; 
-                    facultyPendingAdminRequests.sort((a,b) => new Date(a.submittedDate || a.date) - new Date(b.submittedDate || b.date));
+                    facultyPendingAdminRequests.sort((a,b) => new Date(a.submittedDate || a.date || 0) - new Date(b.submittedDate || b.date || 0));
 
                     facultyPendingAdminRequests.forEach(request => {
                         const card = document.createElement('div');
@@ -106,9 +107,12 @@
         function handleFacultyRequest(bookingId, newStatus) {
             const booking = window.MOCK_BOOKINGS.find(b => b.id === bookingId);
             if (booking) {
-                booking.status = newStatus;
+                booking.status = newStatus; // Update the status
+                // Optionally, add a resolvedDate or adminNotes field
+                // booking.adminNotes = prompt("Add any notes for this action (optional):");
+                // booking.resolvedDate = formatDate(new Date());
                 window.saveMockBookings(); 
-                alert(\`Request \${bookingId} status updated to: \${newStatus.toUpperCase()}\`);
+                alert(\`Request \${bookingId} status updated to: \${newStatus.toUpperCase().replace(/-/g, ' ')}\`);
                 window.location.reload(); 
             } else {
                 alert('Error: Request not found.');

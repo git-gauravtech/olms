@@ -1,4 +1,5 @@
 
+
 const USER_ROLES_OBJ = { // Renamed to avoid conflict if USER_ROLES is used as a global var name
   ADMIN: 'Admin',
   FACULTY: 'Faculty',
@@ -33,7 +34,7 @@ const NAV_LINKS_OBJ = { // Renamed
     { href: 'assistant.html', label: 'Assistant Dashboard', icon: 'layout-dashboard' },
     { href: 'labs.html', label: 'Lab Availability', icon: 'flask-conical' },
     { href: 'assistant_request_lab.html', label: 'Request Lab Slot', icon: 'user-plus' },
-    { href: 'assistant_update_seat_status.html', label: 'Update Seat Status', icon: 'edit-3' }
+    { href: 'assistant_update_seat_status.html', label: 'Update Seat Status', icon: 'edit-3' },
   ],
 };
 
@@ -58,10 +59,10 @@ const MOCK_EQUIPMENT_INITIAL = [
 const EQUIPMENT_STATUSES_CONST = ['available', 'in-use', 'maintenance', 'broken']; // Renamed
 
 
-const MOCK_LABS_STORAGE_KEY = 'adminManagedLabsV1'; // Incremented version
-const MOCK_EQUIPMENT_STORAGE_KEY = 'adminManagedEquipmentV1'; // Incremented version
-const LAB_SEAT_STATUSES_STORAGE_KEY = 'labSeatStatusesV3'; // Incremented version
-const MOCK_BOOKINGS_STORAGE_KEY = 'mockBookingsV3'; // Incremented version
+const MOCK_LABS_STORAGE_KEY = 'adminManagedLabsV1';
+const MOCK_EQUIPMENT_STORAGE_KEY = 'adminManagedEquipmentV1';
+const LAB_SEAT_STATUSES_STORAGE_KEY = 'labSeatStatusesV3'; // Incremented from V2 to V3
+const MOCK_BOOKINGS_STORAGE_KEY = 'mockBookingsV4'; // Incremented from V3 to V4
 
 function loadLabs() {
     const storedLabs = localStorage.getItem(MOCK_LABS_STORAGE_KEY);
@@ -111,12 +112,14 @@ let ALL_LAB_SEAT_STATUSES_CACHE;
 
 function loadLabSeatStatuses() {
     if (ALL_LAB_SEAT_STATUSES_CACHE && Object.keys(ALL_LAB_SEAT_STATUSES_CACHE).length > 0 && arguments.length === 0) {
+      // console.log("Returning cached ALL_LAB_SEAT_STATUSES_CACHE");
       return ALL_LAB_SEAT_STATUSES_CACHE;
     }
     
     try {
         const storedStatuses = localStorage.getItem(LAB_SEAT_STATUSES_STORAGE_KEY);
         ALL_LAB_SEAT_STATUSES_CACHE = storedStatuses ? JSON.parse(storedStatuses) : {};
+        // console.log("Loaded labSeatStatuses from localStorage:", ALL_LAB_SEAT_STATUSES_CACHE);
     } catch (e) {
         console.error("Error parsing labSeatStatuses from localStorage:", e);
         ALL_LAB_SEAT_STATUSES_CACHE = {}; 
@@ -127,10 +130,12 @@ function loadLabSeatStatuses() {
 
 function saveLabSeatStatuses(statuses) { 
     ALL_LAB_SEAT_STATUSES_CACHE = statuses; 
+    // console.log("Saving labSeatStatuses to localStorage:", statuses);
     try {
         localStorage.setItem(LAB_SEAT_STATUSES_STORAGE_KEY, JSON.stringify(statuses));
     } catch (e) {
         console.error("Error saving labSeatStatuses to localStorage:", e);
+        // Potentially add a user-facing error or retry mechanism
     }
 }
 
@@ -157,11 +162,12 @@ const yesterday = new Date(today);
 yesterday.setDate(today.getDate() - 1);
 
 function formatDate(dateInput) { 
-    if (!dateInput) return '';
+    if (!dateInput) return ''; // Gracefully handle null or undefined
     const d = dateInput instanceof Date ? dateInput : new Date(dateInput); 
+    // Check if date is valid after conversion
     if (isNaN(d.getTime())) {
         // console.warn("formatDate received invalid dateInput:", dateInput);
-        return ''; 
+        return ''; // Return empty string for invalid dates
     }
     let month = '' + (d.getMonth() + 1);
     let day = '' + d.getDate();
@@ -187,7 +193,7 @@ function initializeMockBookings() {
     } else {
         MOCK_BOOKINGS_VAR = [
             // Existing Bookings
-            { id: 'b1', labId: 'physics_lab_alpha', date: formatDate(today), timeSlotId: 'ts_0900_1000', userId: 'student1@example.com', purpose: 'Physics Experiment A', equipmentIds: ['eq_spectrometer_01'], status: 'booked', requestedByRole: USER_ROLES_OBJ.STUDENT}, // Use USER_ROLES_OBJ
+            { id: 'b1', labId: 'physics_lab_alpha', date: formatDate(today), timeSlotId: 'ts_0900_1000', userId: 'student1@example.com', purpose: 'Physics Experiment A', equipmentIds: ['eq_spectrometer_01'], status: 'booked', requestedByRole: USER_ROLES_OBJ.STUDENT},
             { id: 'b3', labId: 'chemistry_lab_beta', date: formatDate(tomorrow), timeSlotId: 'ts_1400_1500', userId: 'faculty1@example.com', purpose: 'Chem 101 Class', equipmentIds: ['eq_microscope_01'], status: 'booked', requestedByRole: USER_ROLES_OBJ.FACULTY},
             { id: 'b5_assistant_booked', labId: 'robotics_lab_zeta', date: formatDate(today), timeSlotId: 'ts_1000_1100', userId: 'assistant@example.com', purpose: 'Robotics Prep', equipmentIds: [], status: 'booked', batchIdentifier: 'Robotics Club', requestedByRole: USER_ROLES_OBJ.ASSISTANT },
             { id: 'b5_past', labId: 'electronics_lab_delta', date: formatDate(yesterday), timeSlotId: 'ts_1500_1600', userId: 'student1@example.com', purpose: 'Circuit Design (Completed)', equipmentIds: ['eq_oscilloscope_01'], status: 'booked', requestedByRole: USER_ROLES_OBJ.STUDENT },
@@ -254,11 +260,12 @@ window.DEPARTMENTS = DEPARTMENTS_CONST;
 window.formatDate = formatDate; 
 window.loadLabs = loadLabs; 
 window.loadEquipment = loadEquipment; 
-window.LAB_SEAT_STATUSES_STORAGE_KEY = LAB_SEAT_STATUSES_STORAGE_KEY; // Keep original name if used directly elsewhere
+window.LAB_SEAT_STATUSES_STORAGE_KEY = LAB_SEAT_STATUSES_STORAGE_KEY;
 window.loadLabSeatStatuses = loadLabSeatStatuses; 
 window.saveLabSeatStatuses = saveLabSeatStatuses; 
 
 // Initialize seat statuses cache on load
 loadLabSeatStatuses();
-console.log('[constants.js] Constants and mock data initialized and exposed to window.');
+console.log('[constants.js] Constants and mock data initialized and exposed to window. MOCK_BOOKINGS_STORAGE_KEY is now:', MOCK_BOOKINGS_STORAGE_KEY);
 console.log('[constants.js] window.USER_ROLES:', window.USER_ROLES);
+

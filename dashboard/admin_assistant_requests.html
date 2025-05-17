@@ -56,21 +56,20 @@
     <script src="js/dashboard.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            if (!roleGuard(USER_ROLES.ADMIN)) return; 
+            if (!roleGuard(window.USER_ROLES.ADMIN)) return; 
             
             initializeDashboard();
             setDashboardHomeLink();
 
             const requestsListContainer = document.getElementById('assistantRequestsList');
             
-            // Ensure MOCK_BOOKINGS is accessed correctly
+            console.log("All MOCK_BOOKINGS on admin_assistant_requests.html:", JSON.parse(JSON.stringify(window.MOCK_BOOKINGS)));
+            
             const assistantPendingRequests = window.MOCK_BOOKINGS.filter(
-                booking => booking.requestedByRole === USER_ROLES.ASSISTANT && booking.status === 'pending'
+                booking => booking.requestedByRole === window.USER_ROLES.ASSISTANT && booking.status === 'pending'
             );
 
-            // Debugging: Log the data
-            // console.log("All MOCK_BOOKINGS:", JSON.parse(JSON.stringify(window.MOCK_BOOKINGS)));
-            // console.log("Filtered Assistant Pending Requests:", JSON.parse(JSON.stringify(assistantPendingRequests)));
+            console.log("Filtered Assistant Pending Requests on admin_assistant_requests.html:", JSON.parse(JSON.stringify(assistantPendingRequests)));
 
 
             if (requestsListContainer) {
@@ -155,9 +154,10 @@
                     // Instead of deleting, mark as rejected or create a different status
                     // For this demo, we'll mark it as 'rejected' to keep it in the system if needed later.
                     // Or, if the requirement is to remove it:
-                    window.MOCK_BOOKINGS.splice(bookingIndex, 1); 
+                    // window.MOCK_BOOKINGS.splice(bookingIndex, 1); 
+                    window.MOCK_BOOKINGS[bookingIndex].status = 'rejected'; // Mark as rejected
                     window.saveMockBookings(); 
-                    alert('Request rejected and removed.');
+                    alert('Request rejected.');
                     window.location.reload();
                 } else {
                     alert('Error: Booking not found for rejection.');
