@@ -1,5 +1,5 @@
 
-function initializeBookingForm() {
+async function initializeBookingForm() {
     const bookingForm = document.getElementById('bookingForm');
     const labIdSelect = document.getElementById('labId');
     const timeSlotIdSelect = document.getElementById('timeSlotId');
@@ -8,10 +8,15 @@ function initializeBookingForm() {
     const batchIdentifierGroup = document.getElementById('batchIdentifierGroup');
     const batchIdentifierInput = document.getElementById('batchIdentifier');
     const formSubmissionMessageEl = document.getElementById('formSubmissionMessage'); 
-    const checkAvailabilityBtn = document.getElementById('checkAvailabilityBtn');
-
+    // const checkAvailabilityBtn = document.getElementById('checkAvailabilityBtn'); // Removed
 
     const currentUserRole = getCurrentUserRole();
+    if (!currentUserRole) {
+        console.error("User role not found. Cannot initialize booking form.");
+        if(formSubmissionMessageEl) showFormSubmissionMessage('Error: User role not found. Cannot initialize form.', true, formSubmissionMessageEl);
+        return;
+    }
+
     if (currentUserRole === USER_ROLES.ASSISTANT) {
         if (batchIdentifierGroup) batchIdentifierGroup.style.display = 'block'; 
         if (batchIdentifierInput) batchIdentifierInput.required = true;
@@ -19,45 +24,68 @@ function initializeBookingForm() {
          if (batchIdentifierGroup) batchIdentifierGroup.style.display = 'none';
     }
 
-    if (labIdSelect) {
-        MOCK_LABS.forEach(lab => {
-            const option = document.createElement('option');
-            option.value = lab.id;
-            option.textContent = `${lab.name} (Capacity: ${lab.capacity})`;
-            labIdSelect.appendChild(option);
-        });
+    try {
+        // Populate Labs
+        if (labIdSelect) {
+            labIdSelect.innerHTML = '<option value="">Loading labs...</option>';
+            const labsResponse = await fetch('/api/labs', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+            if (!labsResponse.ok) throw new Error('Failed to fetch labs');
+            const labs = await labsResponse.json();
+            labIdSelect.innerHTML = '<option value="">Select Lab</option>';
+            labs.forEach(lab => {
+                const option = document.createElement('option');
+                option.value = lab.id;
+                option.textContent = `${lab.name} (Capacity: ${lab.capacity})`;
+                labIdSelect.appendChild(option);
+            });
+        }
+
+        // Populate Time Slots (from constants.js as they are fixed)
+        if (timeSlotIdSelect && window.MOCK_TIME_SLOTS) {
+            timeSlotIdSelect.innerHTML = '<option value="">Select Time Slot</option>';
+            window.MOCK_TIME_SLOTS.forEach(slot => {
+                const option = document.createElement('option');
+                option.value = slot.id;
+                option.textContent = slot.displayTime;
+                timeSlotIdSelect.appendChild(option);
+            });
+        }
+
+        // Populate Equipment
+        if (equipmentCheckboxesContainer) {
+            equipmentCheckboxesContainer.innerHTML = '<p>Loading equipment...</p>';
+            const equipmentResponse = await fetch('/api/equipment?status=available', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+            if (!equipmentResponse.ok) throw new Error('Failed to fetch equipment');
+            const availableEquipment = await equipmentResponse.json();
+            equipmentCheckboxesContainer.innerHTML = '';
+            if (availableEquipment.length === 0) {
+                 equipmentCheckboxesContainer.innerHTML = '<p class="text-sm text-muted-foreground">No equipment currently available.</p>';
+            } else {
+                availableEquipment.forEach(equipment => {
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center';
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.id = `equip_${equipment.id}`;
+                    checkbox.value = equipment.id;
+                    checkbox.name = 'equipment';
+                    checkbox.className = 'mr-2';
+
+                    const label = document.createElement('label');
+                    label.htmlFor = `equip_${equipment.id}`;
+                    label.textContent = equipment.name;
+                    
+                    div.appendChild(checkbox);
+                    div.appendChild(label);
+                    equipmentCheckboxesContainer.appendChild(div);
+                });
+            }
+        }
+    } catch (error) {
+        console.error("Error initializing booking form dropdowns:", error);
+        if(formSubmissionMessageEl) showFormSubmissionMessage(`Error initializing form: ${error.message}`, true, formSubmissionMessageEl);
     }
 
-    if (timeSlotIdSelect) {
-        MOCK_TIME_SLOTS.forEach(slot => {
-            const option = document.createElement('option');
-            option.value = slot.id;
-            option.textContent = slot.displayTime;
-            timeSlotIdSelect.appendChild(option);
-        });
-    }
-
-    if (equipmentCheckboxesContainer) {
-        equipmentCheckboxesContainer.innerHTML = ''; 
-        MOCK_EQUIPMENT.filter(eq => eq.status === 'available').forEach(equipment => {
-            const div = document.createElement('div');
-            div.className = 'flex items-center';
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.id = `equip_${equipment.id}`;
-            checkbox.value = equipment.id;
-            checkbox.name = 'equipment';
-            checkbox.className = 'mr-2';
-
-            const label = document.createElement('label');
-            label.htmlFor = `equip_${equipment.id}`;
-            label.textContent = equipment.name;
-            
-            div.appendChild(checkbox);
-            div.appendChild(label);
-            equipmentCheckboxesContainer.appendChild(div);
-        });
-    }
 
     const urlParams = new URLSearchParams(window.location.search);
     if (labIdSelect && urlParams.has('labId')) labIdSelect.value = urlParams.get('labId');
@@ -69,43 +97,14 @@ function initializeBookingForm() {
       bookingDateInput.min = formatDate(new Date());
     }
 
-
-    if (checkAvailabilityBtn) {
-        checkAvailabilityBtn.addEventListener('click', () => {
-            if (!labIdSelect || !bookingDateInput || !timeSlotIdSelect) return;
-            const labId = labIdSelect.value;
-            const date = bookingDateInput.value;
-            const timeSlotId = timeSlotIdSelect.value;
-
-            if (!labId || !date || !timeSlotId) {
-                showFormSubmissionMessage('Please select lab, date, and time slot to check availability.', true);
-                return;
-            }
-
-            const existingBooking = MOCK_BOOKINGS.find(b => 
-                b.labId === labId && 
-                b.date === date && 
-                b.timeSlotId === timeSlotId &&
-                b.status === 'booked' 
-            );
-
-            if (existingBooking) {
-                showFormSubmissionMessage(`Slot on ${date} at ${MOCK_TIME_SLOTS.find(ts=>ts.id === timeSlotId).displayTime} for ${MOCK_LABS.find(l=>l.id === labId).name} is already BOOKED.`, true);
-            } else {
-                showFormSubmissionMessage(`Slot appears to be AVAILABLE. Please fill other details and submit.`, false);
-            }
-        });
-    }
-
-
     if (bookingForm) {
-        bookingForm.addEventListener('submit', function(event) {
+        bookingForm.addEventListener('submit', async function(event) {
             event.preventDefault();
-            console.log("Booking form submitted by role:", currentUserRole); // DEBUG
-            clearFormErrors();
-            showFormSubmissionMessage('', false); 
+            console.log("Booking form submitted by role:", currentUserRole);
+            clearFormErrors(bookingForm);
+            if(formSubmissionMessageEl) showFormSubmissionMessage('', false, formSubmissionMessageEl); 
 
-            if (!labIdSelect || !bookingDateInput || !timeSlotIdSelect) return;
+            if (!labIdSelect || !bookingDateInput || !timeSlotIdSelect || !formSubmissionMessageEl) return;
 
             const labId = labIdSelect.value;
             const bookingDate = bookingDateInput.value;
@@ -113,7 +112,7 @@ function initializeBookingForm() {
             const purposeInput = document.getElementById('purpose');
             const purpose = purposeInput ? purposeInput.value.trim() : '';
             const selectedEquipment = Array.from(document.querySelectorAll('input[name="equipment"]:checked'))
-                                         .map(cb => cb.value);
+                                         .map(cb => parseInt(cb.value)); // Ensure IDs are numbers if backend expects
             
             let isValid = true;
             if (!labId) { showError('labIdError', 'Lab selection is required.'); isValid = false; }
@@ -122,60 +121,73 @@ function initializeBookingForm() {
             if (!purpose) { showError('purposeError', 'Purpose is required.'); isValid = false; }
 
             const batchId = batchIdentifierInput ? batchIdentifierInput.value.trim() : '';
-            if (currentUserRole === USER_ROLES.ASSISTANT && !batchId) {
+            if (currentUserRole === USER_ROLES.ASSISTANT && !batchId) { // Using USER_ROLES from constants
                 showError('batchIdentifierError', 'Batch/Class Name is required for Assistant bookings.');
                 isValid = false;
             }
             
             if (!isValid) {
-                console.log("Form validation failed."); // DEBUG
-                return;
-            }
-
-            const conflictingBooking = MOCK_BOOKINGS.find(b =>
-                b.labId === labId &&
-                b.date === bookingDate &&
-                b.timeSlotId === timeSlotId &&
-                b.status === 'booked' 
-            );
-
-            if (conflictingBooking) {
-                showFormSubmissionMessage(`Booking failed: The selected slot for ${MOCK_LABS.find(l=>l.id === labId).name} on ${bookingDate} at ${MOCK_TIME_SLOTS.find(ts=>ts.id === timeSlotId).displayTime} was booked by someone else. Please try another slot.`, true);
+                console.log("Form validation failed.");
                 return;
             }
             
-            const newBooking = {
-                id: 'b' + (MOCK_BOOKINGS.length + 1) + Date.now(), 
-                labId: labId,
+            const bookingData = {
+                labId: parseInt(labId),
                 date: bookingDate,
                 timeSlotId: timeSlotId,
-                userId: localStorage.getItem('userEmail') || 'current_user', 
                 purpose: purpose,
                 equipmentIds: selectedEquipment,
-                status: currentUserRole === USER_ROLES.FACULTY ? 'booked' : (currentUserRole === USER_ROLES.ASSISTANT ? 'pending' : 'booked'),
-                requestedByRole: currentUserRole,
                 batchIdentifier: currentUserRole === USER_ROLES.ASSISTANT ? batchId : null,
             };
-            console.log("New booking object:", JSON.parse(JSON.stringify(newBooking))); // DEBUG
+            console.log("New booking data to send:", JSON.parse(JSON.stringify(bookingData)));
 
-            MOCK_BOOKINGS.push(newBooking);
-            saveMockBookings(); 
+            const submitButton = bookingForm.querySelector('button[type="submit"]');
+            const originalButtonHtml = submitButton.innerHTML;
+            submitButton.disabled = true;
+            submitButton.innerHTML = `<i data-lucide="loader-2" style="animation: spin 1s linear infinite; display: inline-block; margin-right: 0.5rem;"></i> Submitting...`;
+            if(window.lucide) window.lucide.createIcons();
 
-            const successMessage = currentUserRole === USER_ROLES.FACULTY 
-                ? `Booking for ${newBooking.purpose} confirmed successfully!`
-                : (currentUserRole === USER_ROLES.ASSISTANT 
-                    ? `Booking request for ${newBooking.purpose} (Status: PENDING) submitted successfully! It needs approval by Faculty.`
-                    : `Booking for ${newBooking.purpose} confirmed successfully!`);
-            showFormSubmissionMessage(successMessage, false);
-            
-            bookingForm.reset(); 
-            if (currentUserRole === USER_ROLES.ASSISTANT && batchIdentifierInput) {
-                batchIdentifierInput.value = ''; 
-            }
-            if (bookingDateInput) bookingDateInput.min = formatDate(new Date()); 
-            if (history.pushState) {
-                const newURL = window.location.pathname; 
-                history.pushState({path:newURL}, '', newURL);
+
+            try {
+                const response = await fetch('/api/bookings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify(bookingData)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    const successMessage = currentUserRole === USER_ROLES.FACULTY 
+                        ? `Booking for ${result.purpose} (Lab: ${result.labName}) confirmed successfully!`
+                        : (currentUserRole === USER_ROLES.ASSISTANT 
+                            ? `Booking request for ${result.purpose} (Lab: ${result.labName}, Status: PENDING) submitted successfully!`
+                            : `Booking for ${result.purpose} (Lab: ${result.labName}) confirmed successfully!`);
+                    showFormSubmissionMessage(successMessage, false, formSubmissionMessageEl);
+                    bookingForm.reset(); 
+                    if (currentUserRole === USER_ROLES.ASSISTANT && batchIdentifierInput) {
+                        batchIdentifierInput.value = ''; 
+                    }
+                    if (bookingDateInput) bookingDateInput.min = formatDate(new Date()); 
+                    // Clear query params
+                    if (history.pushState) {
+                        const newURL = window.location.pathname; 
+                        history.pushState({path:newURL}, '', newURL);
+                    }
+                } else {
+                     showFormSubmissionMessage(`Booking failed: ${result.msg || 'An unknown error occurred.'}`, true, formSubmissionMessageEl);
+                }
+
+            } catch (error) {
+                console.error("Error submitting booking:", error);
+                showFormSubmissionMessage(`Error: Could not submit booking. ${error.message}`, true, formSubmissionMessageEl);
+            } finally {
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalButtonHtml;
+                if(window.lucide) window.lucide.createIcons();
             }
         });
     }
@@ -189,9 +201,9 @@ function initializeBookingForm() {
         }
     }
 
-    function clearFormErrors() {
-      if(bookingForm){
-        const errorMessages = bookingForm.querySelectorAll('.error-message');
+    function clearFormErrors(form) {
+      if(form){
+        const errorMessages = form.querySelectorAll('.error-message');
         errorMessages.forEach(el => {
             if (el.id !== 'formSubmissionMessage') { 
                 el.textContent = '';
@@ -202,16 +214,16 @@ function initializeBookingForm() {
       }
     }
     
-    function showFormSubmissionMessage(message, isError) {
-        if (formSubmissionMessageEl) {
-            formSubmissionMessageEl.textContent = message; 
+    function showFormSubmissionMessage(message, isError, element) {
+        if (element) {
+            element.textContent = message; 
             if (message) { 
-                formSubmissionMessageEl.style.color = isError ? 'red' : 'green';
-                formSubmissionMessageEl.className = isError ? 'error-message visible' : 'success-message visible';
-                formSubmissionMessageEl.style.display = 'block';
+                element.style.color = isError ? '#dc3545' : '#28a745'; // Standard red/green
+                element.className = isError ? 'error-message visible' : 'success-message visible';
+                element.style.display = 'block';
             } else { 
-                formSubmissionMessageEl.style.display = 'none';
-                formSubmissionMessageEl.textContent = ''; 
+                element.style.display = 'none';
+                element.textContent = ''; 
             }
         }
     }

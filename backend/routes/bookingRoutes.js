@@ -8,10 +8,8 @@ const { auth, isAdmin } = require('../middleware/authMiddleware');
 // @desc    Get all bookings (Admin view, with filters)
 // @access  Private (Admin only)
 router.get('/', [auth, isAdmin], async (req, res) => {
-    // TODO: Implement filtering by date, labId, status
-    // const { date, labId, status } = req.query;
+    // Basic fetching, client-side will handle detailed filtering for now
     try {
-        // Placeholder: Fetch all bookings, join with users and labs for more info
         const [bookings] = await pool.query(`
             SELECT b.*, u.fullName as userName, u.email as userEmail, l.name as labName 
             FROM bookings b
@@ -31,7 +29,6 @@ router.get('/', [auth, isAdmin], async (req, res) => {
 // @access  Private
 router.get('/my', auth, async (req, res) => {
     try {
-        // Placeholder: Fetch bookings for req.user.id
         const [myBookings] = await pool.query(`
             SELECT b.*, l.name as labName 
             FROM bookings b
@@ -54,25 +51,16 @@ router.post('/', auth, async (req, res) => {
     const userId = req.user.id;
     const requestedByRole = req.user.role; // Role from JWT payload
 
-    // Basic validation
     if (!labId || !date || !timeSlotId || !purpose) {
         return res.status(400).json({ msg: 'Please provide all required booking fields (lab, date, time, purpose)' });
     }
 
-    // TODO: Add more validation (date format, time slot validity, lab existence, equipment existence)
-    // TODO: Check for booking conflicts before inserting
-
-    let status = 'pending'; // Default status
-    if (requestedByRole === 'Faculty') { // Assuming 'Faculty' role can book directly
+    let status = 'pending'; 
+    if (requestedByRole === 'Faculty') {
         status = 'booked';
-    } else if (requestedByRole === 'Assistant') { // Assistants submit requests
+    } else if (requestedByRole === 'Assistant') {
         status = 'pending';
-        if (!batchIdentifier) {
-             // return res.status(400).json({ msg: 'Batch identifier is required for Assistant requests' });
-             // For now, let's make it optional to align with frontend flexibility
-        }
     } else {
-        // Other roles might not be allowed to create bookings directly this way
         return res.status(403).json({ msg: 'Your role is not authorized to create bookings directly.' });
     }
     
@@ -83,26 +71,26 @@ router.post('/', auth, async (req, res) => {
             date,
             timeSlotId,
             purpose,
-            equipmentIds: equipmentIds ? JSON.stringify(equipmentIds) : null, // Store as JSON string
+            equipmentIds: equipmentIds ? JSON.stringify(equipmentIds) : null,
             status,
             requestedByRole,
             batchIdentifier: batchIdentifier || null,
             submittedDate: new Date()
         };
 
-        // Check for existing booked slot
-        const [conflictingBookings] = await pool.query(
-            'SELECT * FROM bookings WHERE labId = ? AND date = ? AND timeSlotId = ? AND status = ?',
-            [newBooking.labId, newBooking.date, newBooking.timeSlotId, 'booked']
-        );
-
-        if (conflictingBookings.length > 0 && status === 'booked') {
-            return res.status(409).json({ msg: 'This slot is already booked. Please choose another time or lab.'});
+        // Check for existing booked slot if trying to book directly
+        if (status === 'booked') {
+            const [conflictingBookings] = await pool.query(
+                'SELECT * FROM bookings WHERE labId = ? AND date = ? AND timeSlotId = ? AND status = ?',
+                [newBooking.labId, newBooking.date, newBooking.timeSlotId, 'booked']
+            );
+            if (conflictingBookings.length > 0) {
+                return res.status(409).json({ msg: 'This slot is already booked. Please choose another time or lab.'});
+            }
         }
         
         const [result] = await pool.query('INSERT INTO bookings SET ?', newBooking);
-        
-        const [createdBooking] = await pool.query('SELECT * FROM bookings WHERE id = ?', [result.insertId]);
+        const [createdBooking] = await pool.query('SELECT b.*, l.name as labName FROM bookings b JOIN labs l ON b.labId = l.id WHERE b.id = ?', [result.insertId]);
         res.status(201).json(createdBooking[0]);
 
     } catch (err) {
@@ -125,19 +113,19 @@ router.put('/:bookingId/status', [auth, isAdmin], async (req, res) => {
     if (!status) {
         return res.status(400).json({ msg: 'Status is required' });
     }
-    // TODO: Validate status against allowed values ('booked', 'rejected', 'cancelled', etc.)
+    // TODO: Validate status against allowed values ('booked', 'rejected', 'cancelled', 'pending-admin-approval' etc.)
 
     try {
-        const [booking] = await pool.query('SELECT * FROM bookings WHERE id = ?', [bookingId]);
-        if(booking.length === 0) {
+        const [bookingResult] = await pool.query('SELECT * FROM bookings WHERE id = ?', [bookingId]);
+        if(bookingResult.length === 0) {
             return res.status(404).json({ msg: 'Booking not found' });
         }
+        const booking = bookingResult[0];
 
-        // Logic for approving a pending request - check for conflicts if status is 'booked'
-        if (status === 'booked' && booking[0].status === 'pending') {
+        if (status === 'booked' && (booking.status === 'pending' || booking.status === 'pending-admin-approval')) {
              const [conflictingBookings] = await pool.query(
                 'SELECT * FROM bookings WHERE labId = ? AND date = ? AND timeSlotId = ? AND status = ? AND id != ?',
-                [booking[0].labId, booking[0].date, booking[0].timeSlotId, 'booked', bookingId]
+                [booking.labId, booking.date, booking.timeSlotId, 'booked', bookingId]
             );
             if (conflictingBookings.length > 0) {
                 return res.status(409).json({ msg: 'Cannot approve: This slot is already booked by another user. Please resolve the conflict.' });
@@ -146,8 +134,8 @@ router.put('/:bookingId/status', [auth, isAdmin], async (req, res) => {
 
         await pool.query('UPDATE bookings SET status = ? WHERE id = ?', [status, bookingId]);
         
-        const [updatedBooking] = await pool.query('SELECT * FROM bookings WHERE id = ?', [bookingId]);
-        res.json(updatedBooking[0]);
+        const [updatedBookingResult] = await pool.query('SELECT b.*, l.name as labName, u.fullName as userName FROM bookings b JOIN labs l ON b.labId = l.id JOIN users u ON b.userId = u.id WHERE b.id = ?', [bookingId]);
+        res.json(updatedBookingResult[0]);
     } catch (err) {
         console.error('Error updating booking status:', err.message);
         res.status(500).send('Server Error');
@@ -168,16 +156,13 @@ router.delete('/:bookingId', auth, async (req, res) => {
             return res.status(404).json({ msg: 'Booking not found' });
         }
 
-        // Allow owner or Admin to delete/cancel
         if (booking[0].userId !== userId && userRole !== 'Admin') {
             return res.status(403).json({ msg: 'Not authorized to cancel this booking' });
         }
 
-        // Instead of deleting, maybe change status to 'cancelled'
-        // await pool.query('DELETE FROM bookings WHERE id = ?', [bookingId]);
+        // Instead of deleting, change status to 'cancelled'
         await pool.query('UPDATE bookings SET status = ? WHERE id = ?', ['cancelled', bookingId]);
         
-        // res.json({ msg: 'Booking deleted successfully' });
         res.json({ msg: 'Booking cancelled successfully' });
 
     } catch (err) {

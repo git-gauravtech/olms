@@ -14,7 +14,7 @@
             <div class="sidebar-header">
                  <a href="#" class="sidebar-header-link" id="dashboardHomeLink">
                     <i data-lucide="atom"></i>
-                    <span class="sidebar-title">Optimized Lab Management</span>
+                    <span class="sidebar-title">Optimized Lab Management System</span>
                 </a>
             </div>
             <ul class="sidebar-nav" id="sidebarNav">
@@ -25,7 +25,7 @@
 
         <div class="main-content-wrapper">
             <header class="dashboard-header">
-                <button class="mobile-menu-button" id="mobileMenuButton">
+                <button type="button" class="mobile-menu-button" id="mobileMenuButton">
                     <i data-lucide="menu"></i>
                 </button>
                 <div class="user-nav" id="userNavContainer">
@@ -42,8 +42,7 @@
                         <p class="text-muted-foreground mb-4">
                             View and manage your existing lab bookings.
                         </p>
-                        <div id="myBookingsList" class="space-y-4">
-                            <!-- Bookings will be listed here by JS -->
+                        <div id="myBookingsListContainer" class="space-y-4">
                             <p>Loading your bookings...</p>
                         </div>
                     </div>
@@ -56,63 +55,93 @@
     <script src="../js/utils.js"></script>
     <script src="js/dashboard.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            if (!roleGuard(USER_ROLES.FACULTY)) return; // Only for Faculty
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!window.roleGuard(window.USER_ROLES.FACULTY)) return; 
             
-            initializeDashboard();
-            setDashboardHomeLink();
+            window.initializeDashboard();
+            window.setDashboardHomeLink();
             
-            const bookingsListContainer = document.getElementById('myBookingsList');
-            const currentUserEmail = localStorage.getItem('userEmail');
-            
-            const facultyBookings = MOCK_BOOKINGS.filter(booking => booking.userId === currentUserEmail && booking.requestedByRole === USER_ROLES.FACULTY);
+            const bookingsListContainer = document.getElementById('myBookingsListContainer');
+            const token = localStorage.getItem('token');
 
-            if (facultyBookings.length > 0) {
-                bookingsListContainer.innerHTML = ''; // Clear loading message
-                facultyBookings.sort((a,b) => new Date(a.date + 'T' + MOCK_TIME_SLOTS.find(ts => ts.id === a.timeSlotId).startTime) - new Date(b.date + 'T' + MOCK_TIME_SLOTS.find(ts => ts.id === b.timeSlotId).startTime));
+            if (!bookingsListContainer) {
+                console.error("myBookingsListContainer not found!");
+                return;
+            }
+            bookingsListContainer.innerHTML = '<p>Loading your bookings...</p>';
 
-
-                facultyBookings.forEach(booking => {
-                    const lab = MOCK_LABS.find(l => l.id === booking.labId);
-                    const timeSlot = MOCK_TIME_SLOTS.find(ts => ts.id === booking.timeSlotId);
-                    
-                    const card = document.createElement('div');
-                    card.className = 'custom-card p-4 border rounded-md'; // Reusing custom-card for item styling
-                    
-                    let equipmentNames = 'None';
-                    if (booking.equipmentIds && booking.equipmentIds.length > 0) {
-                        equipmentNames = booking.equipmentIds.map(eqId => MOCK_EQUIPMENT.find(eq => eq.id === eqId)?.name || 'Unknown Equipment').join(', ');
-                    }
-
-                    card.innerHTML = `
-                        <h3 class="custom-card-title text-lg font-semibold">${lab ? lab.name : 'Unknown Lab'}</h3>
-                        <p class="text-sm text-muted-foreground"><strong>Date:</strong> ${booking.date}</p>
-                        <p class="text-sm text-muted-foreground"><strong>Time:</strong> ${timeSlot ? timeSlot.displayTime : 'Unknown Time'}</p>
-                        <p class="text-sm text-muted-foreground"><strong>Purpose:</strong> ${booking.purpose}</p>
-                        <p class="text-sm text-muted-foreground"><strong>Status:</strong> <span class="font-medium ${booking.status === 'booked' ? 'text-green-600' : 'text-yellow-600'}">${booking.status.toUpperCase()}</span></p>
-                        <p class="text-sm text-muted-foreground"><strong>Equipment:</strong> ${equipmentNames}</p>
-                        ${ booking.status === 'booked' ? '<button class="button button-outline button-sm mt-2" onclick="cancelBooking(\''+booking.id+'\')">Cancel Booking</button>' : ''}
-                    `;
-                    bookingsListContainer.appendChild(card);
+            try {
+                const response = await fetch('/api/bookings/my', {
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
-            } else {
-                bookingsListContainer.innerHTML = '<p>You have no bookings currently.</p>';
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.msg || `Failed to fetch your bookings: ${response.status}`);
+                }
+                const facultyBookings = await response.json();
+
+                if (facultyBookings.length > 0) {
+                    bookingsListContainer.innerHTML = ''; 
+                    // Backend sorts by date desc, timeSlotId asc
+                    facultyBookings.forEach(booking => {
+                        const card = document.createElement('div');
+                        card.className = 'custom-card p-4 border rounded-md shadow-sm'; 
+                        
+                        let equipmentNames = 'None';
+                         if (booking.equipmentIds && booking.equipmentIds.length > 0) {
+                             try {
+                                const eqIds = JSON.parse(booking.equipmentIds);
+                                // TODO: Fetch equipment names if needed
+                                equipmentNames = eqIds.join(', ');
+                            } catch (e) { equipmentNames = "Error parsing equipment"; }
+                        }
+
+                        let statusColorClass = 'text-gray-600';
+                        if (booking.status === 'booked') statusColorClass = 'text-green-600';
+                        else if (booking.status === 'pending' || booking.status === 'pending-admin-approval') statusColorClass = 'text-yellow-600';
+                        else if (['rejected', 'cancelled'].includes(booking.status)) statusColorClass = 'text-red-600';
+
+
+                        card.innerHTML = `
+                            <h3 class="text-lg font-semibold mb-1">${booking.labName || 'Unknown Lab'}</h3>
+                            <p class="text-sm text-muted-foreground"><strong>Date:</strong> ${window.formatDate(new Date(booking.date))}</p>
+                            <p class="text-sm text-muted-foreground"><strong>Time:</strong> ${window.MOCK_TIME_SLOTS.find(ts=>ts.id === booking.timeSlotId)?.displayTime || booking.timeSlotId}</p>
+                            <p class="text-sm text-muted-foreground"><strong>Purpose:</strong> ${booking.purpose}</p>
+                            <p class="text-sm text-muted-foreground"><strong>Status:</strong> <span class="font-medium ${statusColorClass}">${booking.status.toUpperCase().replace(/-/g,' ')}</span></p>
+                            <p class="text-sm text-muted-foreground"><strong>Equipment:</strong> ${equipmentNames}</p>
+                            ${ (booking.status === 'booked' || booking.status === 'pending') ? `<button type="button" class="button button-outline button-sm mt-2" onclick="cancelFacultyBooking('${booking.id}')">Cancel Booking</button>` : ''}
+                        `;
+                        bookingsListContainer.appendChild(card);
+                    });
+                } else {
+                    bookingsListContainer.innerHTML = '<p class="text-muted-foreground">You have no bookings currently.</p>';
+                }
+            } catch (error) {
+                 console.error("Error fetching faculty bookings:", error);
+                bookingsListContainer.innerHTML = `<p class="error-message visible">Error loading your bookings: ${error.message}</p>`;
             }
 
             if (window.lucide) window.lucide.createIcons();
         });
 
-        function cancelBooking(bookingId) {
+        async function cancelFacultyBooking(bookingId) {
             if (confirm('Are you sure you want to cancel this booking?')) {
-                const bookingIndex = MOCK_BOOKINGS.findIndex(b => b.id === bookingId);
-                if (bookingIndex > -1) {
-                    MOCK_BOOKINGS.splice(bookingIndex, 1);
-                    saveMockBookings();
-                    alert('Booking cancelled successfully.');
-                    // Re-render the list or reload page
-                    window.location.reload(); 
-                } else {
-                    alert('Error: Booking not found.');
+                const token = localStorage.getItem('token');
+                try {
+                    const response = await fetch(`/api/bookings/${bookingId}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const result = await response.json();
+                    if (response.ok) {
+                        alert(result.msg || 'Booking cancelled successfully.');
+                        window.location.reload(); 
+                    } else {
+                        alert(`Failed to cancel booking: ${result.msg || 'Server error'}`);
+                    }
+                } catch (error) {
+                    console.error('Error cancelling booking:', error);
+                    alert('An error occurred while cancelling the booking.');
                 }
             }
         }

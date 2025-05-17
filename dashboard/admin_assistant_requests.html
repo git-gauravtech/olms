@@ -42,7 +42,7 @@
                         <p class="text-muted-foreground mb-4">
                             Review and manage lab booking requests submitted by Assistants.
                         </p>
-                        <div id="assistantRequestsList" class="space-y-4">
+                        <div id="assistantRequestsListContainer" class="space-y-4">
                            <p>Loading Assistant requests...</p>
                         </div>
                     </div>
@@ -55,67 +55,61 @@
     <script src="../js/utils.js"></script>
     <script src="js/dashboard.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             if (!window.roleGuard(window.USER_ROLES.ADMIN)) return; 
             
             window.initializeDashboard();
             window.setDashboardHomeLink();
 
-            const requestsListContainer = document.getElementById('assistantRequestsList');
-            
-            // Ensure MOCK_BOOKINGS is loaded
-            if (!window.MOCK_BOOKINGS) {
-                console.error("MOCK_BOOKINGS not loaded on admin_assistant_requests.html!");
-                if (requestsListContainer) requestsListContainer.innerHTML = "<p>Error: Booking data could not be loaded.</p>";
+            const requestsListContainer = document.getElementById('assistantRequestsListContainer');
+            const token = localStorage.getItem('token');
+
+            if (!requestsListContainer) {
+                console.error("assistantRequestsListContainer not found!");
                 return;
             }
-            
-            console.log("All MOCK_BOOKINGS on admin_assistant_requests.html:", JSON.parse(JSON.stringify(window.MOCK_BOOKINGS)));
-            
-            const assistantPendingRequests = window.MOCK_BOOKINGS.filter(
-                booking => booking.requestedByRole === window.USER_ROLES.ASSISTANT && booking.status === 'pending'
-            );
+            requestsListContainer.innerHTML = '<p>Loading Assistant requests...</p>';
 
-            console.log("Filtered Assistant Pending Requests on admin_assistant_requests.html:", JSON.parse(JSON.stringify(assistantPendingRequests)));
+            try {
+                const response = await fetch('/api/admin/requests/assistant', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.msg || `Failed to fetch assistant requests: ${response.status}`);
+                }
+                const assistantPendingRequests = await response.json();
+                console.log("Fetched Assistant Pending Requests:", assistantPendingRequests);
 
-
-            if (requestsListContainer) {
                 if (assistantPendingRequests.length > 0) {
                     requestsListContainer.innerHTML = ''; 
-                    assistantPendingRequests.sort((a,b) => {
-                        const timeAObj = window.MOCK_TIME_SLOTS.find(ts => ts.id === a.timeSlotId);
-                        const timeBObj = window.MOCK_TIME_SLOTS.find(ts => ts.id === b.timeSlotId);
-                        const timeA = timeAObj ? timeAObj.startTime : '00:00';
-                        const timeB = timeBObj ? timeBObj.startTime : '00:00';
-                        return new Date(a.date + 'T' + timeA) - new Date(b.date + 'T' + timeB);
-                    });
+                    // Assuming backend sorts by submittedDate ASC
+                    // assistantPendingRequests.sort((a,b) => new Date(a.submittedDate) - new Date(b.submittedDate));
+
 
                     assistantPendingRequests.forEach(request => {
-                        const lab = window.MOCK_LABS.find(l => l.id === request.labId);
-                        const timeSlot = window.MOCK_TIME_SLOTS.find(ts => ts.id === request.timeSlotId);
-                        
                         const card = document.createElement('div');
                         card.className = 'custom-card p-4 border rounded-md shadow-sm';
                         
                         let equipmentNames = 'None';
                         if (request.equipmentIds && request.equipmentIds.length > 0) {
-                            equipmentNames = request.equipmentIds.map(eqId => {
-                                const equipment = window.MOCK_EQUIPMENT.find(eq => eq.id === eqId);
-                                return equipment ? equipment.name : 'Unknown Equipment';
-                            }).join(', ');
+                            // In a real app, fetch equipment details or ensure they are part of request object
+                            // For now, just showing IDs if names aren't directly available
+                            equipmentNames = JSON.parse(request.equipmentIds).join(', ');
                         }
 
                         card.innerHTML = `
-                            <h3 class="text-lg font-semibold mb-1">${lab ? lab.name : 'Unknown Lab'} ${request.batchIdentifier ? `for ${request.batchIdentifier}`:''}</h3>
-                            <p class="text-sm text-muted-foreground"><strong>Requested by:</strong> Assistant (${request.userId})</p>
+                            <h3 class="text-lg font-semibold mb-1">${request.labName || 'Unknown Lab'} ${request.batchIdentifier ? `for ${request.batchIdentifier}`:''}</h3>
+                            <p class="text-sm text-muted-foreground"><strong>Requested by:</strong> ${request.userName} (${request.userEmail})</p>
                             <p class="text-sm text-muted-foreground"><strong>Date:</strong> ${window.formatDate(new Date(request.date))}</p>
-                            <p class="text-sm text-muted-foreground"><strong>Time:</strong> ${timeSlot ? timeSlot.displayTime : 'Unknown Time'}</p>
+                            <p class="text-sm text-muted-foreground"><strong>Time:</strong> ${window.MOCK_TIME_SLOTS.find(ts => ts.id === request.timeSlotId)?.displayTime || request.timeSlotId}</p>
                             <p class="text-sm text-muted-foreground"><strong>Purpose:</strong> ${request.purpose}</p>
                             <p class="text-sm text-muted-foreground"><strong>Equipment:</strong> ${equipmentNames}</p>
                             <p class="text-sm text-muted-foreground"><strong>Status:</strong> <span class="font-medium text-yellow-600">${request.status.toUpperCase()}</span></p>
+                             <p class="text-xs text-gray-500 mt-1">Submitted: ${window.formatDate(new Date(request.submittedDate))}</p>
                             <div class="mt-3 flex gap-2">
-                                <button type="button" class="button button-primary button-sm" onclick="approveRequest('${request.id}')">Approve</button>
-                                <button type="button" class="button button-secondary button-sm" onclick="rejectRequest('${request.id}')">Reject</button>
+                                <button type="button" class="button button-primary button-sm" onclick="handleRequestAction(${request.id}, 'booked')">Approve</button>
+                                <button type="button" class="button button-secondary button-sm" onclick="handleRequestAction(${request.id}, 'rejected')">Reject</button>
                             </div>
                         `;
                         requestsListContainer.appendChild(card);
@@ -123,54 +117,39 @@
                 } else {
                     requestsListContainer.innerHTML = '<p class="text-muted-foreground">No pending Assistant booking requests at this time.</p>';
                 }
-            } else {
-                console.error("assistantRequestsList container not found!");
-            }
 
+            } catch (error) {
+                console.error("Error loading assistant requests:", error);
+                requestsListContainer.innerHTML = `<p class="error-message visible">Error loading requests: ${error.message}</p>`;
+            }
 
             if (window.lucide) window.lucide.createIcons();
         });
 
-        function approveRequest(bookingId) {
-            const bookingIndex = window.MOCK_BOOKINGS.findIndex(b => b.id === bookingId);
-            if (bookingIndex > -1) {
-                const booking = window.MOCK_BOOKINGS[bookingIndex];
-                const labForBooking = window.MOCK_LABS.find(l => l.id === booking.labId);
-                const timeSlotForBooking = window.MOCK_TIME_SLOTS.find(ts => ts.id === booking.timeSlotId);
+        async function handleRequestAction(bookingId, newStatus) {
+            const token = localStorage.getItem('token');
+            const actionText = newStatus === 'booked' ? 'approve' : 'reject';
+            if (!confirm(`Are you sure you want to ${actionText} this booking request?`)) return;
 
-                const conflict = window.MOCK_BOOKINGS.find(b => 
-                    b.id !== bookingId && 
-                    b.labId === booking.labId &&
-                    b.date === booking.date &&
-                    b.timeSlotId === booking.timeSlotId &&
-                    b.status === 'booked'
-                );
-
-                if (conflict) {
-                    alert(`Cannot approve: Slot for ${labForBooking ? labForBooking.name : 'Unknown Lab'} on ${booking.date} at ${timeSlotForBooking ? timeSlotForBooking.displayTime : 'Unknown Time'} is already booked by ${conflict.userId}. Please resolve the conflict first or ask Assistant to choose another slot.`);
-                    return;
-                }
-
-                window.MOCK_BOOKINGS[bookingIndex].status = 'booked';
-                window.saveMockBookings(); 
-                alert('Request approved and booking confirmed.');
-                window.location.reload(); 
-            } else {
-                alert('Error: Booking not found for approval.');
-            }
-        }
-
-        function rejectRequest(bookingId) {
-             if (confirm('Are you sure you want to reject this booking request?')) {
-                const bookingIndex = window.MOCK_BOOKINGS.findIndex(b => b.id === bookingId);
-                 if (bookingIndex > -1) {
-                    window.MOCK_BOOKINGS[bookingIndex].status = 'rejected'; 
-                    window.saveMockBookings(); 
-                    alert('Request rejected.');
-                    window.location.reload();
+            try {
+                const response = await fetch(`/api/bookings/${bookingId}/status`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    alert(`Request ${actionText}d successfully.`);
+                    window.location.reload(); 
                 } else {
-                    alert('Error: Booking not found for rejection.');
+                    alert(`Failed to ${actionText} request: ${result.msg || 'Server error'}`);
                 }
+            } catch (error) {
+                console.error(`Error ${actionText}ing request:`, error);
+                alert(`An error occurred while ${actionText}ing the request.`);
             }
         }
     </script>

@@ -14,7 +14,7 @@
             <div class="sidebar-header">
                  <a href="#" class="sidebar-header-link" id="dashboardHomeLink">
                     <i data-lucide="atom"></i>
-                    <span class="sidebar-title">Optimized Lab Management</span>
+                    <span class="sidebar-title">Optimized Lab Management System</span>
                 </a>
             </div>
             <ul class="sidebar-nav" id="sidebarNav">
@@ -42,8 +42,7 @@
                         <p class="text-muted-foreground mb-4">
                             Here are your upcoming and past lab sessions.
                         </p>
-                        <div id="myScheduleList" class="space-y-4">
-                            <!-- Schedule will be listed here by JS -->
+                        <div id="myScheduleListContainer" class="space-y-4">
                             <p>Loading your schedule...</p>
                         </div>
                     </div>
@@ -56,62 +55,106 @@
     <script src="../js/utils.js"></script>
     <script src="js/dashboard.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            if (!roleGuard([USER_ROLES.STUDENT, USER_ROLES.ASSISTANT])) return; // Added ASSISTANT
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Assistants and Students can view their schedules here
+            if (!window.roleGuard([window.USER_ROLES.STUDENT, window.USER_ROLES.ASSISTANT])) return; 
             
-            initializeDashboard();
-            setDashboardHomeLink();
+            window.initializeDashboard();
+            window.setDashboardHomeLink();
 
-            const scheduleListContainer = document.getElementById('myScheduleList');
-            const currentUserEmail = localStorage.getItem('userEmail');
-            const currentUserRole = getCurrentUserRole();
+            const scheduleListContainer = document.getElementById('myScheduleListContainer');
+            const token = localStorage.getItem('token');
             
-            let userBookings = [];
-            if (currentUserRole === USER_ROLES.STUDENT) {
-                userBookings = MOCK_BOOKINGS.filter(booking => booking.userId === currentUserEmail && booking.status === 'booked');
-            } else if (currentUserRole === USER_ROLES.ASSISTANT) {
-                userBookings = MOCK_BOOKINGS.filter(booking => booking.userId === currentUserEmail && (booking.status === 'booked' || booking.status === 'pending'));
+            if (!scheduleListContainer) {
+                console.error("myScheduleListContainer not found!");
+                return;
             }
+            scheduleListContainer.innerHTML = '<p>Loading your schedule...</p>';
 
-
-            if (userBookings.length > 0) {
-                scheduleListContainer.innerHTML = ''; 
-                userBookings.sort((a,b) => new Date(a.date + 'T' + MOCK_TIME_SLOTS.find(ts => ts.id === a.timeSlotId).startTime) - new Date(b.date + 'T' + MOCK_TIME_SLOTS.find(ts => ts.id === b.timeSlotId).startTime));
-
-                userBookings.forEach(booking => {
-                    const lab = MOCK_LABS.find(l => l.id === booking.labId);
-                    const timeSlot = MOCK_TIME_SLOTS.find(ts => ts.id === booking.timeSlotId);
-                    
-                    const card = document.createElement('div');
-                    card.className = 'custom-card p-4 border rounded-md';
-                    
-                    let equipmentNames = 'None';
-                    if (booking.equipmentIds && booking.equipmentIds.length > 0) {
-                        equipmentNames = booking.equipmentIds.map(eqId => MOCK_EQUIPMENT.find(eq => eq.id === eqId)?.name || 'Unknown Equipment').join(', ');
-                    }
-                    
-                    const isPast = new Date(booking.date + 'T' + timeSlot.startTime) < new Date();
-
-                    card.innerHTML = `
-                        <h3 class="custom-card-title text-lg font-semibold ${isPast ? 'text-gray-500' : ''}">${lab ? lab.name : 'Unknown Lab'} ${booking.batchIdentifier ? `(${booking.batchIdentifier})` : ''}</h3>
-                        <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Date:</strong> ${booking.date}</p>
-                        <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Time:</strong> ${timeSlot ? timeSlot.displayTime : 'Unknown Time'}</p>
-                        <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Purpose:</strong> ${booking.purpose}</p>
-                        <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Status:</strong> 
-                            <span class="font-medium ${booking.status === 'booked' ? (isPast ? 'text-gray-500': 'text-green-600') : 'text-yellow-600'}">
-                                ${booking.status.toUpperCase()} ${isPast && booking.status === 'booked' ? '(Completed)' : ''}
-                            </span>
-                        </p>
-                        <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Equipment:</strong> ${equipmentNames}</p>
-                    `;
-                    scheduleListContainer.appendChild(card);
+            try {
+                const response = await fetch('/api/bookings/my', {
+                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-            } else {
-                scheduleListContainer.innerHTML = '<p>You have no scheduled lab sessions.</p>';
+                 if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.msg || `Failed to fetch your schedule: ${response.status}`);
+                }
+                const userBookings = await response.json();
+
+
+                if (userBookings.length > 0) {
+                    scheduleListContainer.innerHTML = ''; 
+                    // Backend sorts by date desc, timeSlotId asc
+                    userBookings.forEach(booking => {
+                        const card = document.createElement('div');
+                        card.className = 'custom-card p-4 border rounded-md shadow-sm';
+                        
+                        let equipmentNames = 'None';
+                        if (booking.equipmentIds && booking.equipmentIds.length > 0) {
+                            try {
+                                const eqIds = JSON.parse(booking.equipmentIds);
+                                // TODO: Fetch equipment names if needed
+                                equipmentNames = eqIds.join(', ');
+                            } catch (e) { equipmentNames = "Error parsing equipment"; }
+                        }
+                        
+                        const timeSlotObj = window.MOCK_TIME_SLOTS.find(ts => ts.id === booking.timeSlotId);
+                        const isPast = timeSlotObj ? new Date(booking.date + 'T' + timeSlotObj.startTime) < new Date() : false;
+
+                        let statusColorClass = 'text-gray-600';
+                        if (booking.status === 'booked') statusColorClass = isPast ? 'text-gray-500' : 'text-green-600';
+                        else if (booking.status === 'pending' || booking.status === 'pending-admin-approval') statusColorClass = 'text-yellow-600';
+                        else if (['rejected', 'cancelled'].includes(booking.status)) statusColorClass = 'text-red-600';
+
+
+                        card.innerHTML = `
+                            <h3 class="text-lg font-semibold mb-1 ${isPast ? 'text-gray-500' : ''}">${booking.labName || 'Unknown Lab'} ${booking.batchIdentifier ? `(${booking.batchIdentifier})` : ''}</h3>
+                            <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Date:</strong> ${window.formatDate(new Date(booking.date))}</p>
+                            <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Time:</strong> ${timeSlotObj?.displayTime || booking.timeSlotId}</p>
+                            <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Purpose:</strong> ${booking.purpose}</p>
+                            <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Status:</strong> 
+                                <span class="font-medium ${statusColorClass}">
+                                    ${booking.status.toUpperCase().replace(/-/g,' ')} ${isPast && booking.status === 'booked' ? '(Completed)' : ''}
+                                </span>
+                            </p>
+                            <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Equipment:</strong> ${equipmentNames}</p>
+                            ${ (booking.requestedByRole === window.USER_ROLES.ASSISTANT && (booking.status === 'booked' || booking.status === 'pending')) ? `<button type="button" class="button button-outline button-sm mt-2" onclick="cancelUserBooking('${booking.id}')">Cancel Request</button>` : ''}
+
+                        `;
+                        scheduleListContainer.appendChild(card);
+                    });
+                } else {
+                    scheduleListContainer.innerHTML = '<p class="text-muted-foreground">You have no scheduled lab sessions or pending requests.</p>';
+                }
+            } catch (error) {
+                console.error("Error fetching user schedule:", error);
+                scheduleListContainer.innerHTML = `<p class="error-message visible">Error loading your schedule: ${error.message}</p>`;
             }
 
             if (window.lucide) window.lucide.createIcons();
         });
+
+        async function cancelUserBooking(bookingId) { // Primarily for Assistant's pending/booked requests
+            if (confirm('Are you sure you want to cancel this booking/request?')) {
+                const token = localStorage.getItem('token');
+                try {
+                    const response = await fetch(`/api/bookings/${bookingId}`, {
+                        method: 'DELETE', // Backend changes status to 'cancelled'
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const result = await response.json();
+                    if (response.ok) {
+                        alert(result.msg || 'Booking/Request cancelled successfully.');
+                        window.location.reload(); 
+                    } else {
+                        alert(`Failed to cancel: ${result.msg || 'Server error'}`);
+                    }
+                } catch (error) {
+                    console.error('Error cancelling booking/request:', error);
+                    alert('An error occurred during cancellation.');
+                }
+            }
+        }
     </script>
 </body>
 </html>
