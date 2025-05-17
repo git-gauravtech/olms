@@ -30,6 +30,8 @@ function handleLogin(event) {
     const password = document.getElementById('password').value;
     const role = document.getElementById('role').value;
 
+    console.log("Login attempt:", { email, role }); // Debug log
+
     let isValid = true;
     if (!email) {
         showError('emailError', 'Email is required.');
@@ -50,32 +52,58 @@ function handleLogin(event) {
         isValid = false;
     }
 
-    if (!isValid) return;
+    if (!isValid) {
+        console.log("Login validation failed."); // Debug log
+        return;
+    }
 
-    // Simulate successful login
+    // Ensure USER_ROLES is available
+    const currentUserRoles = window.USER_ROLES || USER_ROLES; // Fallback if window.USER_ROLES isn't set, though it should be
+    if (!currentUserRoles) {
+        console.error("USER_ROLES object is not defined. Make sure constants.js is loaded before auth.js.");
+        showError('roleError', 'System error: Roles not defined. Please contact support.');
+        return;
+    }
+    console.log("USER_ROLES for comparison:", currentUserRoles); // Debug log
+
     localStorage.setItem('userRole', role);
-    localStorage.setItem('userEmail', email); 
+    localStorage.setItem('userEmail', email);
     const userName = localStorage.getItem('userName') || email.split('@')[0] || role;
     localStorage.setItem('userName', userName);
-    
-    alert(`Login Successful. Welcome, ${userName}! Redirecting to your dashboard...`);
 
+    alert(`Login Successful. Welcome, ${userName}! Redirecting to your dashboard...`);
+    console.log(`Alert shown. Current role for switch: "${role}"`); // Debug log
+
+    let redirected = false;
     switch (role) {
-        case USER_ROLES.ADMIN:
+        case currentUserRoles.ADMIN:
+            console.log("Redirecting to Admin dashboard..."); // Debug log
             window.location.href = 'dashboard/admin.html';
+            redirected = true;
             break;
-        case USER_ROLES.FACULTY:
+        case currentUserRoles.FACULTY:
+            console.log("Redirecting to Faculty dashboard..."); // Debug log
             window.location.href = 'dashboard/faculty.html';
+            redirected = true;
             break;
-        case USER_ROLES.STUDENT:
+        case currentUserRoles.STUDENT:
+            console.log("Redirecting to Student dashboard..."); // Debug log
             window.location.href = 'dashboard/student.html';
+            redirected = true;
             break;
-        case USER_ROLES.ASSISTANT: // Changed from CR
-            window.location.href = 'dashboard/assistant.html'; // Changed path
+        case currentUserRoles.ASSISTANT:
+            console.log("Redirecting to Assistant dashboard..."); // Debug log
+            window.location.href = 'dashboard/assistant.html';
+            redirected = true;
             break;
         default:
+            console.error("Login: No matching role for redirection. Role provided:", role); // Debug log
             showError('roleError', 'Invalid role selected. Cannot redirect.');
-            console.error("Login: Invalid role for redirection:", role);
+    }
+    if(redirected){
+        console.log("Redirection was attempted to:", window.location.href);
+    } else {
+        console.error("Redirection was NOT attempted. Check switch/case logic and role value.");
     }
 }
 
@@ -83,6 +111,8 @@ function handleSignup(event) {
     event.preventDefault();
     clearErrors();
     const signupButton = document.getElementById('signupButton');
+    if (!signupButton) return;
+
     signupButton.disabled = true;
     signupButton.innerHTML = '<i data-lucide="loader-2" class="button-primary-loader" style="animation: spin 1s linear infinite; margin-right: 0.5rem;"></i> Creating Account...';
     if (window.lucide) window.lucide.createIcons();
@@ -93,7 +123,7 @@ function handleSignup(event) {
     const password = document.getElementById('password').value;
     const confirmPassword = document.getElementById('confirmPassword').value;
     const role = document.getElementById('role').value;
-    const department = document.getElementById('department').value; 
+    const department = document.getElementById('department').value;
 
     let isValid = true;
     if (!fullName || fullName.length < 3) {
@@ -119,6 +149,16 @@ function handleSignup(event) {
      if (!isValid) {
         signupButton.disabled = false;
         signupButton.innerHTML = 'Create Account';
+        if (window.lucide) window.lucide.createIcons(); // Ensure icon is removed if loader was there
+        return;
+    }
+    // Ensure USER_ROLES is available for signup redirection logic too
+    const currentUserRoles = window.USER_ROLES || USER_ROLES;
+    if (!currentUserRoles) {
+        console.error("USER_ROLES object is not defined for signup. Make sure constants.js is loaded before auth.js.");
+        signupButton.disabled = false;
+        signupButton.innerHTML = 'Create Account';
+        if (window.lucide) window.lucide.createIcons();
         return;
     }
 
@@ -132,29 +172,33 @@ function handleSignup(event) {
         alert(`Account Created! Welcome, ${fullName}! Your account as ${role} has been successfully created.`);
         signupButton.disabled = false;
         signupButton.innerHTML = 'Create Account';
+        if (window.lucide) window.lucide.createIcons();
+
 
         switch (role) {
-            case USER_ROLES.ADMIN:
+            case currentUserRoles.ADMIN:
                 window.location.href = 'dashboard/admin.html';
                 break;
-            case USER_ROLES.FACULTY:
+            case currentUserRoles.FACULTY:
                 window.location.href = 'dashboard/faculty.html';
                 break;
-            case USER_ROLES.STUDENT:
+            case currentUserRoles.STUDENT:
                 window.location.href = 'dashboard/student.html';
                 break;
-            case USER_ROLES.ASSISTANT: // Changed from CR
-                window.location.href = 'dashboard/assistant.html'; // Changed path
+            case currentUserRoles.ASSISTANT:
+                window.location.href = 'dashboard/assistant.html';
                 break;
             default:
-                window.location.href = 'index.html'; 
+                window.location.href = 'index.html';
         }
     }, 1500);
 }
 
 function togglePasswordVisibility(fieldId, buttonElement) {
     const passwordInput = document.getElementById(fieldId);
-    const icon = buttonElement.querySelector('i');
+    const icon = buttonElement.querySelector('i'); // Assuming the icon is an <i> tag
+    if (!passwordInput || !icon) return;
+
     if (passwordInput.type === 'password') {
         passwordInput.type = 'text';
         icon.setAttribute('data-lucide', 'eye-off');
@@ -162,7 +206,7 @@ function togglePasswordVisibility(fieldId, buttonElement) {
         passwordInput.type = 'password';
         icon.setAttribute('data-lucide', 'eye');
     }
-    if (window.lucide) { 
+    if (window.lucide) {
       window.lucide.createIcons();
     }
 }
