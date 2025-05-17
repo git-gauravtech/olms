@@ -1,4 +1,5 @@
 
+
 const MOBILE_BREAKPOINT = 768;
 
 function isMobile() {
@@ -13,7 +14,7 @@ function roleGuard(expectedRoles) {
     const currentRole = getCurrentUserRole();
     // console.log('[roleGuard] Current role from localStorage:', currentRole);
     // console.log('[roleGuard] Expected roles:', expectedRoles);
-    // console.log('[roleGuard] window.USER_ROLES_OBJ available:', window.USER_ROLES_OBJ);
+    // console.log('[roleGuard] window.USER_ROLES available:', window.USER_ROLES);
 
 
     if (!currentRole) {
@@ -22,8 +23,8 @@ function roleGuard(expectedRoles) {
         return false;
     }
 
-    if (!window.USER_ROLES_OBJ) {
-        // console.error('[roleGuard] CRITICAL ERROR: window.USER_ROLES_OBJ is not defined. Cannot perform role check.');
+    if (!window.USER_ROLES) { // Changed from window.USER_ROLES_OBJ
+        console.error('[roleGuard] CRITICAL ERROR: window.USER_ROLES is not defined. Cannot perform role check. Ensure constants.js is loaded first.');
         alert('Critical system error: Role definitions missing. Please contact support.');
         window.location.href = '../index.html'; 
         return false;
@@ -35,10 +36,10 @@ function roleGuard(expectedRoles) {
         alert('Access Denied. You do not have permission to view this page.');
         
         const roleDashboardMap = {
-            [window.USER_ROLES_OBJ.ADMIN]: '../dashboard/admin.html',
-            [window.USER_ROLES_OBJ.FACULTY]: '../dashboard/faculty.html',
-            [window.USER_ROLES_OBJ.STUDENT]: '../dashboard/student.html',
-            [window.USER_ROLES_OBJ.ASSISTANT]: '../dashboard/assistant.html',
+            [window.USER_ROLES.ADMIN]: '../dashboard/admin.html',
+            [window.USER_ROLES.FACULTY]: '../dashboard/faculty.html',
+            [window.USER_ROLES.STUDENT]: '../dashboard/student.html',
+            [window.USER_ROLES.ASSISTANT]: '../dashboard/assistant.html',
         };
         window.location.href = roleDashboardMap[currentRole] || '../index.html';
         return false;
@@ -58,3 +59,5 @@ window.isMobile = isMobile;
 window.getCurrentUserRole = getCurrentUserRole;
 window.roleGuard = roleGuard;
 window.getQueryParam = getQueryParam;
+
+    

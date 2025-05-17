@@ -1,10 +1,11 @@
 
+
 function initializeDashboard() {
     // console.log('[dashboard.js] Initializing dashboard...');
     const currentRole = getCurrentUserRole();
     // console.log('[dashboard.js] Current user role from localStorage:', currentRole);
-    // console.log('[dashboard.js] window.USER_ROLES_OBJ available:', window.USER_ROLES_OBJ);
-    // console.log('[dashboard.js] window.NAV_LINKS_OBJ available:', window.NAV_LINKS_OBJ);
+    // console.log('[dashboard.js] window.USER_ROLES available:', window.USER_ROLES);
+    // console.log('[dashboard.js] window.NAV_LINKS available:', window.NAV_LINKS);
 
 
     if (!currentRole) {
@@ -13,8 +14,8 @@ function initializeDashboard() {
         return;
     }
 
-    if (!window.USER_ROLES_OBJ || !window.NAV_LINKS_OBJ) {
-        // console.error("[dashboard.js] CRITICAL ERROR: USER_ROLES_OBJ or NAV_LINKS_OBJ not defined on window. Ensure constants.js is loaded first and correctly defines these.");
+    if (!window.USER_ROLES || !window.NAV_LINKS) { // Changed from window.USER_ROLES_OBJ and window.NAV_LINKS_OBJ
+        console.error("[dashboard.js] CRITICAL ERROR: window.USER_ROLES or window.NAV_LINKS not defined. Ensure constants.js is loaded first and correctly defines these.");
         alert("Dashboard cannot be initialized due to a system error. Please contact support.");
         return;
     }
@@ -41,16 +42,16 @@ function setDashboardHomeLink() {
     }
 
     const role = getCurrentUserRole();
-    if (!role || !window.USER_ROLES_OBJ) {
-        // console.warn('[dashboard.js] Cannot set home link: role or USER_ROLES_OBJ missing.');
+    if (!role || !window.USER_ROLES) { // Changed from window.USER_ROLES_OBJ
+        // console.warn('[dashboard.js] Cannot set home link: role or window.USER_ROLES missing.');
         dashboardHomeLink.href = '../index.html'; // Fallback
         return;
     }
     const homePageMap = {
-        [window.USER_ROLES_OBJ.ADMIN]: 'admin.html',
-        [window.USER_ROLES_OBJ.FACULTY]: 'faculty.html',
-        [window.USER_ROLES_OBJ.STUDENT]: 'student.html',
-        [window.USER_ROLES_OBJ.ASSISTANT]: 'assistant.html'
+        [window.USER_ROLES.ADMIN]: 'admin.html',
+        [window.USER_ROLES.FACULTY]: 'faculty.html',
+        [window.USER_ROLES.STUDENT]: 'student.html',
+        [window.USER_ROLES.ASSISTANT]: 'assistant.html'
     };
     dashboardHomeLink.href = homePageMap[role] || '../index.html';
 }
@@ -65,9 +66,9 @@ function populateSidebarNav(role) {
 
     sidebarNav.innerHTML = ''; 
 
-    const links = window.NAV_LINKS_OBJ[role] || window.COMMON_NAV_LINKS_CONST;
+    const links = window.NAV_LINKS[role] || window.COMMON_NAV_LINKS; // Changed from NAV_LINKS_OBJ and COMMON_NAV_LINKS_CONST
     if (!links) {
-        // console.warn(`[dashboard.js] No NAV_LINKS_OBJ found for role: ${role}`);
+        // console.warn(`[dashboard.js] No NAV_LINKS found for role: ${role}`);
         return;
     }
 
@@ -152,7 +153,7 @@ function populateUserNav(role) {
             userNavDropdown.classList.remove('open');
         }
     });
-    if (window.lucide) window.lucide.createIcons(); // Ensure icons here are rendered
+    // if (window.lucide) window.lucide.createIcons(); // Moved to end of initializeDashboard
 }
 
 function setupMobileSidebar() {
@@ -225,3 +226,5 @@ function createFeatureCard(feature) {
     `;
     return card;
 }
+
+    
