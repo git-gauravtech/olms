@@ -12,7 +12,7 @@ function initializeBookingForm() {
 
 
     const currentUserRole = getCurrentUserRole();
-    if (currentUserRole === USER_ROLES.ASSISTANT) { // Changed from CR
+    if (currentUserRole === USER_ROLES.ASSISTANT) {
         if (batchIdentifierGroup) batchIdentifierGroup.style.display = 'block'; 
         if (batchIdentifierInput) batchIdentifierInput.required = true;
     } else {
@@ -101,6 +101,7 @@ function initializeBookingForm() {
     if (bookingForm) {
         bookingForm.addEventListener('submit', function(event) {
             event.preventDefault();
+            console.log("Booking form submitted by role:", currentUserRole); // DEBUG
             clearFormErrors();
             showFormSubmissionMessage('', false); 
 
@@ -110,7 +111,7 @@ function initializeBookingForm() {
             const bookingDate = bookingDateInput.value;
             const timeSlotId = timeSlotIdSelect.value;
             const purposeInput = document.getElementById('purpose');
-            const purpose = purposeInput ? purposeInput.value : '';
+            const purpose = purposeInput ? purposeInput.value.trim() : '';
             const selectedEquipment = Array.from(document.querySelectorAll('input[name="equipment"]:checked'))
                                          .map(cb => cb.value);
             
@@ -118,15 +119,18 @@ function initializeBookingForm() {
             if (!labId) { showError('labIdError', 'Lab selection is required.'); isValid = false; }
             if (!bookingDate) { showError('bookingDateError', 'Date is required.'); isValid = false; }
             if (!timeSlotId) { showError('timeSlotIdError', 'Time slot is required.'); isValid = false; }
-            if (!purpose.trim()) { showError('purposeError', 'Purpose is required.'); isValid = false; }
+            if (!purpose) { showError('purposeError', 'Purpose is required.'); isValid = false; }
 
             const batchId = batchIdentifierInput ? batchIdentifierInput.value.trim() : '';
-            if (currentUserRole === USER_ROLES.ASSISTANT && !batchId) { // Changed from CR
+            if (currentUserRole === USER_ROLES.ASSISTANT && !batchId) {
                 showError('batchIdentifierError', 'Batch/Class Name is required for Assistant bookings.');
                 isValid = false;
             }
             
-            if (!isValid) return;
+            if (!isValid) {
+                console.log("Form validation failed."); // DEBUG
+                return;
+            }
 
             const conflictingBooking = MOCK_BOOKINGS.find(b =>
                 b.labId === labId &&
@@ -148,21 +152,24 @@ function initializeBookingForm() {
                 userId: localStorage.getItem('userEmail') || 'current_user', 
                 purpose: purpose,
                 equipmentIds: selectedEquipment,
-                status: currentUserRole === USER_ROLES.FACULTY ? 'booked' : 'pending', 
+                status: currentUserRole === USER_ROLES.FACULTY ? 'booked' : (currentUserRole === USER_ROLES.ASSISTANT ? 'pending' : 'booked'),
                 requestedByRole: currentUserRole,
-                batchIdentifier: currentUserRole === USER_ROLES.ASSISTANT ? batchId : null, // Changed from CR
+                batchIdentifier: currentUserRole === USER_ROLES.ASSISTANT ? batchId : null,
             };
+            console.log("New booking object:", JSON.parse(JSON.stringify(newBooking))); // DEBUG
 
             MOCK_BOOKINGS.push(newBooking);
             saveMockBookings(); 
 
             const successMessage = currentUserRole === USER_ROLES.FACULTY 
                 ? `Booking for ${newBooking.purpose} confirmed successfully!`
-                : `Booking request for ${newBooking.purpose} (Status: PENDING) submitted successfully! It needs approval.`;
+                : (currentUserRole === USER_ROLES.ASSISTANT 
+                    ? `Booking request for ${newBooking.purpose} (Status: PENDING) submitted successfully! It needs approval by Faculty.`
+                    : `Booking for ${newBooking.purpose} confirmed successfully!`);
             showFormSubmissionMessage(successMessage, false);
             
             bookingForm.reset(); 
-            if (currentUserRole === USER_ROLES.ASSISTANT && batchIdentifierInput) { // Changed from CR
+            if (currentUserRole === USER_ROLES.ASSISTANT && batchIdentifierInput) {
                 batchIdentifierInput.value = ''; 
             }
             if (bookingDateInput) bookingDateInput.min = formatDate(new Date()); 

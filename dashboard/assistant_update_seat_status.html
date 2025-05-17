@@ -74,8 +74,8 @@
             if (!roleGuard(USER_ROLES.ASSISTANT)) return;
             
             initializeDashboard();
-            setDashboardHomeLink();
-            initializeSeatUpdaterPage(); // From assistant_seat_updater.js
+            setDashboardHomeLink(); // Ensure home link in sidebar is correct
+            initializeSeatUpdaterPage(); 
             if (window.lucide) window.lucide.createIcons();
         });
     </script>
