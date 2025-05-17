@@ -1,14 +1,14 @@
 
-let ALL_LAB_SEAT_STATUSES = {}; // In-memory cache of all lab seat statuses
+let ALL_LAB_SEAT_STATUSES = {}; // In-memory cache of all lab seat statuses, specific to this module
 
 function initializeSeatUpdaterPage() {
     const labSelector = document.getElementById('labSelectorForSeatUpdate');
     const layoutContainer = document.getElementById('interactiveLabLayoutContainer');
 
-    ALL_LAB_SEAT_STATUSES = window.loadLabSeatStatuses(); // From constants.js
+    // Load all statuses from localStorage into the module-level cache ONCE.
+    ALL_LAB_SEAT_STATUSES = window.loadLabSeatStatuses();
 
     if (labSelector && layoutContainer && window.MOCK_LABS) {
-        // Populate lab selector
         window.MOCK_LABS.forEach(lab => {
             const option = document.createElement('option');
             option.value = lab.id;
@@ -20,7 +20,6 @@ function initializeSeatUpdaterPage() {
             renderInteractiveLabLayout(e.target.value, layoutContainer);
         });
 
-        // Initial render for the first lab (if any)
         if (window.MOCK_LABS.length > 0) {
             labSelector.value = window.MOCK_LABS[0].id;
             renderInteractiveLabLayout(window.MOCK_LABS[0].id, layoutContainer);
@@ -28,26 +27,26 @@ function initializeSeatUpdaterPage() {
             layoutContainer.innerHTML = '<p class="text-muted-foreground text-center">No labs available to configure.</p>';
         }
     }
-     if (window.lucide) window.lucide.createIcons(); // For legend icons
+     if (window.lucide) window.lucide.createIcons();
 }
 
+// Reads from the module-level cache
 function getSeatStatus(labId, seatIndex) {
-    // Ensure seatIndex is a string for consistent key access
     const status = ALL_LAB_SEAT_STATUSES[labId]?.[seatIndex.toString()] || 'working';
-    return status; 
+    return status;
 }
 
+// Updates the module-level cache AND saves to localStorage
 function setSeatStatus(labId, seatIndex, status) {
     if (!ALL_LAB_SEAT_STATUSES[labId]) {
         ALL_LAB_SEAT_STATUSES[labId] = {};
     }
-    // Ensure seatIndex is a string for consistent key storage
     ALL_LAB_SEAT_STATUSES[labId][seatIndex.toString()] = status;
-    window.saveLabSeatStatuses(ALL_LAB_SEAT_STATUSES); // From constants.js
+    window.saveLabSeatStatuses(ALL_LAB_SEAT_STATUSES); // Pass the entire updated object to be saved
 }
 
 function renderInteractiveLabLayout(labId, container) {
-    container.innerHTML = ''; // Clear previous layout
+    container.innerHTML = '';
 
     const lab = window.MOCK_LABS.find(l => l.id === labId);
     if (!lab) {
@@ -61,7 +60,6 @@ function renderInteractiveLabLayout(labId, container) {
     title.textContent = `Lab Layout: ${lab.name} (${capacity} Desks)`;
     container.appendChild(title);
 
-    // Teacher's Desk (non-interactive for status updates)
     const teacherDeskContainer = document.createElement('div');
     teacherDeskContainer.className = 'lab-layout-teacher-desk';
     const teacherIcon = document.createElement('i');
@@ -83,8 +81,8 @@ function renderInteractiveLabLayout(labId, container) {
     }
 
     const mainLayoutContainer = document.createElement('div');
-    mainLayoutContainer.className = 'dialog-lab-layout-container'; 
-    
+    mainLayoutContainer.className = 'dialog-lab-layout-container';
+
     let numLeftDesks = Math.round(capacity * (25 / 70));
     let numMiddleDesks = Math.round(capacity * (20 / 70));
     let numRightDesks = capacity - numLeftDesks - numMiddleDesks;
@@ -92,7 +90,7 @@ function renderInteractiveLabLayout(labId, container) {
     if (numMiddleDesks < 0) { numLeftDesks += numMiddleDesks; numMiddleDesks = 0; }
     if (numLeftDesks < 0) { numLeftDesks = 0; }
 
-    let seatIndexCounter = 0; 
+    let seatIndexCounter = 0;
 
     function createInteractiveDeskSection(totalDesks, desksPerRow) {
         const section = document.createElement('div');
@@ -105,50 +103,51 @@ function renderInteractiveLabLayout(labId, container) {
             row.className = 'lab-layout-row';
             const desksInThisRow = Math.min(desksPerRow, totalDesks - desksCreated);
             for (let i = 0; i < desksInThisRow; i++) {
-                const currentSeatIndex = seatIndexCounter++; 
+                const currentSeatIndexStr = seatIndexCounter.toString();
                 const deskDiv = document.createElement('div');
                 deskDiv.className = 'lab-layout-desk interactive-seat';
-                deskDiv.setAttribute('data-seat-index', currentSeatIndex.toString()); 
+                deskDiv.setAttribute('data-seat-index', currentSeatIndexStr);
 
                 const icon = document.createElement('i');
                 icon.setAttribute('data-lucide', 'armchair');
-                const currentStatus = getSeatStatus(labId, currentSeatIndex.toString());
+                const currentStatus = getSeatStatus(labId, currentSeatIndexStr);
                 icon.classList.add(currentStatus === 'not-working' ? 'system-not-working' : 'system-working');
-                
+
                 deskDiv.appendChild(icon);
-                // Pass deskDiv (the container of the icon) to handleSeatClick
-                deskDiv.addEventListener('click', () => handleSeatClick(labId, currentSeatIndex.toString(), deskDiv));
+                deskDiv.addEventListener('click', () => handleSeatClick(labId, currentSeatIndexStr, deskDiv));
                 row.appendChild(deskDiv);
                 desksCreated++;
+                seatIndexCounter++;
             }
             section.appendChild(row);
         }
         return section;
     }
-    
+
     mainLayoutContainer.appendChild(createInteractiveDeskSection(numLeftDesks, 3));
     mainLayoutContainer.appendChild(createInteractiveDeskSection(numMiddleDesks, 2));
     mainLayoutContainer.appendChild(createInteractiveDeskSection(numRightDesks, 3));
-    
+
     container.appendChild(mainLayoutContainer);
     if (window.lucide) window.lucide.createIcons();
 }
 
-function handleSeatClick(labId, seatIndex, seatContainerElement) {
+function handleSeatClick(labId, seatIndexStr, seatContainerElement) {
     const iconElement = seatContainerElement.querySelector('i[data-lucide="armchair"]');
     if (!iconElement) {
         console.error("Armchair icon not found within the seat container:", seatContainerElement);
         return;
     }
 
-    const currentStatus = getSeatStatus(labId, seatIndex);
+    const currentStatus = getSeatStatus(labId, seatIndexStr);
     const newStatus = currentStatus === 'working' ? 'not-working' : 'working';
 
-    setSeatStatus(labId, seatIndex, newStatus);
+    setSeatStatus(labId, seatIndexStr, newStatus);
 
-    // Update icon style
     iconElement.classList.remove('system-working', 'system-not-working');
     iconElement.classList.add(newStatus === 'not-working' ? 'system-not-working' : 'system-working');
-    
-    // console.log(`Seat ${seatIndex} in lab ${labId} changed to ${newStatus}`);
+
+    // console.log(`Seat ${seatIndexStr} in lab ${labId} changed to ${newStatus}. Statuses:`, ALL_LAB_SEAT_STATUSES);
 }
+
+    

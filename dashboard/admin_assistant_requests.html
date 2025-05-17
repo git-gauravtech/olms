@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assistant Lab Requests - Optimized Lab Management System</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="dashboard-layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                 <a href="#" class="sidebar-header-link" id="dashboardHomeLink">
+                    <i data-lucide="atom"></i>
+                    <span class="sidebar-title">Optimized Lab Management</span>
+                </a>
+            </div>
+            <ul class="sidebar-nav" id="sidebarNav">
+                <!-- Nav items will be populated by JS -->
+            </ul>
+        </aside>
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <div class="main-content-wrapper">
+            <header class="dashboard-header">
+                <button type="button" class="mobile-menu-button" id="mobileMenuButton">
+                    <i data-lucide="menu"></i>
+                </button>
+                <div class="user-nav" id="userNavContainer">
+                    <!-- UserNav will be populated by JS -->
+                </div>
+            </header>
+            <main class="page-content">
+                <div class="custom-card">
+                    <div class="custom-card-header">
+                        <i data-lucide="file-check"></i>
+                        <h1 class="custom-card-title">Assistant Lab Requests</h1>
+                    </div>
+                    <div class="custom-card-content">
+                        <p class="text-muted-foreground mb-4">
+                            Review and manage lab booking requests submitted by Assistants.
+                        </p>
+                        <div id="assistantRequestsList" class="space-y-4">
+                           <p>Loading Assistant requests...</p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="../js/constants.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!roleGuard(USER_ROLES.ADMIN)) return; // Changed role guard to ADMIN
+            
+            initializeDashboard();
+            setDashboardHomeLink();
+
+            const requestsListContainer = document.getElementById('assistantRequestsList');
+            
+            const assistantPendingRequests = MOCK_BOOKINGS.filter(
+                booking => booking.requestedByRole === USER_ROLES.ASSISTANT && booking.status === 'pending'
+            );
+
+            if (requestsListContainer) {
+                if (assistantPendingRequests.length > 0) {
+                    requestsListContainer.innerHTML = ''; 
+                    assistantPendingRequests.sort((a,b) => new Date(a.date + 'T' + MOCK_TIME_SLOTS.find(ts => ts.id === a.timeSlotId).startTime) - new Date(b.date + 'T' + MOCK_TIME_SLOTS.find(ts => ts.id === b.timeSlotId).startTime));
+
+                    assistantPendingRequests.forEach(request => {
+                        const lab = MOCK_LABS.find(l => l.id === request.labId);
+                        const timeSlot = MOCK_TIME_SLOTS.find(ts => ts.id === request.timeSlotId);
+                        
+                        const card = document.createElement('div');
+                        card.className = 'custom-card p-4 border rounded-md shadow-sm';
+                        
+                        let equipmentNames = 'None';
+                        if (request.equipmentIds && request.equipmentIds.length > 0) {
+                            equipmentNames = request.equipmentIds.map(eqId => MOCK_EQUIPMENT.find(eq => eq.id === eqId)?.name || 'Unknown Equipment').join(', ');
+                        }
+
+                        card.innerHTML = \`
+                            <h3 class="text-lg font-semibold mb-1">\${lab ? lab.name : 'Unknown Lab'} \${request.batchIdentifier ? \`for \${request.batchIdentifier}\`:''}</h3>
+                            <p class="text-sm text-muted-foreground"><strong>Requested by:</strong> Assistant (\${request.userId})</p>
+                            <p class="text-sm text-muted-foreground"><strong>Date:</strong> \${formatDate(new Date(request.date))}</p>
+                            <p class="text-sm text-muted-foreground"><strong>Time:</strong> \${timeSlot ? timeSlot.displayTime : 'Unknown Time'}</p>
+                            <p class="text-sm text-muted-foreground"><strong>Purpose:</strong> \${request.purpose}</p>
+                            <p class="text-sm text-muted-foreground"><strong>Equipment:</strong> \${equipmentNames}</p>
+                            <p class="text-sm text-muted-foreground"><strong>Status:</strong> <span class="font-medium text-yellow-600">\${request.status.toUpperCase()}</span></p>
+                            <div class="mt-3 flex gap-2">
+                                <button type="button" class="button button-primary button-sm" onclick="approveRequest('\${request.id}')">Approve</button>
+                                <button type="button" class="button button-secondary button-sm" onclick="rejectRequest('\${request.id}')">Reject</button>
+                            </div>
+                        \`;
+                        requestsListContainer.appendChild(card);
+                    });
+                } else {
+                    requestsListContainer.innerHTML = '<p class="text-muted-foreground">No pending Assistant booking requests at this time.</p>';
+                }
+            }
+
+
+            if (window.lucide) window.lucide.createIcons();
+        });
+
+        function approveRequest(bookingId) {
+            const booking = MOCK_BOOKINGS.find(b => b.id === bookingId);
+            if (booking) {
+                const conflict = MOCK_BOOKINGS.find(b => 
+                    b.id !== bookingId && 
+                    b.labId === booking.labId &&
+                    b.date === booking.date &&
+                    b.timeSlotId === booking.timeSlotId &&
+                    b.status === 'booked'
+                );
+
+                if (conflict) {
+                    alert(\`Cannot approve: Slot for \${MOCK_LABS.find(l=>l.id === booking.labId).name} on \${booking.date} at \${MOCK_TIME_SLOTS.find(ts=>ts.id === booking.timeSlotId).displayTime} is already booked by \${conflict.userId}. Please resolve the conflict first or ask Assistant to choose another slot.\`);
+                    return;
+                }
+
+                booking.status = 'booked';
+                saveMockBookings(); // from constants.js
+                alert('Request approved and booking confirmed.');
+                window.location.reload(); 
+            }
+        }
+
+        function rejectRequest(bookingId) {
+             if (confirm('Are you sure you want to reject this booking request?')) {
+                const booking = MOCK_BOOKINGS.find(b => b.id === bookingId);
+                if (booking) {
+                    const bookingIndex = MOCK_BOOKINGS.findIndex(b => b.id === bookingId);
+                     if (bookingIndex > -1) {
+                        MOCK_BOOKINGS.splice(bookingIndex, 1); 
+                        saveMockBookings(); // from constants.js
+                        alert('Request rejected and removed.');
+                        window.location.reload();
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>
+
+    
