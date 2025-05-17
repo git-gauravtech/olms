@@ -39,29 +39,35 @@
                         <h1 class="custom-card-title">View All Bookings</h1>
                     </div>
                     <div class="custom-card-content">
-                        <p class="text-muted-foreground">
-                            Monitor all lab bookings and manage scheduling conflicts.
+                        <p class="text-muted-foreground mb-4">
+                            Monitor all lab bookings. Use the filters below to refine the list.
                         </p>
-                        <div class="mt-4 p-4 border rounded-md bg-gray-50">
-                            <h2 class="text-lg font-semibold mb-2">Bookings Overview Area</h2>
-                            <p>Table or list of all bookings will be displayed here. Filters for date, lab, status, etc.</p>
-                            
-                            <div class="custom-card p-4 mt-3 bg-white shadow-sm">
-                                <h4 class="font-semibold text-md mb-1">Sample Booking:</h4>
-                                <p class="text-sm"><strong>Lab:</strong> Physics Lab Alpha</p>
-                                <p class="text-sm"><strong>Date:</strong> ${formatDate(new Date())} (Today)</p>
-                                <p class="text-sm"><strong>Time:</strong> 10:00 AM - 11:00 AM</p>
-                                <p class="text-sm"><strong>User:</strong> faculty1@example.com</p>
-                                <p class="text-sm"><strong>Status:</strong> <span class="font-medium text-green-600">Booked</span></p>
+
+                        <div class="grid md-grid-cols-3 gap-4 mb-6">
+                            <div class="form-group">
+                                <label for="filterDate">Filter by Date:</label>
+                                <input type="date" id="filterDate" name="filterDate" class="custom-card-content input">
                             </div>
-                             <div class="custom-card p-4 mt-3 bg-white shadow-sm">
-                                <h4 class="font-semibold text-md mb-1">Sample Pending Booking:</h4>
-                                <p class="text-sm"><strong>Lab:</strong> Computer Lab Gamma</p>
-                                <p class="text-sm"><strong>Date:</strong> ${formatDate(new Date(new Date().setDate(new Date().getDate() + 1)))} (Tomorrow)</p>
-                                <p class="text-sm"><strong>Time:</strong> 02:00 PM - 03:00 PM</p>
-                                <p class="text-sm"><strong>User:</strong> cr_user@example.com (For Batch: CSE Year 2)</p>
-                                <p class="text-sm"><strong>Status:</strong> <span class="font-medium text-yellow-600">Pending</span></p>
+                            <div class="form-group">
+                                <label for="filterLab">Filter by Lab:</label>
+                                <select id="filterLab" name="filterLab" class="custom-card-content select">
+                                    <option value="">All Labs</option>
+                                    <!-- Lab options populated by JS -->
+                                </select>
                             </div>
+                            <div class="form-group">
+                                <label for="filterStatus">Filter by Status:</label>
+                                <select id="filterStatus" name="filterStatus" class="custom-card-content select">
+                                    <option value="">All Statuses</option>
+                                    <!-- Status options populated by JS -->
+                                </select>
+                            </div>
+                        </div>
+                        <button type="button" id="clearFiltersBtn" class="button button-secondary mb-6">Clear Filters</button>
+
+                        <div id="allBookingsListContainer" class="space-y-4">
+                            <p>Loading bookings...</p>
+                            <!-- Bookings will be listed here by JS -->
                         </div>
                     </div>
                 </div>
@@ -76,6 +82,125 @@
         document.addEventListener('DOMContentLoaded', () => {
             if (!roleGuard(USER_ROLES.ADMIN)) return;
             initializeDashboard();
+
+            const filterDateInput = document.getElementById('filterDate');
+            const filterLabSelect = document.getElementById('filterLab');
+            const filterStatusSelect = document.getElementById('filterStatus');
+            const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+            const bookingsListContainer = document.getElementById('allBookingsListContainer');
+
+            let allBookings = []; // To store a copy of MOCK_BOOKINGS
+
+            function populateFilters() {
+                // Populate Lab Filter
+                if (window.MOCK_LABS && filterLabSelect) {
+                    window.MOCK_LABS.forEach(lab => {
+                        const option = document.createElement('option');
+                        option.value = lab.id;
+                        option.textContent = lab.name;
+                        filterLabSelect.appendChild(option);
+                    });
+                }
+
+                // Populate Status Filter
+                if (window.MOCK_BOOKINGS && filterStatusSelect) {
+                    const statuses = [...new Set(window.MOCK_BOOKINGS.map(b => b.status))];
+                    statuses.sort().forEach(status => {
+                        const option = document.createElement('option');
+                        option.value = status;
+                        option.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+                        filterStatusSelect.appendChild(option);
+                    });
+                }
+            }
+
+            function renderBookings() {
+                if (!bookingsListContainer) return;
+                bookingsListContainer.innerHTML = ''; // Clear previous list
+
+                const selectedDate = filterDateInput.value;
+                const selectedLabId = filterLabSelect.value;
+                const selectedStatus = filterStatusSelect.value;
+
+                const filteredBookings = allBookings.filter(booking => {
+                    let matches = true;
+                    if (selectedDate && booking.date !== selectedDate) {
+                        matches = false;
+                    }
+                    if (selectedLabId && booking.labId !== selectedLabId) {
+                        matches = false;
+                    }
+                    if (selectedStatus && booking.status !== selectedStatus) {
+                        matches = false;
+                    }
+                    return matches;
+                });
+                
+                filteredBookings.sort((a,b) => {
+                    const timeA = window.MOCK_TIME_SLOTS.find(ts => ts.id === a.timeSlotId)?.startTime || '00:00';
+                    const timeB = window.MOCK_TIME_SLOTS.find(ts => ts.id === b.timeSlotId)?.startTime || '00:00';
+                    const dateA = new Date(\`\${a.date}T\${timeA}\`);
+                    const dateB = new Date(\`\${b.date}T\${timeB}\`);
+                    return dateA - dateB;
+                });
+
+
+                if (filteredBookings.length === 0) {
+                    bookingsListContainer.innerHTML = '<p class="text-muted-foreground">No bookings match the current filters.</p>';
+                    return;
+                }
+
+                filteredBookings.forEach(booking => {
+                    const lab = window.MOCK_LABS.find(l => l.id === booking.labId);
+                    const timeSlot = window.MOCK_TIME_SLOTS.find(ts => ts.id === booking.timeSlotId);
+                    
+                    const card = document.createElement('div');
+                    card.className = 'custom-card p-4 border rounded-md shadow-sm mb-3'; // Reusing custom-card styling
+
+                    let equipmentNames = 'None';
+                    if (booking.equipmentIds && booking.equipmentIds.length > 0) {
+                        equipmentNames = booking.equipmentIds.map(eqId => (window.MOCK_EQUIPMENT.find(eq => eq.id === eqId)?.name || 'Unknown Equipment')).join(', ');
+                    }
+                    
+                    let statusColorClass = 'text-gray-600';
+                    if (booking.status === 'booked') statusColorClass = 'text-green-600';
+                    else if (booking.status === 'pending' || booking.status === 'pending-admin-approval') statusColorClass = 'text-yellow-600';
+                    else if (booking.status === 'rejected-by-admin' || booking.status === 'cancelled') statusColorClass = 'text-red-600';
+
+
+                    card.innerHTML = \`
+                        <h3 class="text-lg font-semibold mb-1">\${lab ? lab.name : (booking.requestType || 'General Request')} \${booking.batchIdentifier ? \`for \${booking.batchIdentifier}\` : ''}</h3>
+                        <p class="text-sm text-muted-foreground"><strong>User:</strong> \${booking.userId} (\${booking.requestedByRole || 'N/A'})</p>
+                        \${booking.date ? \`<p class="text-sm text-muted-foreground"><strong>Date:</strong> \${formatDate(new Date(booking.date))}</p>\` : ''}
+                        \${timeSlot ? \`<p class="text-sm text-muted-foreground"><strong>Time:</strong> \${timeSlot.displayTime}</p>\` : ''}
+                        <p class="text-sm text-muted-foreground"><strong>Purpose/Details:</strong> \${booking.purpose}</p>
+                        \${booking.equipmentIds && booking.equipmentIds.length > 0 ? \`<p class="text-sm text-muted-foreground"><strong>Equipment:</strong> \${equipmentNames}</p>\` : ''}
+                        \${booking.submittedDate ? \`<p class="text-sm text-muted-foreground"><strong>Submitted:</strong> \${formatDate(new Date(booking.submittedDate))}</p>\` : ''}
+                        <p class="text-sm text-muted-foreground"><strong>Status:</strong> <span class="font-medium \${statusColorClass}">\${booking.status.toUpperCase().replace(/_/g, ' ')}</span></p>
+                    \`;
+                    bookingsListContainer.appendChild(card);
+                });
+                 if (window.lucide) window.lucide.createIcons();
+            }
+
+            function setupEventListeners() {
+                filterDateInput.addEventListener('change', renderBookings);
+                filterLabSelect.addEventListener('change', renderBookings);
+                filterStatusSelect.addEventListener('change', renderBookings);
+                clearFiltersBtn.addEventListener('click', () => {
+                    filterDateInput.value = '';
+                    filterLabSelect.value = '';
+                    filterStatusSelect.value = '';
+                    renderBookings();
+                });
+            }
+            
+            // Initialize
+            allBookings = [...window.MOCK_BOOKINGS]; // Make a copy
+            populateFilters();
+            renderBookings();
+            setupEventListeners();
+
             if (window.lucide) window.lucide.createIcons();
         });
     </script>
