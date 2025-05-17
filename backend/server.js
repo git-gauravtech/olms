@@ -21,7 +21,7 @@ app.use(express.json()); // Parse JSON request bodies
 async function testDbConnection() {
     try {
         const connection = await pool.getConnection();
-        console.log('MySQL Connected successfully!');
+        console.log('MySQL Connected successfully to database:', connection.config.database);
         connection.release();
     } catch (error) {
         console.error('Error connecting to MySQL:', error.stack);
@@ -54,3 +54,4 @@ const PORT = process.env.PORT_BACKEND || 5001; // Ensure consistent PORT variabl
 app.listen(PORT, () => {
     console.log(`Backend server running on port ${PORT}`);
 });
+

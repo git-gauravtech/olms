@@ -113,7 +113,7 @@ router.delete('/:id', [auth, isAdmin], async (req, res) => {
         // ON DELETE SET NULL for equipment.labId is set in schema.
         await pool.query('DELETE FROM labs WHERE id = ?', [labId]);
         res.json({ msg: 'Lab deleted successfully' });
-    } catch (err) {
+    } catch (err)
         console.error('Error deleting lab:', err.message);
         // Check for foreign key constraint errors if lab is referenced elsewhere
         if (err.code === 'ER_ROW_IS_REFERENCED_2') {
@@ -187,3 +187,4 @@ router.put('/:labId/seats/:seatIndex', [auth], async (req, res) => {
 });
 
 module.exports = router;
+

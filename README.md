@@ -60,3 +60,4 @@ This is a lab management system frontend built with plain HTML, CSS, and JavaScr
 *   Authentication is handled using JWT (JSON Web Tokens).
 *   Frontend API calls are made to the backend to fetch and manipulate data.
 *   Icons are from the [Lucide Icons](https://lucide.dev/) library, loaded via CDN on the frontend.
+

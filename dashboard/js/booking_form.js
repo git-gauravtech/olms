@@ -142,7 +142,7 @@ async function initializeBookingForm() {
                 equipmentIds: selectedEquipment, 
                 batchIdentifier: currentUserRole === window.USER_ROLES.ASSISTANT ? batchId : null,
             };
-            // console.log("New booking data to send:", JSON.parse(JSON.stringify(bookingData)));
+            console.log("Frontend: New booking data to send:", JSON.parse(JSON.stringify(bookingData)));
 
             const submitButton = bookingForm.querySelector('button[type="submit"]');
             const originalButtonHtml = submitButton.innerHTML;

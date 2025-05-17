@@ -33,9 +33,10 @@ function isAdmin(req, res, next) {
     if (req.user && req.user.role === 'Admin') {
         next();
     } else {
-        // console.log('Access denied. User role:', req.user ? req.user.role : 'undefined');
+        console.log('Access denied for isAdmin. User role:', req.user ? req.user.role : 'undefined');
         res.status(403).json({ msg: 'Access denied. Admin role required.' });
     }
 };
 
 module.exports = { auth, isAdmin };
+

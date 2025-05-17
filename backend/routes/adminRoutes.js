@@ -66,3 +66,4 @@ router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
 });
 
 module.exports = router;
+
