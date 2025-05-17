@@ -30,7 +30,7 @@ function handleLogin(event) {
     const password = document.getElementById('password').value;
     const role = document.getElementById('role').value;
 
-    console.log("Login attempt:", { email, role }); // Debug log
+    console.log("Login attempt:", { email, role }); 
 
     let isValid = true;
     if (!email) {
@@ -53,26 +53,27 @@ function handleLogin(event) {
     }
 
     if (!isValid) {
-        console.log("Login validation failed."); // Debug log
+        console.log("Login validation failed."); 
         return;
     }
 
-    // Ensure USER_ROLES is available
     const currentUserRoles = window.USER_ROLES;
     if (!currentUserRoles) {
         console.error("CRITICAL ERROR: USER_ROLES object is not defined in window. Make sure constants.js is loaded before auth.js and defines window.USER_ROLES.");
         showError('roleError', 'System error: Roles not defined. Please contact support.');
         return;
     }
-    console.log("USER_ROLES for comparison in login:", currentUserRoles); // Debug log
+    console.log("USER_ROLES for comparison in login:", currentUserRoles); 
 
     localStorage.setItem('userRole', role);
     localStorage.setItem('userEmail', email);
-    const userName = localStorage.getItem('userName') || email.split('@')[0] || role;
+    const userNameFromStorage = localStorage.getItem('userName');
+    const userName = userNameFromStorage && userNameFromStorage !== "null" && userNameFromStorage !== "undefined" ? userNameFromStorage : email.split('@')[0] || role;
     localStorage.setItem('userName', userName);
 
+
     alert(`Login Successful. Welcome, ${userName}! Redirecting to your dashboard...`);
-    console.log(`Alert shown. Current role for switch: "${role}"`); // Debug log
+    console.log(`Alert shown. Current role for switch: "${role}"`); 
 
     let redirected = false;
     switch (role) {
@@ -115,8 +116,11 @@ function handleSignup(event) {
     if (!signupButton) return;
 
     signupButton.disabled = true;
-    signupButton.innerHTML = '<i data-lucide="loader-2" class="button-primary-loader" style="animation: spin 1s linear infinite; margin-right: 0.5rem;"></i> Creating Account...';
-    if (window.lucide) window.lucide.createIcons();
+    // Correctly set innerHTML for loader icon
+    signupButton.innerHTML = '<i data-lucide="loader-2" class="button-primary-loader" style="animation: spin 1s linear infinite; display: inline-block; margin-right: 0.5rem;"></i> Creating Account...';
+    if (window.lucide && typeof window.lucide.createIcons === 'function') {
+      window.lucide.createIcons(); // Re-render icons to show the loader
+    }
 
 
     const fullName = document.getElementById('fullName').value;
@@ -150,16 +154,18 @@ function handleSignup(event) {
      if (!isValid) {
         signupButton.disabled = false;
         signupButton.innerHTML = 'Create Account';
-        if (window.lucide) window.lucide.createIcons(); // Ensure icon is removed if loader was there
+        // If Lucide was used, ensure the original button content is restored or icons re-rendered if needed
+        if (window.lucide && typeof window.lucide.createIcons === 'function') {
+           // window.lucide.createIcons(); // Could be called if button had static icons to restore
+        }
         return;
     }
-    // Ensure USER_ROLES is available for signup redirection logic too
+
     const currentUserRoles = window.USER_ROLES;
     if (!currentUserRoles) {
         console.error("CRITICAL ERROR: USER_ROLES object is not defined for signup. Make sure constants.js is loaded before auth.js.");
         signupButton.disabled = false;
         signupButton.innerHTML = 'Create Account';
-        if (window.lucide) window.lucide.createIcons();
         return;
     }
 
@@ -173,7 +179,7 @@ function handleSignup(event) {
         alert(`Account Created! Welcome, ${fullName}! Your account as ${role} has been successfully created.`);
         signupButton.disabled = false;
         signupButton.innerHTML = 'Create Account';
-        // No need to call lucide.createIcons() here again unless the button content changed and had an icon
+
 
         switch (role) {
             case currentUserRoles.ADMIN:
@@ -190,25 +196,42 @@ function handleSignup(event) {
                 break;
             default:
                 console.error("Signup: No matching role for redirection. Role was:", role);
-                window.location.href = 'index.html'; // Fallback to login
+                window.location.href = 'index.html'; 
         }
     }, 1500);
 }
 
 function togglePasswordVisibility(fieldId, buttonElement) {
+    console.log('togglePasswordVisibility called for field:', fieldId);
     const passwordInput = document.getElementById(fieldId);
-    const icon = buttonElement.querySelector('i'); // Assuming the icon is an <i> tag
-    if (!passwordInput || !icon) return;
 
+    if (!passwordInput) {
+        console.error('Password input field not found:', fieldId);
+        return;
+    }
+    if (!buttonElement) {
+        console.error('Button element not provided to togglePasswordVisibility');
+        return;
+    }
+
+    let newIconName;
     if (passwordInput.type === 'password') {
         passwordInput.type = 'text';
-        icon.setAttribute('data-lucide', 'eye-off');
+        newIconName = 'eye-off';
     } else {
         passwordInput.type = 'password';
-        icon.setAttribute('data-lucide', 'eye');
+        newIconName = 'eye';
     }
-    if (window.lucide) {
-      window.lucide.createIcons();
+
+    // Recreate the icon element inside the button
+    buttonElement.innerHTML = `<i data-lucide="${newIconName}"></i>`;
+
+    if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        // Lucide will process the new <i> tag within the buttonElement
+        window.lucide.createIcons(); 
+        console.log(`Lucide icons re-rendered. New icon: ${newIconName}`);
+    } else {
+        console.warn('Lucide library or createIcons function not available for re-rendering.');
     }
 }
 
