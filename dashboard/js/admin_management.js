@@ -43,12 +43,10 @@ async function renderLabsList() {
 
     try {
         const response = await fetch(`${window.API_BASE_URL}/labs`, {
-            headers: { 
-                'Authorization': `Bearer ${token}`
-            }
+            headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!response.ok) {
-            const errorData = await response.json();
+            const errorData = await response.json().catch(() => ({ msg: 'Failed to fetch labs and parse error' }));
             throw new Error(errorData.msg || `Failed to fetch labs: ${response.status}`);
         }
         currentLabs = await response.json();
@@ -58,10 +56,9 @@ async function renderLabsList() {
         return;
     }
 
-
     labsListContainer.innerHTML = ''; 
 
-    if (currentLabs.length === 0) {
+    if (!currentLabs || currentLabs.length === 0) {
         labsListContainer.innerHTML = '<p>No labs configured yet. Click "Add New Lab" to get started.</p>';
         return;
     }
@@ -69,41 +66,45 @@ async function renderLabsList() {
     const ul = document.createElement('ul');
     ul.className = 'entity-list'; 
 
-    currentLabs.forEach(lab => {
-        const li = document.createElement('li');
-        li.className = 'entity-list-item custom-card p-4 mb-3'; 
-        
-        const nameEl = document.createElement('h3');
-        nameEl.className = 'text-lg font-semibold';
-        nameEl.textContent = lab.name;
+    if (currentLabs && typeof currentLabs.forEach === 'function') {
+        currentLabs.forEach(lab => {
+            const li = document.createElement('li');
+            li.className = 'entity-list-item custom-card p-4 mb-3'; 
+            
+            const nameEl = document.createElement('h3');
+            nameEl.className = 'text-lg font-semibold';
+            nameEl.textContent = lab.name;
 
-        const detailsEl = document.createElement('p');
-        detailsEl.className = 'text-sm text-muted-foreground';
-        detailsEl.textContent = `ID: ${lab.id}, Capacity: ${lab.capacity}, Room: ${lab.roomNumber || 'N/A'}, Location: ${lab.location || 'N/A'}`;
-        
-        const actionsEl = document.createElement('div');
-        actionsEl.className = 'mt-3 entity-actions';
+            const detailsEl = document.createElement('p');
+            detailsEl.className = 'text-sm text-muted-foreground';
+            detailsEl.textContent = `ID: ${lab.id}, Capacity: ${lab.capacity}, Room: ${lab.roomNumber || 'N/A'}, Location: ${lab.location || 'N/A'}`;
+            
+            const actionsEl = document.createElement('div');
+            actionsEl.className = 'mt-3 entity-actions';
 
-        const editButton = document.createElement('button');
-        editButton.type = 'button';
-        editButton.className = 'button button-outline button-sm mr-2';
-        editButton.innerHTML = '<i data-lucide="edit-2" class="mr-1"></i> Edit';
-        editButton.addEventListener('click', () => openLabForm(lab));
-        
-        const deleteButton = document.createElement('button');
-        deleteButton.type = 'button';
-        deleteButton.className = 'button button-secondary button-sm';
-        deleteButton.innerHTML = '<i data-lucide="trash-2" class="mr-1"></i> Delete';
-        deleteButton.addEventListener('click', () => deleteLab(lab.id));
+            const editButton = document.createElement('button');
+            editButton.type = 'button';
+            editButton.className = 'button button-outline button-sm mr-2';
+            editButton.innerHTML = '<i data-lucide="edit-2" class="mr-1"></i> Edit';
+            editButton.addEventListener('click', () => openLabForm(lab));
+            
+            const deleteButton = document.createElement('button');
+            deleteButton.type = 'button';
+            deleteButton.className = 'button button-secondary button-sm';
+            deleteButton.innerHTML = '<i data-lucide="trash-2" class="mr-1"></i> Delete';
+            deleteButton.addEventListener('click', () => deleteLab(lab.id));
 
-        actionsEl.appendChild(editButton);
-        actionsEl.appendChild(deleteButton);
+            actionsEl.appendChild(editButton);
+            actionsEl.appendChild(deleteButton);
 
-        li.appendChild(nameEl);
-        li.appendChild(detailsEl);
-        li.appendChild(actionsEl);
-        ul.appendChild(li);
-    });
+            li.appendChild(nameEl);
+            li.appendChild(detailsEl);
+            li.appendChild(actionsEl);
+            ul.appendChild(li);
+        });
+    } else {
+         labsListContainer.innerHTML = '<p>No labs data to display or data is in incorrect format.</p>';
+    }
     labsListContainer.appendChild(ul);
     if (window.lucide) window.lucide.createIcons();
 }
@@ -177,7 +178,7 @@ async function handleLabFormSubmit(event) {
         });
 
         if (!response.ok) {
-            const errorData = await response.json();
+            const errorData = await response.json().catch(() => ({ msg: 'Failed to save lab and parse error' }));
             throw new Error(errorData.msg || `Failed to save lab: ${response.status}`);
         }
         
@@ -199,7 +200,7 @@ async function deleteLab(labId) {
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
+                const errorData = await response.json().catch(() => ({ msg: 'Failed to delete lab and parse error' }));
                 throw new Error(errorData.msg || `Failed to delete lab: ${response.status}`);
             }
             await renderLabsList();
@@ -264,13 +265,17 @@ async function populateEquipmentFormDropdowns() {
             if (!response.ok) throw new Error('Failed to fetch labs for dropdown');
             const labsForDropdown = await response.json();
             
-            labSelect.innerHTML = '<option value="">None</option>'; 
-            labsForDropdown.forEach(lab => {
-                const option = document.createElement('option');
-                option.value = lab.id;
-                option.textContent = lab.name;
-                labSelect.appendChild(option);
-            });
+            labSelect.innerHTML = '<option value="">None (Unassigned)</option>'; 
+            if (labsForDropdown && typeof labsForDropdown.forEach === 'function') {
+                labsForDropdown.forEach(lab => {
+                    const option = document.createElement('option');
+                    option.value = lab.id;
+                    option.textContent = lab.name;
+                    labSelect.appendChild(option);
+                });
+            } else {
+                 labSelect.innerHTML = '<option value="">No labs available</option>';
+            }
         } catch (error) {
             // console.error('Error populating lab dropdown for equipment:', error);
             labSelect.innerHTML = '<option value="">Error loading labs</option>';
@@ -288,12 +293,10 @@ async function renderEquipmentList() {
     
     try {
         const response = await fetch(`${window.API_BASE_URL}/equipment`, {
-            headers: { 
-                'Authorization': `Bearer ${token}`
-            }
+            headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!response.ok) {
-             const errorData = await response.json();
+             const errorData = await response.json().catch(() => ({ msg: 'Failed to fetch equipment and parse error' }));
             throw new Error(errorData.msg || `Failed to fetch equipment: ${response.status}`);
         }
         currentEquipment = await response.json();
@@ -305,7 +308,7 @@ async function renderEquipmentList() {
     
     equipmentListContainer.innerHTML = ''; 
 
-    if (currentEquipment.length === 0) {
+    if (!currentEquipment || currentEquipment.length === 0) {
         equipmentListContainer.innerHTML = '<p>No equipment configured yet. Click "Add New Equipment" to get started.</p>';
         return;
     }
@@ -313,43 +316,47 @@ async function renderEquipmentList() {
     const ul = document.createElement('ul');
     ul.className = 'entity-list';
 
-    currentEquipment.forEach(equip => {
-        const li = document.createElement('li');
-        li.className = 'entity-list-item custom-card p-4 mb-3';
-        
-        const nameEl = document.createElement('h3');
-        nameEl.className = 'text-lg font-semibold';
-        nameEl.textContent = equip.name;
+    if (currentEquipment && typeof currentEquipment.forEach === 'function') {
+        currentEquipment.forEach(equip => {
+            const li = document.createElement('li');
+            li.className = 'entity-list-item custom-card p-4 mb-3';
+            
+            const nameEl = document.createElement('h3');
+            nameEl.className = 'text-lg font-semibold';
+            nameEl.textContent = equip.name;
 
-        const labName = equip.labName || 'None'; 
+            const labName = equip.labName || 'Unassigned'; 
 
-        const detailsEl = document.createElement('p');
-        detailsEl.className = 'text-sm text-muted-foreground';
-        detailsEl.textContent = `ID: ${equip.id}, Type: ${equip.type || 'N/A'}, Status: ${equip.status}, Assigned Lab: ${labName}`;
-        
-        const actionsEl = document.createElement('div');
-        actionsEl.className = 'mt-3 entity-actions';
+            const detailsEl = document.createElement('p');
+            detailsEl.className = 'text-sm text-muted-foreground';
+            detailsEl.textContent = `ID: ${equip.id}, Type: ${equip.type || 'N/A'}, Status: ${equip.status}, Assigned Lab: ${labName}`;
+            
+            const actionsEl = document.createElement('div');
+            actionsEl.className = 'mt-3 entity-actions';
 
-        const editButton = document.createElement('button');
-        editButton.type = 'button';
-        editButton.className = 'button button-outline button-sm mr-2';
-        editButton.innerHTML = '<i data-lucide="edit-2" class="mr-1"></i> Edit';
-        editButton.addEventListener('click', () => openEquipmentForm(equip));
-        
-        const deleteButton = document.createElement('button');
-        deleteButton.type = 'button';
-        deleteButton.className = 'button button-secondary button-sm';
-        deleteButton.innerHTML = '<i data-lucide="trash-2" class="mr-1"></i> Delete';
-        deleteButton.addEventListener('click', () => deleteEquipment(equip.id));
+            const editButton = document.createElement('button');
+            editButton.type = 'button';
+            editButton.className = 'button button-outline button-sm mr-2';
+            editButton.innerHTML = '<i data-lucide="edit-2" class="mr-1"></i> Edit';
+            editButton.addEventListener('click', () => openEquipmentForm(equip));
+            
+            const deleteButton = document.createElement('button');
+            deleteButton.type = 'button';
+            deleteButton.className = 'button button-secondary button-sm';
+            deleteButton.innerHTML = '<i data-lucide="trash-2" class="mr-1"></i> Delete';
+            deleteButton.addEventListener('click', () => deleteEquipment(equip.id));
 
-        actionsEl.appendChild(editButton);
-        actionsEl.appendChild(deleteButton);
+            actionsEl.appendChild(editButton);
+            actionsEl.appendChild(deleteButton);
 
-        li.appendChild(nameEl);
-        li.appendChild(detailsEl);
-        li.appendChild(actionsEl);
-        ul.appendChild(li);
-    });
+            li.appendChild(nameEl);
+            li.appendChild(detailsEl);
+            li.appendChild(actionsEl);
+            ul.appendChild(li);
+        });
+    } else {
+        equipmentListContainer.innerHTML = '<p>No equipment data to display or data is in incorrect format.</p>';
+    }
     equipmentListContainer.appendChild(ul);
     if (window.lucide) window.lucide.createIcons();
 }
@@ -374,6 +381,10 @@ async function openEquipmentForm(equip = null) {
     } else {
         equipmentModalTitle.textContent = 'Add New Equipment';
         document.getElementById('equipmentId').value = '';
+        // Default status for new equipment, e.g., 'available'
+        if (window.EQUIPMENT_STATUSES && window.EQUIPMENT_STATUSES.includes('available')) {
+            document.getElementById('equipmentStatus').value = 'available';
+        }
     }
     equipmentModal.classList.add('open');
     if (window.lucide) window.lucide.createIcons();
@@ -420,7 +431,7 @@ async function handleEquipmentFormSubmit(event) {
         });
 
         if (!response.ok) {
-            const errorData = await response.json();
+            const errorData = await response.json().catch(() => ({ msg: 'Failed to save equipment and parse error' }));
             throw new Error(errorData.msg || `Failed to save equipment: ${response.status}`);
         }
         
@@ -442,7 +453,7 @@ async function deleteEquipment(equipmentId) {
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
+                const errorData = await response.json().catch(() => ({ msg: 'Failed to delete equipment and parse error' }));
                 throw new Error(errorData.msg || `Failed to delete equipment: ${response.status}`);
             }
             await renderEquipmentList();
@@ -452,5 +463,3 @@ async function deleteEquipment(equipmentId) {
         }
     }
 }
-
-    

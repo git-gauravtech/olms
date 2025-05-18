@@ -6,21 +6,21 @@ const { auth, isAdmin } = require('../middleware/authMiddleware');
 
 // @route   GET api/labs
 // @desc    Get all labs
-// @access  Public (or protected if needed by auth for certain views)
-router.get('/', auth, async (req, res) => { // Changed to auth to allow any logged in user to fetch labs
+// @access  Authenticated users
+router.get('/', auth, async (req, res) => {
     try {
         const [labs] = await pool.query('SELECT * FROM labs ORDER BY name ASC');
         res.json(labs);
     } catch (err) {
         console.error('Error fetching labs:', err.message);
-        res.status(500).send('Server Error');
+        res.status(500).send('Server Error: Could not fetch labs');
     }
 });
 
 // @route   GET api/labs/:id
 // @desc    Get a single lab by ID
-// @access  Public (or protected)
-router.get('/:id', auth, async (req, res) => { // Changed to auth
+// @access  Authenticated users
+router.get('/:id', auth, async (req, res) => {
     try {
         const [labs] = await pool.query('SELECT * FROM labs WHERE id = ?', [req.params.id]);
         if (labs.length === 0) {
@@ -29,7 +29,7 @@ router.get('/:id', auth, async (req, res) => { // Changed to auth
         res.json(labs[0]);
     } catch (err) {
         console.error('Error fetching single lab:', err.message);
-        res.status(500).send('Server Error');
+        res.status(500).send('Server Error: Could not fetch lab');
     }
 });
 
@@ -54,7 +54,7 @@ router.post('/', [auth, isAdmin], async (req, res) => {
         res.status(201).json(createdLab[0]);
     } catch (err) {
         console.error('Error creating lab:', err.message);
-        res.status(500).send('Server error');
+        res.status(500).send('Server error while creating lab');
     }
 });
 
@@ -82,7 +82,7 @@ router.put('/:id', [auth, isAdmin], async (req, res) => {
             name, 
             capacity: parseInt(capacity), 
             roomNumber, 
-            location: location || existingLabs[0].location 
+            location: location !== undefined ? location : existingLabs[0].location // Allow setting location to null
         };
 
         await pool.query('UPDATE labs SET ? WHERE id = ?', [updatedLabData, labId]);
@@ -91,7 +91,7 @@ router.put('/:id', [auth, isAdmin], async (req, res) => {
         res.json(updatedLab[0]);
     } catch (err) {
         console.error('Error updating lab:', err.message);
-        res.status(500).send('Server error');
+        res.status(500).send('Server error while updating lab');
     }
 });
 
@@ -112,17 +112,17 @@ router.delete('/:id', [auth, isAdmin], async (req, res) => {
         res.json({ msg: 'Lab deleted successfully' });
     } catch (err) {
         console.error('Error deleting lab:', err.message);
-        if (err.code === 'ER_ROW_IS_REFERENCED_2') { // MySQL specific error code for FK constraint violation
-             return res.status(400).json({ msg: 'Cannot delete lab. It is referenced by other records (e.g., active bookings or equipment where ON DELETE RESTRICT is set). Please remove or reassign references first.' });
+        if (err.code === 'ER_ROW_IS_REFERENCED_2') { 
+             return res.status(400).json({ msg: 'Cannot delete lab. It is referenced by other records. Please remove or reassign references first.' });
         }
-        res.status(500).send('Server error');
+        res.status(500).send('Server error while deleting lab');
     }
 });
 
 
 // @route   GET api/labs/:labId/seats
 // @desc    Get all seat statuses for a lab
-// @access  Private (Assistant or Admin or Faculty - any authenticated user for now)
+// @access  Authenticated
 router.get('/:labId/seats', auth, async (req, res) => { 
     const { labId } = req.params;
     try {
@@ -146,7 +146,6 @@ router.get('/:labId/seats', auth, async (req, res) => {
 // @desc    Update status of a specific seat by Assistant or Admin
 // @access  Private (Assistant or Admin)
 router.put('/:labId/seats/:seatIndex', [auth], async (req, res) => { 
-    // Allow Admin to also update seats, in addition to Assistant
     if (req.user.role !== 'Assistant' && req.user.role !== 'Admin') {
         return res.status(403).json({ msg: 'Access denied. Assistant or Admin role required.'});
     }
@@ -158,14 +157,11 @@ router.put('/:labId/seats/:seatIndex', [auth], async (req, res) => {
     }
 
     try {
-        // Check if lab exists to give a more specific error if labId is wrong.
         const [labExists] = await pool.query('SELECT id FROM labs WHERE id = ?', [labId]);
         if (labExists.length === 0) {
             return res.status(404).json({ msg: 'Lab not found.' });
         }
 
-        // UPSERT logic: Insert if not exists, update if exists
-        // Assumes lab_seat_statuses table has a UNIQUE KEY on (labId, seatIndex)
         await pool.query(
             `INSERT INTO lab_seat_statuses (labId, seatIndex, status, updatedAt) 
              VALUES (?, ?, ?, CURRENT_TIMESTAMP) 
@@ -175,9 +171,7 @@ router.put('/:labId/seats/:seatIndex', [auth], async (req, res) => {
         res.json({ msg: `Seat ${seatIndex} in lab ${labId} updated to ${status}` });
     } catch (err) {
         console.error('Error updating seat status:', err.message);
-        // Check for specific foreign key constraint violation on labId if the lab does not exist,
-        // though the explicit check above should catch it.
-        if (err.code === 'ER_NO_REFERENCED_ROW_2') { // Should not happen due to labExists check but good to have
+        if (err.code === 'ER_NO_REFERENCED_ROW_2') { 
             return res.status(400).json({ msg: 'Invalid labId. The specified lab does not exist.' });
         }
         res.status(500).send('Server Error: Could not update seat status.');
@@ -185,5 +179,3 @@ router.put('/:labId/seats/:seatIndex', [auth], async (req, res) => {
 });
 
 module.exports = router;
-
-    

@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
-const { auth, isAdmin } = require('../middleware/authMiddleware');
+const { auth, isAdmin } = require('../middleware/authMiddleware'); // auth and isAdmin already imported
 
 // @route   GET api/admin/requests/assistant
 // @desc    Get pending requests from Assistants (for Admin to review)
@@ -33,7 +33,7 @@ router.get('/requests/faculty', [auth, isAdmin], async (req, res) => {
             SELECT b.*, u.fullName as userName, u.email as userEmail, l.name as labName
             FROM bookings b
             JOIN users u ON b.userId = u.id
-            LEFT JOIN labs l ON b.labId = l.id
+            LEFT JOIN labs l ON b.labId = l.id -- Use LEFT JOIN in case lab is not set for some abstract faculty requests
             WHERE b.requestedByRole = 'Faculty' AND b.status = 'pending-admin-approval' 
             ORDER BY b.submittedDate ASC
         `);
@@ -86,5 +86,3 @@ router.get('/users', [auth, isAdmin], async (req, res) => {
 
 
 module.exports = router;
-
-    

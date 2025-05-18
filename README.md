@@ -11,18 +11,19 @@ This is a lab management system frontend built with plain HTML, CSS, and JavaScr
 **Backend Setup:**
 1.  Navigate to the `backend` directory: `cd backend`
 2.  Create a MySQL database (e.g., `lab_management_db`).
-3.  Run the SQL script `backend/config/schema.sql` against your database to create the necessary tables.
-4.  Copy `backend/.env.example` to `backend/.env`.
-5.  Edit `backend/.env` and fill in your MySQL database credentials (`DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`) and a strong `JWT_SECRET`. You can also set `PORT_BACKEND`.
-6.  Install backend dependencies: `npm install`
-7.  Run the backend server: `npm run dev` (for development with nodemon) or `npm start`.
+3.  Ensure your MySQL server is running.
+4.  Run the SQL script `backend/config/schema.sql` against your database to create the necessary tables.
+5.  Copy `backend/.env.example` to `backend/.env`.
+6.  Edit `backend/.env` and fill in your MySQL database credentials (`DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`), a strong `JWT_SECRET`, and optionally `JWT_EXPIRES_IN`. You can also set `PORT_BACKEND`.
+7.  Install backend dependencies: `npm install`
+8.  Run the backend server: `npm run dev` (uses nodemon for auto-restarts) or `npm start`.
     *   The backend will typically run on `http://localhost:5001` (or the port specified in your `.env`).
 
 **Frontend Setup:**
 1.  Navigate to the project's root directory (if you're not already there).
 2.  Install frontend dev dependencies (primarily for `live-server`): `npm install`
 3.  Run the frontend server: `npm start`
-    *   This will use `live-server` to serve the static HTML, CSS, and JS files. It will typically open `index.html` in your browser at `http://localhost:9002`.
+    *   This will use `live-server` (via `npx`) to serve the static HTML, CSS, and JS files. It will typically open `index.html` in your browser at `http://localhost:9002`.
 
 **Accessing the Application:**
 *   Open your browser and go to `http://localhost:9002` (or the port `live-server` uses for the frontend).
@@ -35,9 +36,9 @@ This is a lab management system frontend built with plain HTML, CSS, and JavaScr
 *   `signup.html`: The user registration page.
 *   `css/`: Contains the global stylesheet (`style.css`).
 *   `js/`: Contains global frontend JavaScript files:
-    *   `constants.js`: Mock data (some initial data for UI development) and application constants.
+    *   `constants.js`: API base URL, user roles, navigation links, mock data (some initial data for UI development).
     *   `auth.js`: Handles login and signup logic by calling backend APIs.
-    *   `utils.js`: Helper utility functions for the frontend.
+    *   `utils.js`: Helper utility functions for the frontend (role guards, etc.).
 *   `dashboard/`: Contains HTML pages for different dashboard views and their specific JavaScript files.
     *   `dashboard.js`: Shared JavaScript for dashboard layout and common functionalities.
     *   `lab_grid.js`: Logic for the lab availability grid.
@@ -60,4 +61,3 @@ This is a lab management system frontend built with plain HTML, CSS, and JavaScr
 *   Authentication is handled using JWT (JSON Web Tokens).
 *   Frontend API calls are made to the backend to fetch and manipulate data.
 *   Icons are from the [Lucide Icons](https://lucide.dev/) library, loaded via CDN on the frontend.
-

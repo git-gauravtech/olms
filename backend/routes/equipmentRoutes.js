@@ -6,8 +6,8 @@ const { auth, isAdmin } = require('../middleware/authMiddleware');
 
 // @route   GET api/equipment
 // @desc    Get all equipment, optionally filter by labId or status
-// @access  Public (or protected for specific views if needed)
-router.get('/', async (req, res) => {
+// @access  Authenticated
+router.get('/', auth, async (req, res) => {
     const { labId, status } = req.query;
     let query = 'SELECT e.*, l.name as labName FROM equipment e LEFT JOIN labs l ON e.labId = l.id';
     const queryParams = [];
@@ -31,15 +31,15 @@ router.get('/', async (req, res) => {
         const [equipment] = await pool.query(query, queryParams);
         res.json(equipment);
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
+        console.error('Error fetching equipment:', err.message);
+        res.status(500).send('Server Error: Could not fetch equipment');
     }
 });
 
 // @route   GET api/equipment/:id
 // @desc    Get single equipment by ID
-// @access  Public (or protected)
-router.get('/:id', async (req, res) => {
+// @access  Authenticated
+router.get('/:id', auth, async (req, res) => {
     try {
         const [equipment] = await pool.query('SELECT e.*, l.name as labName FROM equipment e LEFT JOIN labs l ON e.labId = l.id WHERE e.id = ?', [req.params.id]);
         if (equipment.length === 0) {
@@ -47,8 +47,8 @@ router.get('/:id', async (req, res) => {
         }
         res.json(equipment[0]);
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
+        console.error('Error fetching single equipment:', err.message);
+        res.status(500).send('Server Error: Could not fetch equipment');
     }
 });
 
@@ -62,7 +62,6 @@ router.post('/', [auth, isAdmin], async (req, res) => {
     if (!name || !type || !status) {
         return res.status(400).json({ msg: 'Please include name, type, and status for equipment' });
     }
-    // Validate status against a predefined list if necessary
     const validStatuses = ['available', 'in-use', 'maintenance', 'broken'];
     if (!validStatuses.includes(status)) {
         return res.status(400).json({ msg: `Invalid status. Must be one of: ${validStatuses.join(', ')}` });
@@ -75,7 +74,7 @@ router.post('/', [auth, isAdmin], async (req, res) => {
             status, 
             labId: labId ? parseInt(labId) : null 
         };
-        if (labId && isNaN(newEquipment.labId)) { // Check if labId is provided and is a number
+        if (labId && isNaN(newEquipment.labId)) {
             return res.status(400).json({ msg: 'Invalid labId format. Must be a number or null.' });
         }
 
@@ -85,11 +84,10 @@ router.post('/', [auth, isAdmin], async (req, res) => {
         res.status(201).json(createdEquipment[0]);
     } catch (err) {
         console.error('Error creating equipment:', err.message);
-        // Check for foreign key constraint violation if labId is invalid
-        if (err.code === 'ER_NO_REFERENCED_ROW_2' && labId) { // Only if labId was provided
+        if (err.code === 'ER_NO_REFERENCED_ROW_2' && labId) {
             return res.status(400).json({ msg: 'Invalid labId. The specified lab does not exist.' });
         }
-        res.status(500).send('Server error');
+        res.status(500).send('Server error while creating equipment');
     }
 });
 
@@ -100,34 +98,43 @@ router.put('/:id', [auth, isAdmin], async (req, res) => {
     const { name, type, status, labId } = req.body;
     const equipmentId = req.params.id;
 
-    if (!name || !type || !status) {
-        return res.status(400).json({ msg: 'Please include name, type, and status' });
+    // Basic validation for required fields
+    if (name === undefined && type === undefined && status === undefined && labId === undefined) {
+        return res.status(400).json({ msg: 'At least one field (name, type, status, labId) must be provided for update.' });
     }
-    const validStatuses = ['available', 'in-use', 'maintenance', 'broken'];
-    if (!validStatuses.includes(status)) {
-        return res.status(400).json({ msg: `Invalid status. Must be one of: ${validStatuses.join(', ')}` });
+
+    if (status) {
+        const validStatuses = ['available', 'in-use', 'maintenance', 'broken'];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({ msg: `Invalid status. Must be one of: ${validStatuses.join(', ')}` });
+        }
     }
     
-    let parsedLabId = null;
-    if (labId !== undefined && labId !== null && labId !== '') { // Check if labId is explicitly provided
-        parsedLabId = parseInt(labId);
-        if (isNaN(parsedLabId)) {
-            return res.status(400).json({ msg: 'Invalid labId format. Must be a number or null/empty.' });
+    let parsedLabId;
+    if (labId !== undefined) { // labId can be null to unassign
+        if (labId === null || labId === '') {
+            parsedLabId = null;
+        } else {
+            parsedLabId = parseInt(labId);
+            if (isNaN(parsedLabId)) {
+                return res.status(400).json({ msg: 'Invalid labId format. Must be a number or null/empty.' });
+            }
         }
     }
 
 
     try {
-        const [existingEquipment] = await pool.query('SELECT * FROM equipment WHERE id = ?', [equipmentId]);
-        if (existingEquipment.length === 0) {
+        const [existingEquipmentResult] = await pool.query('SELECT * FROM equipment WHERE id = ?', [equipmentId]);
+        if (existingEquipmentResult.length === 0) {
             return res.status(404).json({ msg: 'Equipment not found' });
         }
+        const existingEquipment = existingEquipmentResult[0];
 
         const updatedEquipmentData = {
-            name,
-            type,
-            status,
-            labId: parsedLabId // This can be null if labId is empty string or null
+            name: name !== undefined ? name : existingEquipment.name,
+            type: type !== undefined ? type : existingEquipment.type,
+            status: status !== undefined ? status : existingEquipment.status,
+            labId: labId !== undefined ? parsedLabId : existingEquipment.labId
         };
         
         await pool.query('UPDATE equipment SET ? WHERE id = ?', [updatedEquipmentData, equipmentId]);
@@ -136,10 +143,10 @@ router.put('/:id', [auth, isAdmin], async (req, res) => {
         res.json(updatedEquipment[0]);
     } catch (err) {
         console.error('Error updating equipment:', err.message);
-        if (err.code === 'ER_NO_REFERENCED_ROW_2' && parsedLabId) {
+        if (err.code === 'ER_NO_REFERENCED_ROW_2' && parsedLabId) { // Only if a non-null labId was provided and failed
             return res.status(400).json({ msg: 'Invalid labId. The specified lab does not exist.' });
         }
-        res.status(500).send('Server error');
+        res.status(500).send('Server error while updating equipment');
     }
 });
 
@@ -153,15 +160,12 @@ router.delete('/:id', [auth, isAdmin], async (req, res) => {
         if (existingEquipment.length === 0) {
             return res.status(404).json({ msg: 'Equipment not found' });
         }
-        // Consider implications if equipment is part of active bookings (equipmentIds JSON field in bookings table)
-        // This might require a check or be handled by application logic (e.g., prevent deletion if in use).
         await pool.query('DELETE FROM equipment WHERE id = ?', [equipmentId]);
         res.json({ msg: 'Equipment deleted successfully' });
     } catch (err) {
         console.error('Error deleting equipment:', err.message);
-        res.status(500).send('Server error');
+        res.status(500).send('Server error while deleting equipment');
     }
 });
 
 module.exports = router;
-

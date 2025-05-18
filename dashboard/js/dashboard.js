@@ -14,7 +14,7 @@ function initializeDashboard() {
         return;
     }
 
-    if (!window.USER_ROLES || !window.NAV_LINKS) { // Changed from window.USER_ROLES_OBJ and window.NAV_LINKS_OBJ
+    if (!window.USER_ROLES || !window.NAV_LINKS) { 
         console.error("[dashboard.js] CRITICAL ERROR: window.USER_ROLES or window.NAV_LINKS not defined. Ensure constants.js is loaded first and correctly defines these.");
         alert("Dashboard cannot be initialized due to a system error. Please contact support.");
         return;
@@ -42,7 +42,7 @@ function setDashboardHomeLink() {
     }
 
     const role = getCurrentUserRole();
-    if (!role || !window.USER_ROLES) { // Changed from window.USER_ROLES_OBJ
+    if (!role || !window.USER_ROLES) { 
         // console.warn('[dashboard.js] Cannot set home link: role or window.USER_ROLES missing.');
         dashboardHomeLink.href = '../index.html'; // Fallback
         return;
@@ -66,12 +66,8 @@ function populateSidebarNav(role) {
 
     sidebarNav.innerHTML = ''; 
 
-    const links = window.NAV_LINKS[role] || window.COMMON_NAV_LINKS; // Changed from NAV_LINKS_OBJ and COMMON_NAV_LINKS_CONST
-    if (!links) {
-        // console.warn(`[dashboard.js] No NAV_LINKS found for role: ${role}`);
-        return;
-    }
-
+    const links = window.NAV_LINKS[role] || []; // Default to empty array if no specific links
+    
     links.forEach(link => {
         const li = document.createElement('li');
         li.className = 'sidebar-nav-item';
@@ -90,6 +86,28 @@ function populateSidebarNav(role) {
         li.appendChild(a);
         sidebarNav.appendChild(li);
     });
+
+    // Add common links like Profile
+    if (window.COMMON_NAV_LINKS) {
+        window.COMMON_NAV_LINKS.forEach(link => {
+            const li = document.createElement('li');
+            li.className = 'sidebar-nav-item';
+            
+            const a = document.createElement('a');
+            a.href = link.href.startsWith('http') ? link.href : `${link.href}`;
+            a.className = 'sidebar-nav-link';
+            a.title = link.label;
+
+            if (link.icon) {
+                const icon = document.createElement('i');
+                icon.setAttribute('data-lucide', link.icon);
+                a.appendChild(icon);
+            }
+            a.appendChild(document.createTextNode(link.label));
+            li.appendChild(a);
+            sidebarNav.appendChild(li);
+        });
+    }
 }
 
 function populateUserNav(role) {
@@ -141,6 +159,7 @@ function populateUserNav(role) {
             localStorage.removeItem('userRole');
             localStorage.removeItem('userEmail');
             localStorage.removeItem('userName');
+            localStorage.removeItem('userId');
             localStorage.removeItem('userDepartment');
             window.location.href = '../index.html'; 
         });
@@ -226,5 +245,3 @@ function createFeatureCard(feature) {
     `;
     return card;
 }
-
-    
