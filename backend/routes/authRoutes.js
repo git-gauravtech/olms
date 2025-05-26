@@ -70,14 +70,14 @@ router.post('/login', async (req, res) => {
         const payload = {
             user: {
                 id: user.id,
-                role: user.role
+                role: user.role // Role from database
             }
         };
 
         jwt.sign(
             payload,
             process.env.JWT_SECRET,
-            { expiresIn: process.env.JWT_EXPIRES_IN || '24h' },
+            { expiresIn: process.env.JWT_EXPIRES_IN || '1h' }, // Use JWT_EXPIRES_IN from .env
             (err, token) => {
                 if (err) throw err;
                 res.json({
@@ -173,7 +173,11 @@ router.post('/forgot-password', async (req, res) => {
         console.log('------------------------------------');
         // IMPORTANT: The resetToken in the URL is the raw one. The DB stores the hashed one.
 
-        res.json({ msg: 'If an account with that email exists, a password reset link has been sent.' });
+        // Return the raw token for automatic redirection in this simulated environment
+        res.json({ 
+            msg: 'If an account with that email exists, a password reset link has been sent.',
+            resetToken: resetToken // For frontend auto-redirect simulation
+        });
 
     } catch (err) {
         console.error('Forgot password error:', err.message, err.stack);
