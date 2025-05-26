@@ -4,6 +4,7 @@ const router = express.Router();
 const pool = require('../config/db');
 const { auth, isAdmin } = require('../middleware/authMiddleware');
 const bcrypt = require('bcryptjs');
+const { spawn } = require('child_process'); // Import spawn for C++ integration
 
 // @route   GET api/admin/requests/faculty
 // @desc    Get faculty requests needing admin approval
@@ -16,7 +17,7 @@ router.get('/requests/faculty', [auth, isAdmin], async (req, res) => {
             FROM bookings b
             JOIN users u ON b.userId = u.id
             LEFT JOIN labs l ON b.labId = l.id
-            LEFT JOIN ( -- This is a way to join with mock time slots if they are not in DB
+            LEFT JOIN ( 
                 SELECT 'ts_0800_0900' as id, '08:00 AM - 09:00 AM' as displayTime UNION ALL
                 SELECT 'ts_0900_1000', '09:00 AM - 10:00 AM' UNION ALL
                 SELECT 'ts_1000_1100', '10:00 AM - 11:00 AM' UNION ALL
@@ -33,71 +34,140 @@ router.get('/requests/faculty', [auth, isAdmin], async (req, res) => {
         `, ['pending-admin-approval', 'Faculty']);
         res.json(requests);
     } catch (err) {
-        console.error('Error fetching faculty admin requests:', err.message);
-        res.status(500).send('Server Error: Could not fetch faculty admin requests');
+        console.error('Error fetching faculty admin requests:', err.message, err.stack);
+        res.status(500).json({ msg: 'Server Error: Could not fetch faculty admin requests' });
     }
 });
 
-
 // @route   POST api/admin/algorithms/:algorithmName
-// @desc    Trigger a specific DAA algorithm (simulation)
+// @desc    Trigger a specific DAA algorithm
 // @access  Private (Admin only)
 router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
     const { algorithmName } = req.params;
-    const { inputPayload } = req.body; // Optional: frontend might send specific parameters
+    // const { inputPayload } = req.body; // Optional input from frontend
 
     console.log(`[Backend] Admin triggered algorithm: ${algorithmName}`);
-    console.log(`[Backend] Optional input payload from frontend:`, inputPayload);
+    // console.log(`[Backend] Optional input payload from frontend:`, inputPayload);
 
-    let simulatedInputForCpp = {};
-    let simulatedOutputFromCpp = {};
-    let dbUpdateSummary = "No database changes simulated.";
-    let successMessage = `Algorithm '${algorithmName}' simulated successfully.`;
+    let actualInputForCpp = {};
+    let simulatedOutputFromCpp = {}; // Keep this for simulating structure if C++ call fails or is bypassed
+    let dbUpdateSummary = "No database changes made by algorithm.";
+    let successMessage = `Algorithm '${algorithmName}' processed.`;
 
     try {
         console.log(`[Backend] Preparing data for ${algorithmName}...`);
 
         if (algorithmName === 'run-scheduling') { // Graph Coloring
-            console.log("[Backend] Simulating: Fetching labs, booking requests, constraints, time slots for Graph Coloring.");
-            // const [labs] = await pool.query("SELECT id, name, capacity, roomNumber FROM labs");
-            // const [pendingRequests] = await pool.query("SELECT id, userId, requestedLabType, duration, batchIdentifier, priority FROM bookings WHERE status='pending'");
-            // const [timeSlots] = await pool.query("SELECT id, startTime, endTime FROM time_slots"); // Assuming time_slots table
+            successMessage = `Graph Coloring scheduling attempted.`;
+            console.log("[Backend] Preparing input for Graph Coloring (Scheduling)...");
+            // Simulate fetching data from DB for C++ algorithm
+            console.log("[Backend] DB Query (Simulated): SELECT id, name, capacity FROM labs;");
+            const labsData = [{id: 1, name: "CS Lab 1", capacity: 30}, {id: 2, name: "Physics Lab Alpha", capacity: 20}]; // Simulated
             
-            simulatedInputForCpp = {
-                labs: [{id: 1, name: "CS Lab 1", capacity: 30}, {id: 2, name: "Physics Lab Alpha", capacity: 20}],
-                requests: [{id: 101, batch: "CS-A", needs: "CS Lab"}, {id: 102, batch: "PHY-B", needs: "Physics Lab"}],
-                timeSlots: ["Mon 9-11", "Mon 11-1", "Tue 9-11"],
-                constraints: ["InstructorA cannot teach CS-A and PHY-B simultaneously"]
-            };
-            console.log("[Backend] Simulated input for C++ (Graph Coloring):", JSON.stringify(simulatedInputForCpp, null, 2));
+            console.log("[Backend] DB Query (Simulated): SELECT id, userId, requestedLabType, duration, batchIdentifier, priority FROM bookings WHERE status='pending' OR status='pending-admin-approval';");
+            const pendingRequestsData = [ // Simulated
+                {id: 101, userId: 5, requestedLabType: "CS", duration: 2, batchIdentifier: "CS-A", priority: 10, purpose: "CS101 Lab for CS-A"},
+                {id: 102, userId: 6, requestedLabType: "Physics", duration: 2, batchIdentifier: "PHY-B", priority: 8, purpose: "PHY101 Lab for PHY-B"}
+            ];
+            
+            console.log("[Backend] DB Query (Simulated): SELECT id, startTime, endTime, displayTime FROM time_slots;"); // Assuming a time_slots table or use constants
+            const timeSlotsData = [ // Simulated from constants
+                { id: 'ts_0900_1000', startTime: '09:00', endTime: '10:00', displayTime: '09:00 AM - 10:00 AM' },
+                { id: 'ts_1000_1100', startTime: '10:00', endTime: '11:00', displayTime: '10:00 AM - 11:00 AM' },
+                // ... more time slots
+            ];
 
-            console.log(`[Backend] Simulating call to C++ executable for Graph Coloring...`);
-            // In a real scenario: const cppProcess = spawn('path/to/graph_coloring_algo', [JSON.stringify(simulatedInputForCpp)]);
-            
-            simulatedOutputFromCpp = {
-                status: "success",
-                message: "Conflict-free schedule generated.",
-                newlyScheduledBookings: [
-                    { requestId: 101, labId: 1, date: "2024-07-01", timeSlotId: "ts_0900_1000", userId: 5, purpose: "CS101 Lab for CS-A", status: "booked" },
-                    { requestId: 102, labId: 2, date: "2024-07-01", timeSlotId: "ts_1100_1200", userId: 6, purpose: "PHY101 Lab for PHY-B", status: "booked" }
-                ],
-                unscheduledRequests: []
+            actualInputForCpp = {
+                labs: labsData,
+                requests: pendingRequestsData,
+                timeSlots: timeSlotsData,
+                constraints: ["InstructorA cannot teach CS-A and PHY-B simultaneously"] // Example constraint
             };
-            console.log("[Backend] Simulated output from C++ (Graph Coloring):", JSON.stringify(simulatedOutputFromCpp, null, 2));
-            
-            console.log(`[Backend] Simulating database update with results from Graph Coloring...`);
-            // For each item in newlyScheduledBookings:
-            // await pool.query("INSERT INTO bookings (...) VALUES (...) ON DUPLICATE KEY UPDATE ...");
-            // or await pool.query("UPDATE bookings SET labId=?, date=?, timeSlotId=?, status='booked' WHERE id=?");
-            dbUpdateSummary = `${simulatedOutputFromCpp.newlyScheduledBookings.length} sessions scheduled. ${simulatedOutputFromCpp.unscheduledRequests.length} requests remain unscheduled.`;
-            successMessage = `Graph Coloring scheduling simulated: ${dbUpdateSummary}`;
+            console.log("[Backend] Actual input for C++ (Graph Coloring):", JSON.stringify(actualInputForCpp, null, 2));
+
+            // --- Actual C++ Process Invocation ---
+            const cppExecutablePath = './cpp_algorithms/graph_coloring_scheduler'; // IMPORTANT: Replace with actual path to your compiled C++ exe
+            console.log(`[Backend] Attempting to spawn C++ process: ${cppExecutablePath}`);
+
+            const cppProcess = spawn(cppExecutablePath, []); // Add command line args if your C++ program expects them
+
+            let cppOutput = '';
+            let cppErrorOutput = '';
+
+            cppProcess.stdin.write(JSON.stringify(actualInputForCpp));
+            cppProcess.stdin.end();
+
+            cppProcess.stdout.on('data', (data) => {
+                cppOutput += data.toString();
+            });
+
+            cppProcess.stderr.on('data', (data) => {
+                cppErrorOutput += data.toString();
+                console.error(`[C++ Stderr for ${algorithmName}]: ${data.toString()}`);
+            });
+
+            // Using a Promise to handle the asynchronous nature of the child process
+            await new Promise((resolve, reject) => {
+                cppProcess.on('close', async (code) => {
+                    console.log(`[Backend] C++ process for ${algorithmName} exited with code ${code}`);
+                    if (cppErrorOutput) {
+                        console.error(`[Backend] C++ process for ${algorithmName} emitted errors: ${cppErrorOutput}`);
+                    }
+
+                    if (code === 0 && cppOutput) {
+                        try {
+                            simulatedOutputFromCpp = JSON.parse(cppOutput); // Expecting JSON output from C++
+                            console.log("[Backend] Parsed output from C++ (Graph Coloring):", JSON.stringify(simulatedOutputFromCpp, null, 2));
+
+                            // Simulate database update with results from C++
+                            console.log(`[Backend] Simulating database update with results from Graph Coloring...`);
+                            if (simulatedOutputFromCpp.newlyScheduledBookings && simulatedOutputFromCpp.newlyScheduledBookings.length > 0) {
+                                for (const booking of simulatedOutputFromCpp.newlyScheduledBookings) {
+                                    console.log(`[Backend] DB Update (Simulated): INSERT INTO bookings (labId, userId, date, timeSlotId, purpose, status, ...) VALUES (${booking.labId}, ${booking.userId}, '${booking.date}', '${booking.timeSlotId}', '${booking.purpose}', 'booked', ...);`);
+                                    console.log(`[Backend] DB Update (Simulated): UPDATE bookings SET status='scheduled' WHERE id=${booking.requestId};`);
+                                }
+                                dbUpdateSummary = `${simulatedOutputFromCpp.newlyScheduledBookings.length} sessions scheduled based on C++ output.`;
+                            } else {
+                                dbUpdateSummary = "C++ algorithm ran, but no new sessions were scheduled based on its output.";
+                            }
+                            if (simulatedOutputFromCpp.unscheduledRequests && simulatedOutputFromCpp.unscheduledRequests.length > 0) {
+                                dbUpdateSummary += ` ${simulatedOutputFromCpp.unscheduledRequests.length} requests remain unscheduled.`;
+                            }
+                            successMessage = `Graph Coloring algorithm executed: ${dbUpdateSummary}`;
+                            resolve();
+                        } catch (parseError) {
+                            console.error(`[Backend] Error parsing JSON output from C++ for ${algorithmName}:`, parseError);
+                            console.error(`[Backend] Raw C++ output for ${algorithmName}:`, cppOutput);
+                            dbUpdateSummary = "C++ process ran, but output was not valid JSON.";
+                            successMessage = `Graph Coloring algorithm executed with errors parsing output.`;
+                            // It's important to resolve or reject to not hang the promise
+                            reject(new Error(`Error parsing C++ output: ${parseError.message}. Raw output: ${cppOutput.substring(0, 500)}...`));
+                        }
+                    } else if (code !== 0) {
+                        dbUpdateSummary = `C++ process for ${algorithmName} failed with exit code ${code}.`;
+                        successMessage = `Graph Coloring algorithm execution failed.`;
+                        reject(new Error(`C++ process exited with code ${code}. Error: ${cppErrorOutput.substring(0,500)}...`));
+                    } else {
+                         dbUpdateSummary = `C++ process for ${algorithmName} ran but produced no output to parse.`;
+                         successMessage = `Graph Coloring algorithm executed but yielded no parsable results.`;
+                         resolve(); // Resolve if no output but also no error code, or handle as error
+                    }
+                });
+
+                cppProcess.on('error', (err) => {
+                    console.error(`[Backend] Failed to start C++ process for ${algorithmName}: `, err);
+                    dbUpdateSummary = "Failed to start C++ process.";
+                    successMessage = `Graph Coloring algorithm could not be started.`;
+                    reject(err);
+                });
+            });
+            // End of Promise for child process
 
         } else if (algorithmName === 'run-resource-allocation') { // 0/1 Knapsack
+            // ... (Keep detailed simulation as before, for brevity of this example,
+            //      or adapt the spawn pattern from 'run-scheduling' if you have this C++ exe ready)
             console.log("[Backend] Simulating: Fetching scarce equipment, availability, requesting sessions, priorities for 0/1 Knapsack.");
-            // const [scarceEquipment] = await pool.query("SELECT id, name, totalQuantity FROM equipment WHERE isScarce=true");
-            // const [requestingSessions] = await pool.query("SELECT b.id, b.purpose, GROUP_CONCAT(be.equipmentId, ':', be.quantity) as requestedEquipment, b.priority FROM bookings b JOIN booking_equipment be ON b.id = be.bookingId WHERE b.status = 'pending_resource_allocation' GROUP BY b.id");
-            
-            simulatedInputForCpp = {
+            actualInputForCpp = {
                 equipmentCapacities: [{type: "Microscope", available: 5}, {type: "Spectrometer", available: 2}],
                 sessions: [
                     {id: 201, priority: 10, needs: {Microscope: 2, Spectrometer: 1}},
@@ -105,40 +175,31 @@ router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
                     {id: 203, priority: 12, needs: {Spectrometer: 1, Microscope: 1}}
                 ]
             };
-            console.log("[Backend] Simulated input for C++ (Knapsack):", JSON.stringify(simulatedInputForCpp, null, 2));
-
+            console.log("[Backend] Simulated input for C++ (Knapsack):", JSON.stringify(actualInputForCpp, null, 2));
             console.log(`[Backend] Simulating call to C++ executable for 0/1 Knapsack...`);
             simulatedOutputFromCpp = {
                 status: "success",
                 allocatedSessions: [
                     { sessionId: 203, allocatedResources: {Spectrometer: 1, Microscope: 1} },
-                    { sessionId: 201, allocatedResources: {Microscope: 2} } // Assuming Spectrometer ran out for session 201
+                    { sessionId: 201, allocatedResources: {Microscope: 2} }
                 ],
                 unallocatedSessions: [202]
             };
             console.log("[Backend] Simulated output from C++ (Knapsack):", JSON.stringify(simulatedOutputFromCpp, null, 2));
-
-            console.log(`[Backend] Simulating database update with results from 0/1 Knapsack...`);
-            // For each item in allocatedSessions:
-            // await pool.query("UPDATE bookings SET equipmentIds = ?, status = 'resources_allocated' WHERE id = ?");
             dbUpdateSummary = `${simulatedOutputFromCpp.allocatedSessions.length} sessions allocated resources. ${simulatedOutputFromCpp.unallocatedSessions.length} sessions could not be fully resourced.`;
             successMessage = `0/1 Knapsack resource allocation simulated: ${dbUpdateSummary}`;
 
         } else if (algorithmName === 'optimize-lab-usage') { // Greedy Algorithm
+            // ... (Keep detailed simulation as before)
             console.log("[Backend] Simulating: Fetching current schedule, empty slots, pending high-priority requests for Greedy Algorithm.");
-            // const [currentSchedule] = await pool.query("SELECT labId, date, timeSlotId FROM bookings WHERE status='booked'");
-            // const [emptySlots] = await pool.query("SELECT ... derived from labs and currentSchedule ...");
-            // const [pendingRequests] = await pool.query("SELECT id, userId, requestedLabType, duration, priority FROM bookings WHERE status='pending' ORDER BY priority DESC");
-
-            simulatedInputForCpp = {
+            actualInputForCpp = {
                 emptySlots: [{labId: 1, date: "2024-07-02", timeSlotId: "ts_1400_1500"}, {labId: 3, date: "2024-07-02", timeSlotId: "ts_1000_1100"}],
                 pendingRequests: [
                     {id: 301, priority: 100, needs: "Any Lab", duration: 1},
                     {id: 302, priority: 90, needs: "CS Lab", duration: 1}
                 ]
             };
-            console.log("[Backend] Simulated input for C++ (Greedy):", JSON.stringify(simulatedInputForCpp, null, 2));
-
+             console.log("[Backend] Simulated input for C++ (Greedy):", JSON.stringify(actualInputForCpp, null, 2));
             console.log(`[Backend] Simulating call to C++ executable for Greedy slot filling...`);
             simulatedOutputFromCpp = {
                 status: "success",
@@ -148,26 +209,18 @@ router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
                 remainingPendingRequests: [302]
             };
             console.log("[Backend] Simulated output from C++ (Greedy):", JSON.stringify(simulatedOutputFromCpp, null, 2));
-
-            console.log(`[Backend] Simulating database update with results from Greedy algorithm...`);
-            // For each item in filledSlots:
-            // await pool.query("INSERT INTO bookings (...) VALUES (...) ...");
             dbUpdateSummary = `${simulatedOutputFromCpp.filledSlots.length} empty slots filled.`;
             successMessage = `Greedy lab usage optimization simulated: ${dbUpdateSummary}`;
 
         } else if (algorithmName === 'assign-nearest-labs') { // Dijkstra's
+            // ... (Keep detailed simulation as before)
             console.log("[Backend] Simulating: Fetching lab locations, user department location, available labs for Dijkstra's.");
-            // const [labLocations] = await pool.query("SELECT id, name, location_coordinates FROM labs"); // Assuming coordinates or graph node ID
-            // const [userDepartmentLocation] = await pool.query("SELECT location_coordinates FROM departments WHERE id = (SELECT departmentId FROM users WHERE id = ?)", [req.user.id]);
-            // const [availableLabs] = await pool.query("SELECT l.id FROM labs l LEFT JOIN bookings b ON l.id = b.labId AND b.date = ? AND b.timeSlotId = ? WHERE b.id IS NULL", [targetDate, targetTimeSlot]);
-
-            simulatedInputForCpp = {
-                campusGraph: { nodes: ["A", "B", "C", "L1", "L2", "L3"], edges: [["A","B",5],["B","L1",3],["A","L2",10]]}, // node1, node2, weight
+            actualInputForCpp = {
+                campusGraph: { nodes: ["A", "B", "C", "L1", "L2", "L3"], edges: [["A","B",5],["B","L1",3],["A","L2",10]]},
                 userLocationNode: "A",
                 availableLabNodes: ["L1", "L2", "L3"]
             };
-            console.log("[Backend] Simulated input for C++ (Dijkstra):", JSON.stringify(simulatedInputForCpp, null, 2));
-
+            console.log("[Backend] Simulated input for C++ (Dijkstra):", JSON.stringify(actualInputForCpp, null, 2));
             console.log(`[Backend] Simulating call to C++ executable for Dijkstra's algorithm...`);
             simulatedOutputFromCpp = {
                 status: "success",
@@ -175,7 +228,6 @@ router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
                 alternatives: [{labNode: "L2", distance: 10}]
             };
             console.log("[Backend] Simulated output from C++ (Dijkstra):", JSON.stringify(simulatedOutputFromCpp, null, 2));
-            // This output might not directly update the DB but rather inform a booking suggestion.
             dbUpdateSummary = `Nearest available lab is ${simulatedOutputFromCpp.nearestLab.labNode} (distance ${simulatedOutputFromCpp.nearestLab.distance}).`;
             successMessage = `Dijkstra's nearest lab assignment simulated: ${dbUpdateSummary}`;
         } else {
@@ -185,17 +237,45 @@ router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
         res.json({
             success: true,
             message: successMessage,
-            simulatedInput: simulatedInputForCpp,
-            simulatedOutput: simulatedOutputFromCpp,
+            simulatedInputForCpp: actualInputForCpp, // Changed from simulatedInput
+            simulatedOutputFromCpp: simulatedOutputFromCpp, // Changed from simulatedOutput
             dbUpdateSummary: dbUpdateSummary
         });
 
     } catch (error) {
         console.error(`[Backend] Error triggering algorithm ${algorithmName}:`, error.message, error.stack);
-        res.status(500).json({ success: false, message: `Server error while triggering ${algorithmName}.` });
+        res.status(500).json({ success: false, message: `Server error while triggering ${algorithmName}. Details: ${error.message}` });
     }
 });
 
+
+// @route   GET api/admin/system-activity
+// @desc    Get mock system activity logs
+// @access  Private (Admin only)
+router.get('/system-activity', [auth, isAdmin], async (req, res) => {
+    // In a real system, this would fetch from a database table (e.g., activity_logs) or log files
+    // For now, returning a mock array. Consider creating an activity_logs table.
+    try {
+        // Example: Fetching from a hypothetical 'activity_logs' table
+        // const [logs] = await pool.query("SELECT action, userEmail, details, loggedAt FROM activity_logs ORDER BY loggedAt DESC LIMIT 50");
+        // res.json(logs);
+
+        // Using mock data for now
+        const mockLogs = [
+            { timestamp: new Date(Date.now() - 3600000).toISOString(), user: 'admin@example.com', action: 'Updated Lab "Physics Lab Alpha" details via API.' },
+            { timestamp: new Date(Date.now() - 7200000).toISOString(), user: 'faculty@example.com', action: 'Booked Computer Lab for "CS101" via API.' },
+            { timestamp: new Date(Date.now() - 10800000).toISOString(), user: 'assistant@example.com', action: 'Updated seat status for 5 seats in "Electronics Lab" via API.' },
+            { timestamp: new Date().toISOString(), user: 'admin@example.com', action: 'Triggered "run-scheduling" algorithm simulation via API.' },
+        ];
+        res.json(mockLogs);
+    } catch (err) {
+        console.error('Error fetching system activity:', err.message, err.stack);
+        res.status(500).json({ msg: 'Server Error: Could not fetch system activity' });
+    }
+});
+
+
+// --- User Management by Admin ---
 // @route   GET api/admin/users
 // @desc    Get all users
 // @access  Private (Admin only)
@@ -204,8 +284,8 @@ router.get('/users', [auth, isAdmin], async (req, res) => {
         const [users] = await pool.query('SELECT id, fullName, email, role, department, createdAt FROM users ORDER BY fullName ASC');
         res.json(users);
     } catch (err) {
-        console.error('Error fetching users in /api/admin/users:', err.message);
-        res.status(500).send('Server Error: Could not fetch users');
+        console.error('Error fetching users in /api/admin/users:', err.message, err.stack);
+        res.status(500).json({ msg: 'Server Error: Could not fetch users' });
     }
 });
 
@@ -247,7 +327,7 @@ router.post('/users', [auth, isAdmin], async (req, res) => {
         res.status(201).json(createdUserResult[0]);
     } catch (err) {
         console.error('Admin create user error:', err.message, err.stack);
-        res.status(500).send('Server error during user creation by admin');
+        res.status(500).json({ msg: 'Server error during user creation by admin' });
     }
 });
 
@@ -264,7 +344,6 @@ router.put('/users/:userId', [auth, isAdmin], async (req, res) => {
     if (isNaN(parseInt(userId))) {
         return res.status(400).json({ msg: 'Invalid User ID format.' });
     }
-
 
     try {
         const [existingUsers] = await pool.query('SELECT id, email, department FROM users WHERE id = ?', [userId]);
@@ -297,7 +376,7 @@ router.put('/users/:userId', [auth, isAdmin], async (req, res) => {
 
     } catch (err) {
         console.error('Admin update user error:', err.message, err.stack);
-        res.status(500).send('Server error while updating user by admin.');
+        res.status(500).json({ msg: 'Server error while updating user by admin.' });
     }
 });
 
@@ -317,6 +396,7 @@ router.delete('/users/:userId', [auth, isAdmin], async (req, res) => {
         }
 
         // DB schema has ON DELETE CASCADE for bookings related to userId.
+        // Add similar logic or DB constraints for other tables referencing users if necessary.
         await pool.query('DELETE FROM users WHERE id = ?', [userId]);
         res.json({ msg: 'User deleted successfully by admin.' });
 
@@ -326,23 +406,8 @@ router.delete('/users/:userId', [auth, isAdmin], async (req, res) => {
         if (err.code === 'ER_ROW_IS_REFERENCED_2' || (err.sqlMessage && err.sqlMessage.toLowerCase().includes('foreign key constraint fails'))) {
             return res.status(400).json({ msg: 'Cannot delete user. They are referenced in other records (e.g., bookings, equipment assignments not covered by cascade). Consider deactivating or reassigning records first.' });
         }
-        res.status(500).send('Server error while deleting user by admin.');
+        res.status(500).json({ msg: 'Server error while deleting user by admin.' });
     }
-});
-
-
-// @route   GET api/admin/system-activity
-// @desc    Get mock system activity logs
-// @access  Private (Admin only)
-router.get('/system-activity', [auth, isAdmin], (req, res) => {
-    // In a real system, this would fetch from a database table (e.g., activity_logs) or log files
-    const mockLogs = [
-        { timestamp: new Date(Date.now() - 3600000).toISOString(), user: 'admin@example.com', action: 'Updated Lab "Physics Lab Alpha" details via API.' },
-        { timestamp: new Date(Date.now() - 7200000).toISOString(), user: 'faculty@example.com', action: 'Booked Computer Lab for "CS101" via API.' },
-        { timestamp: new Date(Date.now() - 10800000).toISOString(), user: 'assistant@example.com', action: 'Updated seat status for 5 seats in "Electronics Lab" via API.' },
-        { timestamp: new Date().toISOString(), user: 'admin@example.com', action: 'Triggered "run-scheduling" algorithm simulation via API.' },
-    ];
-    res.json(mockLogs);
 });
 
 
