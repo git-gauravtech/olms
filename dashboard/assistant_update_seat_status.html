@@ -14,7 +14,7 @@
             <div class="sidebar-header">
                  <a href="#" class="sidebar-header-link" id="dashboardHomeLink">
                     <i data-lucide="atom"></i>
-                    <span class="sidebar-title">Optimized Lab Management</span>
+                    <span class="sidebar-title">Optimized Lab Management System</span>
                 </a>
             </div>
             <ul class="sidebar-nav" id="sidebarNav">
@@ -54,10 +54,10 @@
                             <!-- Interactive lab layout will be populated here by JS -->
                             <p class="text-muted-foreground text-center">Please select a lab to view its layout.</p>
                         </div>
-                         <div class="mt-4 text-sm text-muted-foreground">
+                         <div class="mt-4 text-sm text-muted-foreground" id="seatStatusLegend">
                             <p><strong>Legend:</strong></p>
-                            <p><i data-lucide="armchair" class="system-working" style="vertical-align: middle; margin-right: 4px;"></i> Seat with working system.</p>
-                            <p><i data-lucide="armchair" class="system-not-working" style="vertical-align: middle; margin-right: 4px;"></i> Seat with non-working system.</p>
+                            <p><span class="legend-icon-working"><i data-lucide="armchair"></i></span> Seat with working system (<span id="workingCount">0</span>)</p>
+                            <p><span class="legend-icon-not-working"><i data-lucide="armchair"></i></span> Seat with non-working system (<span id="notWorkingCount">0</span>)</p>
                         </div>
                     </div>
                 </div>
@@ -71,12 +71,17 @@
     <script src="js/assistant_seat_updater.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            if (!roleGuard(USER_ROLES.ASSISTANT)) return;
+            if (!window.roleGuard(window.USER_ROLES.ASSISTANT)) return;
             
-            initializeDashboard();
-            setDashboardHomeLink(); // Ensure home link in sidebar is correct
-            initializeSeatUpdaterPage(); 
-            if (window.lucide) window.lucide.createIcons();
+            window.initializeDashboard();
+            window.setDashboardHomeLink(); // Ensure home link in sidebar is correct
+            window.initializeSeatUpdaterPage(); 
+            if (window.lucide) {
+                window.lucide.createIcons();
+                console.log("[assistant_update_seat_status.html] Lucide icons created on DOMContentLoaded.");
+            } else {
+                console.warn("[assistant_update_seat_status.html] Lucide library not found on DOMContentLoaded.");
+            }
         });
     </script>
 </body>

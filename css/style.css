@@ -954,3 +954,21 @@ code {
     font-size: 0.875rem;
     border-radius: 0.375rem;
 }
+
+/* Legend icon styling for assistant_update_seat_status.html */
+.legend-icon-working .lucide-armchair {
+    stroke: #28a745; /* Green */
+    stroke-width: 2;
+    width: 1em; /* Adjust size as needed, relative to surrounding text */
+    height: 1em;
+    vertical-align: middle;
+    margin-right: 0.25rem;
+}
+.legend-icon-not-working .lucide-armchair {
+    stroke: #dc3545; /* Red */
+    stroke-width: 2;
+    width: 1em;
+    height: 1em;
+    vertical-align: middle;
+    margin-right: 0.25rem;
+}
