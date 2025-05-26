@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const crypto = require('crypto'); // For token generation
+const crypto = require('crypto'); // Ensure crypto is required
 const pool = require('../config/db');
 const { auth } = require('../middleware/authMiddleware');
 
@@ -174,7 +174,7 @@ router.post('/forgot-password', async (req, res) => {
         // IMPORTANT: The resetToken in the URL is the raw one. The DB stores the hashed one.
 
         // Return the raw token for automatic redirection in this simulated environment
-        res.json({ 
+        res.json({
             msg: 'If an account with that email exists, a password reset link has been sent.',
             resetToken: resetToken // For frontend auto-redirect simulation
         });
@@ -222,7 +222,7 @@ router.post('/reset-password', async (req, res) => {
 
         res.json({ msg: 'Password has been reset successfully. You can now login.' });
 
-    } catch (err) {
+    } catch (err)_ {
         console.error('Reset password error:', err.message, err.stack);
         res.status(500).json({ msg: 'Server error while resetting password.' });
     }
