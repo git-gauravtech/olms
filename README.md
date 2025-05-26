@@ -2,28 +2,61 @@
 
 This is a lab management system frontend built with plain HTML, CSS, and JavaScript, along with a Node.js/Express/MySQL backend.
 
-## To run this project:
+## Project Aims (DAA Focus)
+
+The system is designed to address inefficiencies in manual lab scheduling by leveraging Design and Analysis of Algorithms (DAA) techniques. Key aims include:
+- Automating conflict-free lab session scheduling (using concepts like Graph Coloring).
+- Optimally allocating scarce lab resources (using concepts like 0/1 Knapsack).
+- Prioritizing and quickly filling lab slots (using concepts like Greedy Algorithms).
+- (Future) Planning logistics like assigning nearest available labs (using concepts like Dijkstra’s Algorithm).
+
+The core DAA algorithms are intended to be implemented in C++ and integrated with the Node.js backend. The backend then serves data and manages interactions with the HTML/JS frontend.
+
+## To Run This Project:
 
 **Prerequisites:**
 1.  Node.js and npm installed.
 2.  MySQL Server installed and running.
 
 **Backend Setup:**
-1.  Navigate to the `backend` directory: `cd backend`
-2.  Create a MySQL database (e.g., `lab_management_db`).
-3.  Ensure your MySQL server is running.
-4.  Run the SQL script `backend/config/schema.sql` against your database to create the necessary tables.
-5.  Copy `backend/.env.example` to `backend/.env`.
-6.  Edit `backend/.env` and fill in your MySQL database credentials (`DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`), a strong `JWT_SECRET`, and optionally `JWT_EXPIRES_IN`. You can also set `PORT_BACKEND`.
-7.  Install backend dependencies: `npm install`
-8.  Run the backend server: `npm run dev` (uses nodemon for auto-restarts) or `npm start`.
-    *   The backend will typically run on `http://localhost:5001` (or the port specified in your `.env`).
+1.  **Navigate to the `backend` directory**: `cd backend`
+2.  **Create MySQL Database**:
+    *   Ensure your MySQL server is running.
+    *   Create a database (e.g., `lab_management_db`).
+        ```sql
+        CREATE DATABASE IF NOT EXISTS lab_management_db;
+        USE lab_management_db;
+        ```
+3.  **Create Tables**:
+    *   Run the SQL script located at `backend/config/schema.sql` against your `lab_management_db`. This will create the necessary tables (`users`, `labs`, `equipment`, `bookings`, `lab_seat_statuses`).
+4.  **Create `.env` file**:
+    *   In the `backend` directory, copy `backend/.env.example` to `backend/.env`.
+5.  **Edit `.env`**:
+    *   Open `backend/.env` and fill in your MySQL database credentials (`DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`), a strong `JWT_SECRET` (e.g., a long random string), and optionally `JWT_EXPIRES_IN` and `PORT_BACKEND`.
+6.  **Install Backend Dependencies**:
+    *   While in the `backend` directory, run:
+        ```bash
+        npm install
+        ```
+7.  **Run the Backend Server**:
+    *   While in the `backend` directory, run:
+        ```bash
+        npm run dev
+        ```
+    *   This uses `nodemon` for auto-restarts. You should see messages like "MySQL Connected successfully..." and "Backend server running on port 5001" (or your configured port). Keep this terminal open.
 
 **Frontend Setup:**
-1.  Navigate to the project's root directory (if you're not already there).
-2.  Install frontend dev dependencies (primarily for `live-server`): `npm install`
-3.  Run the frontend server: `npm start`
-    *   This will use `live-server` (via `npx`) to serve the static HTML, CSS, and JS files. It will typically open `index.html` in your browser at `http://localhost:9002`.
+1.  **Navigate to the project's root directory** (e.g., `olms-main`, if you're not already there).
+2.  **Install Frontend Dependencies**:
+    ```bash
+    npm install
+    ```
+    (This mainly installs `live-server` for development).
+3.  **Run the Frontend Server**:
+    ```bash
+    npm start
+    ```
+    *   This will use `npx live-server` to serve the static HTML, CSS, and JS files. It will typically open `index.html` in your browser at `http://localhost:9002`.
 
 **Accessing the Application:**
 *   Open your browser and go to `http://localhost:9002` (or the port `live-server` uses for the frontend).
@@ -31,33 +64,41 @@ This is a lab management system frontend built with plain HTML, CSS, and JavaScr
 
 ## Project Structure
 
-**Root:**
+**Root (`olms-main/`):**
 *   `index.html`: The login page and main entry point.
 *   `signup.html`: The user registration page.
+*   `forgot_password.html`: Page to request a password reset.
+*   `reset_password.html`: Page to set a new password using a reset token.
 *   `css/`: Contains the global stylesheet (`style.css`).
 *   `js/`: Contains global frontend JavaScript files:
-    *   `constants.js`: API base URL, user roles, navigation links, mock data (some initial data for UI development).
-    *   `auth.js`: Handles login and signup logic by calling backend APIs.
-    *   `utils.js`: Helper utility functions for the frontend (role guards, etc.).
+    *   `constants.js`: API base URL, user roles, navigation links, UI constants (time slots, etc.).
+    *   `auth.js`: Handles login, signup, and password reset related API calls.
+    *   `utils.js`: Helper utility functions for the frontend (role guards, password visibility toggle, etc.).
 *   `dashboard/`: Contains HTML pages for different dashboard views and their specific JavaScript files.
-    *   `dashboard.js`: Shared JavaScript for dashboard layout and common functionalities.
-    *   `lab_grid.js`: Logic for the lab availability grid.
-    *   `booking_form.js`: Logic for the lab booking form.
-    *   `admin_management.js`: Logic for Admin's lab and equipment management.
-    *   `assistant_seat_updater.js`: Logic for Assistant updating seat statuses.
-*   `backend/`: Contains the Node.js backend application.
-    *   `server.js`: The main backend server file.
-    *   `config/`: Database configuration (`db.js`, `schema.sql`).
-    *   `routes/`: API route definitions (e.g., `authRoutes.js`, `labRoutes.js`).
-    *   `middleware/`: Custom middleware (e.g., `authMiddleware.js`).
-    *   `.env`: Environment variables (database credentials, JWT secret - **DO NOT COMMIT THIS FILE**).
-    *   `package.json`: Backend dependencies.
+    *   `admin.html`, `faculty.html`, `assistant.html`, `student.html`: Main dashboard pages for each role.
+    *   Other HTML files for specific features (e.g., `labs.html`, `book_slot.html`, `admin_manage_labs.html`).
+    *   `dashboard/js/`: Contains JavaScript files for shared dashboard logic and page-specific functionalities:
+        *   `dashboard.js`: Shared JavaScript for dashboard layout (sidebar, user nav) and common functionalities.
+        *   `admin_management.js`: Logic for Admin's lab and equipment management (CRUD operations).
+        *   `assistant_seat_updater.js`: Logic for Assistant updating seat statuses.
+        *   `booking_form.js`: Logic for the lab booking/request form.
+        *   `lab_grid.js`: Logic for the lab availability grid.
+*   `package.json`: Frontend dependencies and scripts.
+*   `README.md`: This file.
 
+**Backend (`olms-main/backend/`):**
+*   `server.js`: The main Node.js/Express backend server file.
+*   `config/`:
+    *   `db.js`: MySQL database connection pool setup.
+    *   `schema.sql`: SQL script to create database tables.
+*   `routes/`: API route definitions (e.g., `authRoutes.js`, `labRoutes.js`, `equipmentRoutes.js`, `bookingRoutes.js`, `adminRoutes.js`).
+*   `middleware/`: Custom Express middleware (e.g., `authMiddleware.js` for JWT authentication and role checks).
+*   `.env` (you create this from `.env.example`): Environment variables (database credentials, JWT secret - **DO NOT COMMIT THIS FILE if it contains sensitive data**).
+*   `package.json`: Backend dependencies and scripts.
 
 ## Notes
-
 *   The frontend uses plain HTML, CSS, and vanilla JavaScript.
 *   The backend uses Node.js with the Express.js framework and MySQL as the database.
 *   Authentication is handled using JWT (JSON Web Tokens).
-*   Frontend API calls are made to the backend to fetch and manipulate data.
 *   Icons are from the [Lucide Icons](https://lucide.dev/) library, loaded via CDN on the frontend.
+*   The C++ algorithm integration points are simulated in the backend (`POST /api/admin/algorithms/:algorithmName`). The actual execution of C++ code from Node.js (e.g., via `child_process`) is a subsequent implementation step.
