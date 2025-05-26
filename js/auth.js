@@ -28,14 +28,13 @@ async function handleLogin(event) {
 
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
-    // Role input removed
     const loginButton = document.querySelector('#loginForm button[type="submit"]');
     const generalErrorElement = document.getElementById('generalLoginError');
 
 
     if (!emailInput || !passwordInput || !loginButton) {
         // console.error("Login form elements not found!");
-        showError('generalLoginError', 'Login form elements missing. Please refresh.');
+        if(generalErrorElement) showError('generalLoginError', 'Login form elements missing. Please refresh.', generalErrorElement);
         return;
     }
     
@@ -47,9 +46,8 @@ async function handleLogin(event) {
 
     const email = emailInput.value;
     const password = passwordInput.value;
-    // Role from form removed
 
-    // console.log("Login attempt:", { email }); // Role removed from log
+    // console.log("Login attempt:", { email });
 
     let isValid = true;
     if (!email) {
@@ -63,7 +61,6 @@ async function handleLogin(event) {
         showError('passwordError', 'Password is required.');
         isValid = false;
     }
-    // Role validation removed
 
     if (!isValid) {
         // console.log("Login validation failed on frontend.");
@@ -75,7 +72,7 @@ async function handleLogin(event) {
 
     if (!window.API_BASE_URL) {
         // console.error("API_BASE_URL is not defined. Cannot make API call.");
-        showError('generalLoginError', "Configuration error: API URL missing.");
+        if(generalErrorElement) showError('generalLoginError', "Configuration error: API URL missing.", generalErrorElement);
         loginButton.disabled = false;
         loginButton.innerHTML = originalButtonText;
         if (window.lucide) window.lucide.createIcons();
@@ -88,7 +85,7 @@ async function handleLogin(event) {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ email, password }), // Role removed from body
+            body: JSON.stringify({ email, password }),
         });
 
         const data = await response.json();
@@ -96,7 +93,7 @@ async function handleLogin(event) {
         if (response.ok) {
             // console.log("Login successful from backend:", data);
             localStorage.setItem('token', data.token); 
-            localStorage.setItem('userRole', data.user.role); // Role from backend response
+            localStorage.setItem('userRole', data.user.role); 
             localStorage.setItem('userEmail', data.user.email);
             localStorage.setItem('userName', data.user.name);
             localStorage.setItem('userId', data.user.id);
@@ -105,7 +102,7 @@ async function handleLogin(event) {
             const currentUserRoleConst = window.USER_ROLES; 
             if (!currentUserRoleConst) {
                  // console.error("CRITICAL ERROR: window.USER_ROLES not defined on frontend!");
-                 showError('generalLoginError', 'Frontend configuration error. Cannot redirect.');
+                 if(generalErrorElement) showError('generalLoginError', 'Frontend configuration error. Cannot redirect.', generalErrorElement);
                  loginButton.disabled = false;
                  loginButton.innerHTML = originalButtonText;
                  if (window.lucide) window.lucide.createIcons();
@@ -114,7 +111,7 @@ async function handleLogin(event) {
             // console.log("Role from backend for redirection:", data.user.role);
             // console.log("USER_ROLES for comparison:", currentUserRoleConst);
 
-            switch (data.user.role) { // Use role from backend data
+            switch (data.user.role) { 
                 case currentUserRoleConst.ADMIN:
                     // console.log("Redirecting to Admin dashboard...");
                     window.location.href = 'dashboard/admin.html';
@@ -133,15 +130,15 @@ async function handleLogin(event) {
                     break;
                 default:
                     // console.error("Login: No matching role for redirection. Role from backend:", data.user.role);
-                    showError('generalLoginError', `Invalid role (${data.user.role}) received from server. Cannot redirect.`);
+                    if(generalErrorElement) showError('generalLoginError', `Invalid role (${data.user.role}) received from server. Cannot redirect.`, generalErrorElement);
             }
         } else {
             // console.error("Login failed from backend:", data);
-            showError('generalLoginError', data.msg || 'Login failed. Please check your credentials.');
+            if(generalErrorElement) showError('generalLoginError', data.msg || 'Login failed. Please check your credentials.', generalErrorElement);
         }
     } catch (error) {
         // console.error('Login request failed:', error);
-        showError('generalLoginError', 'An error occurred during login. Could not connect to server.');
+        if(generalErrorElement) showError('generalLoginError', 'An error occurred during login. Could not connect to server.', generalErrorElement);
     } finally {
         loginButton.disabled = false;
         loginButton.innerHTML = originalButtonText;
@@ -153,7 +150,7 @@ async function handleSignup(event) {
     event.preventDefault();
     clearErrors();
     const signupButton = document.getElementById('signupButton');
-    const generalErrorElement = document.getElementById('generalSignupError'); // Assuming you might add this
+    const generalErrorElement = document.getElementById('generalSignupError'); 
     if (!signupButton) return;
 
     const originalButtonText = signupButton.innerHTML;
@@ -199,7 +196,8 @@ async function handleSignup(event) {
     
     if (!window.API_BASE_URL) {
         // console.error("API_BASE_URL is not defined. Cannot make API call.");
-        showError(generalErrorElement ? 'generalSignupError' : 'roleError', "Configuration error: API URL missing.");
+        const targetErrorElement = generalErrorElement || document.getElementById('roleError'); // Fallback
+        showError(targetErrorElement ? targetErrorElement.id : 'roleError', "Configuration error: API URL missing.", targetErrorElement);
         signupButton.disabled = false;
         signupButton.innerHTML = originalButtonText;
         if (window.lucide) window.lucide.createIcons();
@@ -218,11 +216,13 @@ async function handleSignup(event) {
             alert(`Account Created! ${data.msg || `Welcome, ${fullName}! Please login.`}`);
             window.location.href = 'index.html'; 
         } else {
-            showError(generalErrorElement ? 'generalSignupError' : 'roleError', data.msg || 'Signup failed. Please try again.'); 
+            const targetErrorElement = generalErrorElement || document.getElementById('roleError'); // Fallback
+            showError(targetErrorElement ? targetErrorElement.id : 'roleError', data.msg || 'Signup failed. Please try again.', targetErrorElement); 
         }
     } catch (error) {
         // console.error('Signup request failed:', error);
-        showError(generalErrorElement ? 'generalSignupError' : 'roleError', 'An error occurred during signup. Could not connect to server.');
+        const targetErrorElement = generalErrorElement || document.getElementById('roleError'); // Fallback
+        showError(targetErrorElement ? targetErrorElement.id : 'roleError', 'An error occurred during signup. Could not connect to server.', targetErrorElement);
     } finally {
         signupButton.disabled = false;
         signupButton.innerHTML = originalButtonText;
@@ -230,40 +230,21 @@ async function handleSignup(event) {
     }
 }
 
-function togglePasswordVisibility(fieldId, buttonElement) {
-    const passwordInput = document.getElementById(fieldId);
-    if (!passwordInput || !buttonElement) {
-        // console.error('Password input field or toggle button not found:', fieldId);
-        return;
-    }
-    const currentType = passwordInput.getAttribute('type');
-    let newIconName;
-    if (currentType === 'password') {
-        passwordInput.setAttribute('type', 'text');
-        newIconName = 'eye-off';
-    } else {
-        passwordInput.setAttribute('type', 'password');
-        newIconName = 'eye';
-    }
-    // Re-create the <i> tag to ensure Lucide processes it correctly
-    buttonElement.innerHTML = `<i data-lucide="${newIconName}"></i>`;
-    if (window.lucide) {
-        window.lucide.createIcons();
-    }
-}
-
-
-function showError(elementId, message) {
-    const errorElement = document.getElementById(elementId);
+function showError(elementId, message, elementInstance = null) {
+    const errorElement = elementInstance || document.getElementById(elementId);
     if (errorElement) {
         errorElement.textContent = message;
         errorElement.classList.add('visible');
+        if(errorElement.tagName !== 'P' && errorElement.style.display === 'none') { // For generalLoginError which might be a P tag
+             errorElement.style.display = 'block'; // Ensure it's visible if it was hidden P
+        }
     } else {
         // Fallback if specific error element isn't found
         const generalErrorArea = document.getElementById('generalLoginError') || document.getElementById('generalSignupError');
         if (generalErrorArea) {
             generalErrorArea.textContent = message;
             generalErrorArea.classList.add('visible');
+            if(generalErrorArea.style.display === 'none') generalErrorArea.style.display = 'block';
         } else {
             // console.warn(`Error element with ID '${elementId}' not found. Message: ${message}`);
             alert(message); // Fallback to alert if no designated error area
@@ -276,16 +257,8 @@ function clearErrors() {
     errorMessages.forEach(el => {
         el.textContent = '';
         el.classList.remove('visible');
+         if(el.tagName === 'P' && el.style.display !== 'none') { // If it's one of the general P tag errors
+            el.style.display = 'none';
+        }
     });
-    // Clear general error areas if they exist
-    const generalLoginError = document.getElementById('generalLoginError');
-    if (generalLoginError) {
-        generalLoginError.textContent = '';
-        generalLoginError.classList.remove('visible');
-    }
-    const generalSignupError = document.getElementById('generalSignupError');
-     if (generalSignupError) {
-        generalSignupError.textContent = '';
-        generalSignupError.classList.remove('visible');
-    }
 }

@@ -23,7 +23,7 @@ function roleGuard(expectedRoles) {
         return false;
     }
 
-    if (!window.USER_ROLES) { // Changed from window.USER_ROLES_OBJ
+    if (!window.USER_ROLES) { 
         console.error('[roleGuard] CRITICAL ERROR: window.USER_ROLES is not defined. Cannot perform role check. Ensure constants.js is loaded first.');
         alert('Critical system error: Role definitions missing. Please contact support.');
         window.location.href = '../index.html'; 
@@ -53,11 +53,34 @@ function getQueryParam(param) {
     return urlParams.get(param);
 }
 
+// Moved from auth.js to be a general utility
+function togglePasswordVisibility(fieldId, buttonElement) {
+    const passwordInput = document.getElementById(fieldId);
+    if (!passwordInput || !buttonElement) {
+        // console.error('Password input field or toggle button not found:', fieldId);
+        return;
+    }
+    const currentType = passwordInput.getAttribute('type');
+    let newIconName;
+    if (currentType === 'password') {
+        passwordInput.setAttribute('type', 'text');
+        newIconName = 'eye-off';
+    } else {
+        passwordInput.setAttribute('type', 'password');
+        newIconName = 'eye';
+    }
+    // Re-create the <i> tag to ensure Lucide processes it correctly
+    buttonElement.innerHTML = `<i data-lucide="${newIconName}"></i>`;
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
+}
+
 
 // Expose utility functions to global scope if not using modules
 window.isMobile = isMobile;
 window.getCurrentUserRole = getCurrentUserRole;
 window.roleGuard = roleGuard;
 window.getQueryParam = getQueryParam;
-
+window.togglePasswordVisibility = togglePasswordVisibility; // Expose globally
     
