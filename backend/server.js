@@ -34,24 +34,31 @@ app.get('/', (req, res) => {
     res.send('Optimized Lab Management System Backend API Running!');
 });
 
+// Simple Ping Pong for basic backend connectivity test
+app.get('/api/ping', (req, res) => {
+    console.log('[Backend] Received /api/ping request');
+    res.json({ message: 'pong from backend OLMS API' });
+});
+
+
 // API Routes
-app.use('/api/auth', authRoutes); // Public: /signup, /login
+app.use('/api/auth', authRoutes); 
 
-// Labs: GET is public, CUD operations are Admin only
-app.use('/api/labs', labRoutes); // labRoutes internal checks will use auth and isAdmin
+// Labs
+app.use('/api/labs', labRoutes); 
 
-// Equipment: GET is public, CUD operations are Admin only
-app.use('/api/equipment', equipmentRoutes); // equipmentRoutes internal checks use auth and isAdmin
+// Equipment
+app.use('/api/equipment', equipmentRoutes); 
 
-// Bookings: Needs fine-grained protection
-app.use('/api/bookings', bookingRoutes); // bookingRoutes internal checks use auth and isAdmin
+// Bookings
+app.use('/api/bookings', bookingRoutes); 
 
 // Admin: All routes need Admin role
 app.use('/api/admin', auth, isAdmin, adminRoutes);
 
 
-const PORT = process.env.PORT_BACKEND || 5001; // Ensure consistent PORT variable name
+const PORT = process.env.PORT_BACKEND || 5001; 
 app.listen(PORT, () => {
-    console.log(`Backend server running on port ${PORT}`);
+    console.log(`Backend server running on port ${PORT}. OLMS API is active.`);
+    console.log(`Try: http://localhost:${PORT}/api/ping`);
 });
-

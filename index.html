@@ -42,17 +42,22 @@
             </p>
         </div>
     </main>
+    <script>
+        // Very basic JS check
+        // console.log('index.html: Inline script running.');
+        // alert('index.html script loaded'); // Intrusive, for quick check only
+    </script>
     <script src="js/constants.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/auth.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // console.log("Login page DOM fully loaded and parsed.");
-            if (window.lucide) {
+            console.log("[index.html] Login page DOM fully loaded and parsed.");
+            if (window.lucide && typeof window.lucide.createIcons === 'function') {
                 window.lucide.createIcons();
-                // console.log("Lucide icons created on login page.");
+                console.log("[index.html] Lucide icons created on login page.");
             } else {
-                // console.warn("Lucide library not found on login page.");
+                console.warn("[index.html] Lucide library not found or createIcons not a function.");
             }
         });
     </script>

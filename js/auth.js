@@ -1,16 +1,31 @@
 
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('[auth.js] DOMContentLoaded event fired.');
+
+    if (typeof window.API_BASE_URL === 'undefined' || typeof window.USER_ROLES === 'undefined') {
+        console.error('[auth.js] CRITICAL ERROR: API_BASE_URL or USER_ROLES not defined. constants.js might not have loaded correctly or has errors.');
+        alert('Critical application error: Configuration missing. Please contact support. (auth.js)');
+        return; // Halt further execution if critical constants are missing
+    }
+    console.log('[auth.js] API_BASE_URL:', window.API_BASE_URL);
+    console.log('[auth.js] USER_ROLES:', window.USER_ROLES);
+
+
     const loginForm = document.getElementById('loginForm');
     const signupForm = document.getElementById('signupForm');
 
     if (loginForm) {
+        console.log('[auth.js] Login form found. Attaching submit listener.');
         loginForm.addEventListener('submit', handleLogin);
+    } else {
+        console.log('[auth.js] Login form not found on this page.');
     }
 
     if (signupForm) {
+        console.log('[auth.js] Signup form found. Attaching submit listener and populating departments.');
         signupForm.addEventListener('submit', handleSignup);
         const departmentSelect = document.getElementById('department');
-        if (departmentSelect && window.DEPARTMENTS) { // Ensure window.DEPARTMENTS is used
+        if (departmentSelect && window.DEPARTMENTS) {
             window.DEPARTMENTS.forEach(dept => {
                 const option = document.createElement('option');
                 option.value = dept;
@@ -18,13 +33,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 departmentSelect.appendChild(option);
             });
         }
+    } else {
+        console.log('[auth.js] Signup form not found on this page.');
     }
 });
 
 async function handleLogin(event) {
     event.preventDefault();
     clearErrors();
-    // console.log("handleLogin triggered");
+    console.log("[auth.js] handleLogin triggered");
+
+    // Defensive check again, in case DOMContentLoaded fires before constants.js is fully processed by browser.
+    if (typeof window.API_BASE_URL === 'undefined' || typeof window.USER_ROLES === 'undefined') {
+        console.error('[auth.js] CRITICAL ERROR in handleLogin: API_BASE_URL or USER_ROLES not defined.');
+        showError('generalLoginError', 'Application configuration error. Please refresh.', document.getElementById('generalLoginError'));
+        return;
+    }
 
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
@@ -33,7 +57,7 @@ async function handleLogin(event) {
 
 
     if (!emailInput || !passwordInput || !loginButton) {
-        // console.error("Login form elements not found!");
+        console.error("[auth.js] Login form elements not found!");
         if(generalErrorElement) showError('generalLoginError', 'Login form elements missing. Please refresh.', generalErrorElement);
         return;
     }
@@ -41,13 +65,13 @@ async function handleLogin(event) {
     const originalButtonText = loginButton.innerHTML;
     loginButton.disabled = true;
     loginButton.innerHTML = '<i data-lucide="loader-2" class="button-primary-loader" style="animation: spin 1s linear infinite; display: inline-block; margin-right: 0.5rem;"></i> Logging in...';
-    if (window.lucide) window.lucide.createIcons();
+    if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
 
 
     const email = emailInput.value;
     const password = passwordInput.value;
 
-    // console.log("Login attempt:", { email });
+    console.log("[auth.js] Login attempt:", { email });
 
     let isValid = true;
     if (!email) {
@@ -63,22 +87,14 @@ async function handleLogin(event) {
     }
 
     if (!isValid) {
-        // console.log("Login validation failed on frontend.");
+        console.log("[auth.js] Login validation failed on frontend.");
         loginButton.disabled = false;
         loginButton.innerHTML = originalButtonText;
-        if (window.lucide) window.lucide.createIcons();
+        if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
         return;
     }
 
-    if (!window.API_BASE_URL) {
-        // console.error("API_BASE_URL is not defined. Cannot make API call.");
-        if(generalErrorElement) showError('generalLoginError', "Configuration error: API URL missing.", generalErrorElement);
-        loginButton.disabled = false;
-        loginButton.innerHTML = originalButtonText;
-        if (window.lucide) window.lucide.createIcons();
-        return;
-    }
-
+    console.log(`[auth.js] Attempting to fetch from: ${window.API_BASE_URL}/auth/login`);
     try {
         const response = await fetch(`${window.API_BASE_URL}/auth/login`, { 
             method: 'POST',
@@ -89,9 +105,12 @@ async function handleLogin(event) {
         });
 
         const data = await response.json();
+        console.log('[auth.js] Login response status:', response.status);
+        console.log('[auth.js] Login response data:', data);
 
-        if (response.ok) {
-            // console.log("Login successful from backend:", data);
+
+        if (response.ok && data.user && data.user.role) {
+            console.log("[auth.js] Login successful from backend:", data);
             localStorage.setItem('token', data.token); 
             localStorage.setItem('userRole', data.user.role); 
             localStorage.setItem('userEmail', data.user.email);
@@ -101,62 +120,74 @@ async function handleLogin(event) {
             
             const currentUserRoleConst = window.USER_ROLES; 
             if (!currentUserRoleConst) {
-                 // console.error("CRITICAL ERROR: window.USER_ROLES not defined on frontend!");
+                 console.error("[auth.js] CRITICAL ERROR: window.USER_ROLES not defined on frontend post-login!");
                  if(generalErrorElement) showError('generalLoginError', 'Frontend configuration error. Cannot redirect.', generalErrorElement);
                  loginButton.disabled = false;
                  loginButton.innerHTML = originalButtonText;
-                 if (window.lucide) window.lucide.createIcons();
+                 if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
                  return;
             }
-            // console.log("Role from backend for redirection:", data.user.role);
-            // console.log("USER_ROLES for comparison:", currentUserRoleConst);
+            console.log("[auth.js] Role from backend for redirection:", data.user.role);
+            console.log("[auth.js] USER_ROLES for comparison:", currentUserRoleConst);
 
             switch (data.user.role) { 
                 case currentUserRoleConst.ADMIN:
-                    // console.log("Redirecting to Admin dashboard...");
+                    console.log("[auth.js] Redirecting to Admin dashboard...");
                     window.location.href = 'dashboard/admin.html';
                     break;
                 case currentUserRoleConst.FACULTY:
-                    // console.log("Redirecting to Faculty dashboard...");
+                    console.log("[auth.js] Redirecting to Faculty dashboard...");
                     window.location.href = 'dashboard/faculty.html';
                     break;
                 case currentUserRoleConst.STUDENT:
-                    // console.log("Redirecting to Student dashboard...");
+                    console.log("[auth.js] Redirecting to Student dashboard...");
                     window.location.href = 'dashboard/student.html';
                     break;
                 case currentUserRoleConst.ASSISTANT:
-                    // console.log("Redirecting to Assistant dashboard...");
+                    console.log("[auth.js] Redirecting to Assistant dashboard...");
                     window.location.href = 'dashboard/assistant.html';
                     break;
                 default:
-                    // console.error("Login: No matching role for redirection. Role from backend:", data.user.role);
+                    console.error("[auth.js] Login: No matching role for redirection. Role from backend:", data.user.role);
                     if(generalErrorElement) showError('generalLoginError', `Invalid role (${data.user.role}) received from server. Cannot redirect.`, generalErrorElement);
             }
         } else {
-            // console.error("Login failed from backend:", data);
+            console.error("[auth.js] Login failed from backend:", data);
             if(generalErrorElement) showError('generalLoginError', data.msg || 'Login failed. Please check your credentials.', generalErrorElement);
         }
     } catch (error) {
-        // console.error('Login request failed:', error);
+        console.error('[auth.js] Login request failed:', error);
         if(generalErrorElement) showError('generalLoginError', 'An error occurred during login. Could not connect to server.', generalErrorElement);
     } finally {
         loginButton.disabled = false;
         loginButton.innerHTML = originalButtonText;
-        if (window.lucide) window.lucide.createIcons(); 
+        if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons(); 
     }
 }
 
 async function handleSignup(event) {
     event.preventDefault();
     clearErrors();
-    const signupButton = document.getElementById('signupButton');
+    console.log("[auth.js] handleSignup triggered");
+
+    // Defensive check
+    if (typeof window.API_BASE_URL === 'undefined') {
+        console.error('[auth.js] CRITICAL ERROR in handleSignup: API_BASE_URL not defined.');
+        showError('generalSignupError', 'Application configuration error. Please refresh.', document.getElementById('generalSignupError'));
+        return;
+    }
+
+    const signupButton = document.getElementById('signupButton'); // Corrected ID
     const generalErrorElement = document.getElementById('generalSignupError'); 
-    if (!signupButton) return;
+    if (!signupButton) {
+        console.error("[auth.js] Signup button not found!");
+        return;
+    }
 
     const originalButtonText = signupButton.innerHTML;
     signupButton.disabled = true;
     signupButton.innerHTML = '<i data-lucide="loader-2" class="button-primary-loader" style="animation: spin 1s linear infinite; display: inline-block; margin-right: 0.5rem;"></i> Creating Account...';
-    if (window.lucide) window.lucide.createIcons();
+    if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
 
 
     const fullName = document.getElementById('fullName').value;
@@ -190,20 +221,11 @@ async function handleSignup(event) {
      if (!isValid) {
         signupButton.disabled = false;
         signupButton.innerHTML = originalButtonText;
-        if (window.lucide) window.lucide.createIcons();
+        if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
         return;
     }
     
-    if (!window.API_BASE_URL) {
-        // console.error("API_BASE_URL is not defined. Cannot make API call.");
-        const targetErrorElement = generalErrorElement || document.getElementById('roleError'); // Fallback
-        showError(targetErrorElement ? targetErrorElement.id : 'roleError', "Configuration error: API URL missing.", targetErrorElement);
-        signupButton.disabled = false;
-        signupButton.innerHTML = originalButtonText;
-        if (window.lucide) window.lucide.createIcons();
-        return;
-    }
-
+    console.log(`[auth.js] Attempting to fetch (signup) from: ${window.API_BASE_URL}/auth/signup`);
     try {
         const response = await fetch(`${window.API_BASE_URL}/auth/signup`, {
             method: 'POST',
@@ -211,22 +233,24 @@ async function handleSignup(event) {
             body: JSON.stringify({ fullName, email, password, role, department }),
         });
         const data = await response.json();
+        console.log('[auth.js] Signup response status:', response.status);
+        console.log('[auth.js] Signup response data:', data);
 
         if (response.status === 201) { 
             alert(`Account Created! ${data.msg || `Welcome, ${fullName}! Please login.`}`);
             window.location.href = 'index.html'; 
         } else {
-            const targetErrorElement = generalErrorElement || document.getElementById('roleError'); // Fallback
+            const targetErrorElement = generalErrorElement || document.getElementById('roleError'); 
             showError(targetErrorElement ? targetErrorElement.id : 'roleError', data.msg || 'Signup failed. Please try again.', targetErrorElement); 
         }
     } catch (error) {
-        // console.error('Signup request failed:', error);
-        const targetErrorElement = generalErrorElement || document.getElementById('roleError'); // Fallback
+        console.error('[auth.js] Signup request failed:', error);
+        const targetErrorElement = generalErrorElement || document.getElementById('roleError'); 
         showError(targetErrorElement ? targetErrorElement.id : 'roleError', 'An error occurred during signup. Could not connect to server.', targetErrorElement);
     } finally {
         signupButton.disabled = false;
         signupButton.innerHTML = originalButtonText;
-        if (window.lucide) window.lucide.createIcons();
+        if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
     }
 }
 
@@ -235,19 +259,19 @@ function showError(elementId, message, elementInstance = null) {
     if (errorElement) {
         errorElement.textContent = message;
         errorElement.classList.add('visible');
-        if(errorElement.tagName !== 'P' && errorElement.style.display === 'none') { // For generalLoginError which might be a P tag
-             errorElement.style.display = 'block'; // Ensure it's visible if it was hidden P
+        if(errorElement.tagName === 'P' && errorElement.style.display === 'none') { 
+             errorElement.style.display = 'block';
         }
     } else {
-        // Fallback if specific error element isn't found
+        console.warn(`[auth.js] Error element with ID '${elementId}' not found. Message: ${message}`);
+        // alert(message); // Avoid alert if specific element not found, rely on general error area
         const generalErrorArea = document.getElementById('generalLoginError') || document.getElementById('generalSignupError');
         if (generalErrorArea) {
             generalErrorArea.textContent = message;
             generalErrorArea.classList.add('visible');
             if(generalErrorArea.style.display === 'none') generalErrorArea.style.display = 'block';
         } else {
-            // console.warn(`Error element with ID '${elementId}' not found. Message: ${message}`);
-            alert(message); // Fallback to alert if no designated error area
+            alert(message); // Ultimate fallback
         }
     }
 }
@@ -257,7 +281,7 @@ function clearErrors() {
     errorMessages.forEach(el => {
         el.textContent = '';
         el.classList.remove('visible');
-         if(el.tagName === 'P' && el.style.display !== 'none') { // If it's one of the general P tag errors
+         if(el.tagName === 'P' && el.style.display !== 'none') { 
             el.style.display = 'none';
         }
     });

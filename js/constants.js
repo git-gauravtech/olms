@@ -1,8 +1,9 @@
 
 // Global constants for the application
+console.log('[constants.js] Script start.');
 
 const API_BASE_URL_CONST = 'http://localhost:5001/api';
-// console.log('[constants.js] API_BASE_URL_CONST:', API_BASE_URL_CONST);
+console.log('[constants.js] API_BASE_URL_CONST defined:', API_BASE_URL_CONST);
 
 const USER_ROLES_OBJ = {
   ADMIN: 'Admin',
@@ -10,8 +11,10 @@ const USER_ROLES_OBJ = {
   STUDENT: 'Student',
   ASSISTANT: 'Assistant',
 };
+console.log('[constants.js] USER_ROLES_OBJ defined:', USER_ROLES_OBJ);
+
 const ROLES_ARRAY_CONST = Object.values(USER_ROLES_OBJ);
-const USER_ROLE_VALUES_CONST = Object.values(USER_ROLES_OBJ); // For convenience in dropdowns
+const USER_ROLE_VALUES_CONST = Object.values(USER_ROLES_OBJ);
 
 const NAV_LINKS_OBJ = {
   [USER_ROLES_OBJ.ADMIN]: [
@@ -20,9 +23,6 @@ const NAV_LINKS_OBJ = {
     { href: 'admin_manage_equipment.html', label: 'Manage Equipment', icon: 'wrench' },
     { href: 'labs.html', label: 'Lab Availability', icon: 'flask-conical' },
     { href: 'admin_faculty_requests.html', label: 'Faculty Requests', icon: 'user-check' },
-    // { href: 'admin_assistant_requests.html', label: 'Assistant Requests', icon: 'user-cog' }, // Removed
-    // { href: 'admin_view_bookings.html', label: 'View All Bookings', icon: 'book-open-check' }, // Removed
-    // { href: 'admin_run_algorithms.html', label: 'Run Algorithms', icon: 'cpu' }, // Removed
     { href: 'admin_system_overview.html', label: 'System Overview & Reports', icon: 'activity' },
     { href: 'admin_manage_users.html', label: 'User Management', icon: 'users' },
   ],
@@ -39,15 +39,12 @@ const NAV_LINKS_OBJ = {
   [USER_ROLES_OBJ.ASSISTANT]: [
     { href: 'assistant.html', label: 'Assistant Dashboard', icon: 'layout-dashboard' },
     { href: 'labs.html', label: 'Lab Availability', icon: 'flask-conical' },
-    // { href: 'assistant_request_lab.html', label: 'Request Lab Slot', icon: 'user-plus' }, // Removed
     { href: 'assistant_update_seat_status.html', label: 'Update Seat Status', icon: 'edit-3' },
-    // { href: 'student_my_bookings.html', label: 'View My Schedule', icon: 'calendar-check' }, // Removed for Assistant
   ],
 };
+console.log('[constants.js] NAV_LINKS_OBJ defined.');
 
-// Profile is accessed via the user dropdown in the header, not a main sidebar link.
-const COMMON_NAV_LINKS_CONST = [];
-
+const COMMON_NAV_LINKS_CONST = []; // Profile is via user dropdown
 
 const MOCK_TIME_SLOTS_CONST = [
   { id: 'ts_0800_0900', startTime: '08:00', endTime: '09:00', displayTime: '08:00 AM - 09:00 AM' },
@@ -63,40 +60,37 @@ const MOCK_TIME_SLOTS_CONST = [
 ];
 
 function formatDate(dateInput) {
-    if (!dateInput && dateInput !== 0) return ''; // Handle undefined or null
+    if (!dateInput && dateInput !== 0) return '';
     let d;
     if (dateInput instanceof Date) {
         d = dateInput;
     } else if (typeof dateInput === 'string' || typeof dateInput === 'number') {
         const potentialDate = new Date(dateInput);
-        // Check if the input string is primarily YYYY-MM-DD to avoid timezone issues
-        // when creating date from string
         if (String(dateInput).length >= 10 && String(dateInput).includes('-') && !isNaN(potentialDate.getTime())) {
-            const parts = String(dateInput).split('T')[0].split('-'); // Get YYYY-MM-DD part
+            const parts = String(dateInput).split('T')[0].split('-');
             if (parts.length === 3) {
-                 // Create date in UTC to avoid timezone shifts converting it to local YYYY-MM-DD
                 d = new Date(Date.UTC(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2])));
             } else {
-                d = potentialDate; // Fallback if not YYYY-MM-DD
+                d = potentialDate;
             }
         } else if (!isNaN(potentialDate.getTime())) {
              d = potentialDate;
         } else {
-            // console.warn('formatDate: Invalid Date String', dateInput);
+            console.warn('[constants.js] formatDate: Invalid Date String', dateInput);
             return 'Invalid Date String';
         }
     } else {
-        // console.warn('formatDate: Invalid Date Type', dateInput);
+        console.warn('[constants.js] formatDate: Invalid Date Type', dateInput);
         return 'Invalid Date Type';
     }
 
     if (isNaN(d.getTime())) {
-        // console.warn('formatDate: Invalid Date Value after processing', dateInput);
+        console.warn('[constants.js] formatDate: Invalid Date Value after processing', dateInput);
         return 'Invalid Date Value';
     }
-    let month = '' + (d.getUTCMonth() + 1); // Use getUTCMonth for UTC date
-    let day = '' + d.getUTCDate(); // Use getUTCDate for UTC date
-    const year = d.getUTCFullYear(); // Use getUTCFullYear for UTC date
+    let month = '' + (d.getUTCMonth() + 1);
+    let day = '' + d.getUTCDate();
+    const year = d.getUTCFullYear();
     if (month.length < 2) month = '0' + month;
     if (day.length < 2) day = '0' + day;
     return [year, month, day].join('-');
@@ -124,8 +118,13 @@ const BOOKING_STATUSES_ARRAY_CONST = ['pending', 'booked', 'rejected', 'cancelle
 
 
 // Expose to global window object for access in other scripts
+console.log('[constants.js] Assigning to window object...');
 window.API_BASE_URL = API_BASE_URL_CONST;
+console.log('[constants.js] window.API_BASE_URL set to:', window.API_BASE_URL);
+
 window.USER_ROLES = USER_ROLES_OBJ;
+console.log('[constants.js] window.USER_ROLES set to:', window.USER_ROLES);
+
 window.ROLES_ARRAY = ROLES_ARRAY_CONST;
 window.USER_ROLE_VALUES = USER_ROLE_VALUES_CONST;
 window.NAV_LINKS = NAV_LINKS_OBJ;
@@ -137,8 +136,4 @@ window.EQUIPMENT_STATUSES = EQUIPMENT_STATUSES_CONST;
 window.BOOKING_STATUSES_ARRAY = BOOKING_STATUSES_ARRAY_CONST;
 window.formatDate = formatDate;
 
-// console.log('[constants.js] Constants and mock data definitions complete.');
-// console.log('[constants.js] window.USER_ROLES:', window.USER_ROLES);
-// console.log('[constants.js] window.NAV_LINKS:', window.NAV_LINKS);
-// console.log('[constants.js] API_BASE_URL:', window.API_BASE_URL);
-// console.log('[constants.js] formatDate function available on window.');
+console.log('[constants.js] Script end. All constants and functions should be available on window.');

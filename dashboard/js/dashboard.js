@@ -1,22 +1,29 @@
 
-
 function initializeDashboard() {
-    // console.log('[dashboard.js] Initializing dashboard...');
-    const currentRole = getCurrentUserRole();
-    // console.log('[dashboard.js] Current user role from localStorage:', currentRole);
-    // console.log('[dashboard.js] window.USER_ROLES available:', window.USER_ROLES);
-    // console.log('[dashboard.js] window.NAV_LINKS available:', window.NAV_LINKS);
+    console.log('[dashboard.js] Initializing dashboard...');
 
+    if (typeof window.API_BASE_URL === 'undefined' || typeof window.USER_ROLES === 'undefined' || typeof window.NAV_LINKS === 'undefined') {
+        console.error('[dashboard.js] CRITICAL ERROR: API_BASE_URL, USER_ROLES, or NAV_LINKS not defined. constants.js might not have loaded correctly or has errors.');
+        alert('Critical application error: Dashboard configuration missing. Please contact support. (dashboard.js)');
+        // Potentially redirect to login or show a static error message
+        // window.location.href = '../index.html'; // Avoid redirect if this script itself is on login page somehow
+        const pageContent = document.querySelector('.page-content') || document.body;
+        if (pageContent) {
+            pageContent.innerHTML = '<div class="custom-card p-6 text-center"><h1 class="custom-card-title text-2xl text-red-600">Application Error</h1><p class="text-muted-foreground mt-2">Dashboard cannot be loaded due to a configuration issue. Please try again later or contact support.</p></div>';
+        }
+        return; // Halt further execution
+    }
+    console.log('[dashboard.js] API_BASE_URL:', window.API_BASE_URL);
+    console.log('[dashboard.js] USER_ROLES:', window.USER_ROLES);
+    console.log('[dashboard.js] NAV_LINKS:', window.NAV_LINKS);
+
+
+    const currentRole = getCurrentUserRole();
+    console.log('[dashboard.js] Current user role from localStorage:', currentRole);
 
     if (!currentRole) {
-        // console.log('[dashboard.js] No role found in initializeDashboard, redirecting to login.');
+        console.log('[dashboard.js] No role found in initializeDashboard, redirecting to login.');
         window.location.href = '../index.html'; 
-        return;
-    }
-
-    if (!window.USER_ROLES || !window.NAV_LINKS) { 
-        console.error("[dashboard.js] CRITICAL ERROR: window.USER_ROLES or window.NAV_LINKS not defined. Ensure constants.js is loaded first and correctly defines these.");
-        alert("Dashboard cannot be initialized due to a system error. Please contact support.");
         return;
     }
 
@@ -26,25 +33,25 @@ function initializeDashboard() {
     setActiveNavLink();
     setDashboardHomeLink(); 
 
-    if (window.lucide) {
-        // console.log('[dashboard.js] Calling lucide.createIcons() at the end of initializeDashboard.');
+    if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        console.log('[dashboard.js] Calling lucide.createIcons() at the end of initializeDashboard.');
         window.lucide.createIcons();
     } else {
-        // console.warn('[dashboard.js] Lucide library not found on window.');
+        console.warn('[dashboard.js] Lucide library not found or createIcons not a function on window.');
     }
 }
 
 function setDashboardHomeLink() {
     const dashboardHomeLink = document.getElementById('dashboardHomeLink');
     if (!dashboardHomeLink) {
-        // console.warn('[dashboard.js] dashboardHomeLink element not found.');
+        console.warn('[dashboard.js] dashboardHomeLink element not found.');
         return;
     }
 
     const role = getCurrentUserRole();
     if (!role || !window.USER_ROLES) { 
-        // console.warn('[dashboard.js] Cannot set home link: role or window.USER_ROLES missing.');
-        dashboardHomeLink.href = '../index.html'; // Fallback
+        console.warn('[dashboard.js] Cannot set home link: role or window.USER_ROLES missing.');
+        dashboardHomeLink.href = '../index.html'; 
         return;
     }
     const homePageMap = {
@@ -54,19 +61,24 @@ function setDashboardHomeLink() {
         [window.USER_ROLES.ASSISTANT]: 'assistant.html'
     };
     dashboardHomeLink.href = homePageMap[role] || '../index.html';
+    console.log(`[dashboard.js] Dashboard home link set to: ${dashboardHomeLink.href}`);
 }
 
 
 function populateSidebarNav(role) {
     const sidebarNav = document.getElementById('sidebarNav');
     if (!sidebarNav) {
-        // console.warn('[dashboard.js] sidebarNav element not found.');
+        console.warn('[dashboard.js] sidebarNav element not found.');
         return;
     }
 
     sidebarNav.innerHTML = ''; 
+    console.log(`[dashboard.js] Populating sidebar for role: ${role}`);
 
-    const links = window.NAV_LINKS[role] || []; // Default to empty array if no specific links
+    const links = window.NAV_LINKS[role] || []; 
+    if (links.length === 0) {
+        console.warn(`[dashboard.js] No NAV_LINKS found for role: ${role}`);
+    }
     
     links.forEach(link => {
         const li = document.createElement('li');
@@ -87,8 +99,8 @@ function populateSidebarNav(role) {
         sidebarNav.appendChild(li);
     });
 
-    // Add common links like Profile
-    if (window.COMMON_NAV_LINKS) {
+    if (window.COMMON_NAV_LINKS && window.COMMON_NAV_LINKS.length > 0) {
+        console.log('[dashboard.js] Adding COMMON_NAV_LINKS to sidebar.');
         window.COMMON_NAV_LINKS.forEach(link => {
             const li = document.createElement('li');
             li.className = 'sidebar-nav-item';
@@ -108,14 +120,16 @@ function populateSidebarNav(role) {
             sidebarNav.appendChild(li);
         });
     }
+    console.log('[dashboard.js] Sidebar navigation populated.');
 }
 
 function populateUserNav(role) {
     const userNavContainer = document.getElementById('userNavContainer');
     if (!userNavContainer) {
-        // console.warn('[dashboard.js] userNavContainer element not found.');
+        console.warn('[dashboard.js] userNavContainer element not found.');
         return;
     }
+    console.log(`[dashboard.js] Populating user navigation for role: ${role}`);
 
     const email = localStorage.getItem('userEmail') || 'user@example.com';
     const name = localStorage.getItem('userName') || email.split('@')[0] || role; 
@@ -150,11 +164,12 @@ function populateUserNav(role) {
             userNavDropdown.classList.toggle('open');
         });
     } else {
-        // console.warn('[dashboard.js] User avatar button or dropdown not found for event listener attachment.');
+        console.warn('[dashboard.js] User avatar button or dropdown not found for event listener attachment.');
     }
 
     if (logoutButton) {
         logoutButton.addEventListener('click', () => {
+            console.log('[dashboard.js] Logout button clicked.');
             localStorage.removeItem('token');
             localStorage.removeItem('userRole');
             localStorage.removeItem('userEmail');
@@ -164,7 +179,7 @@ function populateUserNav(role) {
             window.location.href = '../index.html'; 
         });
     } else {
-         // console.warn('[dashboard.js] Logout button not found.');
+         console.warn('[dashboard.js] Logout button not found.');
     }
 
     document.addEventListener('click', (event) => {
@@ -172,7 +187,7 @@ function populateUserNav(role) {
             userNavDropdown.classList.remove('open');
         }
     });
-    // if (window.lucide) window.lucide.createIcons(); // Moved to end of initializeDashboard
+    console.log('[dashboard.js] User navigation populated and event listeners attached.');
 }
 
 function setupMobileSidebar() {
@@ -181,6 +196,7 @@ function setupMobileSidebar() {
     const menuButton = document.getElementById('mobileMenuButton');
 
     if (menuButton && sidebar && overlay) {
+        console.log('[dashboard.js] Setting up mobile sidebar.');
         if(isMobile()){
             menuButton.style.display = 'block';
             sidebar.classList.remove('open'); 
@@ -199,11 +215,8 @@ function setupMobileSidebar() {
             sidebar.classList.remove('open');
             overlay.classList.remove('open');
         });
-    } else {
-        // console.warn('[dashboard.js] Mobile sidebar elements (button, sidebar, or overlay) not all found.');
-    }
-     window.addEventListener('resize', () => {
-        if (menuButton && sidebar && overlay) {
+
+        window.addEventListener('resize', () => {
             if (isMobile()) {
                 menuButton.style.display = 'block';
             } else { 
@@ -211,13 +224,17 @@ function setupMobileSidebar() {
                 sidebar.classList.add('open'); 
                 overlay.classList.remove('open'); 
             }
-        }
-    });
+        });
+        console.log('[dashboard.js] Mobile sidebar setup complete.');
+    } else {
+        console.warn('[dashboard.js] Mobile sidebar elements (button, sidebar, or overlay) not all found.');
+    }
 }
 
 function setActiveNavLink() {
     const currentPath = window.location.pathname.split('/').pop(); 
     const navLinks = document.querySelectorAll('.sidebar-nav-link');
+    console.log(`[dashboard.js] Setting active nav link for path: ${currentPath}`);
     navLinks.forEach(link => {
         const linkPath = link.getAttribute('href').split('/').pop();
         if (linkPath === currentPath) {
