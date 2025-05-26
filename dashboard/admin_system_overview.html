@@ -44,16 +44,11 @@
                         </p>
                         
                         <section id="systemLogsSection" class="mb-8">
-                            <h2 class="text-xl font-semibold mb-3">System Activity Logs (Placeholder)</h2>
+                            <h2 class="text-xl font-semibold mb-3">System Activity Logs</h2>
                             <div class="bg-gray-100 p-4 rounded-md border border-gray-200 min-h-[150px]">
-                                <p class="text-sm text-gray-700">
-                                    Log entries will appear here.
-                                </p>
-                                <ul class="list-disc list-inside space-y-1 text-sm text-gray-600 mt-2">
-                                    <li>[<span class="text-blue-600">YYYY-MM-DD HH:MM:SS</span>] Admin 'admin@example.com' updated Lab 'Physics Lab Alpha'.</li>
-                                    <li>[<span class="text-blue-600">YYYY-MM-DD HH:MM:SS</span>] Faculty 'prof@example.com' booked Computer Lab for 'CS101'.</li>
+                                <ul id="systemLogsList" class="list-disc list-inside space-y-1 text-sm text-gray-600 mt-2">
+                                    <li>Loading logs...</li>
                                 </ul>
-                                <p class="mt-4 text-xs text-gray-500">Full log viewing and filtering will be implemented here.</p>
                             </div>
                         </section>
 
@@ -94,11 +89,49 @@
     <script src="../js/utils.js"></script>
     <script src="js/dashboard.js"></script>
     <script>
+        async function loadSystemLogs() {
+            const logsList = document.getElementById('systemLogsList');
+            const token = localStorage.getItem('token');
+            if (!logsList || !window.API_BASE_URL || !token) {
+                if (logsList) logsList.innerHTML = '<li>Error: Could not initialize log viewer.</li>';
+                return;
+            }
+
+            logsList.innerHTML = '<li>Loading logs...</li>';
+
+            try {
+                const response = await fetch(`${window.API_BASE_URL}/admin/system-activity`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ msg: 'Failed to fetch logs' }));
+                    throw new Error(errorData.msg);
+                }
+                const logs = await response.json();
+
+                if (logs && logs.length > 0) {
+                    logsList.innerHTML = '';
+                    logs.forEach(log => {
+                        const li = document.createElement('li');
+                        li.textContent = `[${window.formatDateForDisplay ? window.formatDateForDisplay(new Date(log.timestamp)) : new Date(log.timestamp).toLocaleString()}] User: ${log.user || 'System'} - Action: ${log.action}`;
+                        logsList.appendChild(li);
+                    });
+                } else {
+                    logsList.innerHTML = '<li>No system activity logs found.</li>';
+                }
+            } catch (error) {
+                console.error('Error loading system logs:', error);
+                logsList.innerHTML = `<li>Error loading logs: ${error.message}</li>`;
+            }
+        }
+
+
         document.addEventListener('DOMContentLoaded', () => {
             if (!window.roleGuard(window.USER_ROLES.ADMIN)) return;
             
             window.initializeDashboard();
             window.setDashboardHomeLink();
+            loadSystemLogs();
 
             const generateReportBtn = document.getElementById('generateReportBtnPlaceholder');
             const reportOutputArea = document.getElementById('reportOutputAreaPlaceholder');
@@ -114,6 +147,7 @@
                     if (reportOutputArea) {
                         reportOutputArea.style.display = 'block';
                     }
+                     if (window.lucide) window.lucide.createIcons(); // Ensure icons are rendered if any in report output
                 });
             }
 

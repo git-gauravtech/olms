@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -41,8 +42,8 @@
                         <p class="text-muted-foreground mb-6">
                             Manage user accounts, roles, and permissions within the system.
                         </p>
-                        <button type="button" id="addNewUserBtn" class="button button-primary mb-4">
-                            <i data-lucide="user-plus" class="mr-2"></i> Add New User (Placeholder)
+                        <button type="button" id="openAddUserModalBtn" class="button button-primary mb-4">
+                            <i data-lucide="user-plus" class="mr-2"></i> Add New User
                         </button>
 
                         <div class="overflow-x-auto">
@@ -64,6 +65,54 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Add/Edit User Modal -->
+                <div id="userModal" class="dialog-overlay">
+                    <div class="dialog-content" style="max-width: 500px;">
+                        <form id="userForm">
+                            <div class="dialog-header">
+                                <h2 id="userModalTitle" class="dialog-title">Add New User</h2>
+                                <button type="button" class="dialog-close-button" id="closeUserModalBtn" aria-label="Close">
+                                    <i data-lucide="x"></i>
+                                </button>
+                            </div>
+                            <div class="dialog-body">
+                                <input type="hidden" id="userId" name="userId">
+                                <div class="form-group">
+                                    <label for="userFullName">Full Name</label>
+                                    <input type="text" id="userFullName" name="userFullName" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="userEmail">Email</label>
+                                    <input type="email" id="userEmail" name="userEmail" required>
+                                </div>
+                                <div class="form-group" id="passwordGroup">
+                                    <label for="userPassword">Password</label>
+                                    <input type="password" id="userPassword" name="userPassword" placeholder="Min. 6 characters">
+                                    <p class="text-xs text-muted-foreground mt-1">Required for new users. Leave blank if not changing existing user's password.</p>
+                                </div>
+                                <div class="form-group">
+                                    <label for="userRole">Role</label>
+                                    <select id="userRole" name="userRole" required>
+                                        <!-- Options populated by JS -->
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="userDepartment">Department</label>
+                                    <select id="userDepartment" name="userDepartment">
+                                        <option value="">Select Department (Optional)</option>
+                                        <!-- Options populated by JS -->
+                                    </select>
+                                </div>
+                                <p id="userFormMessage" class="error-message" style="margin-bottom: 1rem;"></p>
+                            </div>
+                            <div class="dialog-footer">
+                                <button type="button" class="button button-secondary" id="cancelUserModalBtn">Cancel</button>
+                                <button type="submit" class="button button-primary">Save User</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </main>
         </div>
     </div>
@@ -72,36 +121,98 @@
     <script src="../js/utils.js"></script>
     <script src="js/dashboard.js"></script>
     <script>
-        async function loadAndRenderUsers() {
+        let ALL_USERS_CACHE = [];
+        let EDITING_USER_ID = null;
+
+        const userModal = document.getElementById('userModal');
+        const userForm = document.getElementById('userForm');
+        const userModalTitle = document.getElementById('userModalTitle');
+        const openAddUserModalBtn = document.getElementById('openAddUserModalBtn');
+        const closeUserModalBtn = document.getElementById('closeUserModalBtn');
+        const cancelUserModalBtn = document.getElementById('cancelUserModalBtn');
+        const userFormMessage = document.getElementById('userFormMessage');
+        const token = localStorage.getItem('token');
+
+        function populateRoleDropdown(selectElementId) {
+            const roleSelect = document.getElementById(selectElementId);
+            if (roleSelect && window.USER_ROLE_VALUES) {
+                roleSelect.innerHTML = '<option value="">Select Role</option>';
+                window.USER_ROLE_VALUES.forEach(roleValue => {
+                    const option = document.createElement('option');
+                    option.value = roleValue;
+                    option.textContent = roleValue;
+                    roleSelect.appendChild(option);
+                });
+            }
+        }
+        function populateDepartmentDropdown(selectElementId) {
+            const deptSelect = document.getElementById(selectElementId);
+            if (deptSelect && window.DEPARTMENTS) {
+                deptSelect.innerHTML = '<option value="">Select Department (Optional)</option>';
+                window.DEPARTMENTS.forEach(dept => {
+                    const option = document.createElement('option');
+                    option.value = dept;
+                    option.textContent = dept;
+                    deptSelect.appendChild(option);
+                });
+            }
+        }
+        
+        function openUserForm(user = null) {
+            userForm.reset();
+            EDITING_USER_ID = null;
+            userFormMessage.textContent = '';
+            userFormMessage.style.display = 'none';
+            document.getElementById('passwordGroup').style.display = 'block'; // Show password for new users
+            document.getElementById('userPassword').required = true;
+
+
+            if (user) {
+                userModalTitle.textContent = 'Edit User';
+                EDITING_USER_ID = user.id;
+                document.getElementById('userId').value = user.id;
+                document.getElementById('userFullName').value = user.fullName;
+                document.getElementById('userEmail').value = user.email;
+                document.getElementById('userRole').value = user.role;
+                document.getElementById('userDepartment').value = user.department || "";
+                document.getElementById('passwordGroup').style.display = 'none'; // Hide password for editing user
+                document.getElementById('userPassword').required = false; 
+            } else {
+                userModalTitle.textContent = 'Add New User';
+            }
+            userModal.classList.add('open');
+            if (window.lucide) window.lucide.createIcons();
+        }
+
+        function closeUserModal() {
+            userModal.classList.remove('open');
+        }
+
+        async function renderUsersTable() {
             const tableBody = document.getElementById('userManagementTableBody');
-            const token = localStorage.getItem('token');
             if (!tableBody || !token) {
-                console.error('User table body or token not found for User Management page.');
-                if (tableBody) tableBody.innerHTML = '<tr><td colspan="5" class="text-center p-4 text-red-500">Error: Could not initialize page.</td></tr>';
+                if (tableBody) tableBody.innerHTML = '<tr><td colspan="5" class="text-center p-4 text-red-500">Error: Could not initialize page. Missing token or table element.</td></tr>';
                 return;
             }
-
             tableBody.innerHTML = '<tr><td colspan="5" class="text-center p-4">Loading users...</td></tr>';
 
             try {
                 const response = await fetch(`${window.API_BASE_URL}/admin/users`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({ msg: 'Failed to fetch users and parse error' }));
-                    throw new Error(errorData.msg || `Failed to fetch users: ${response.status}`);
+                    const errorData = await response.json().catch(() => ({ msg: 'Failed to fetch users' }));
+                    throw new Error(errorData.msg);
                 }
-                const users = await response.json();
+                ALL_USERS_CACHE = await response.json();
 
-                if (users.length === 0) {
-                    tableBody.innerHTML = '<tr><td colspan="5" class="text-center p-4">No users found in the system.</td></tr>';
+                if (ALL_USERS_CACHE.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="5" class="text-center p-4">No users found.</td></tr>';
                     return;
                 }
 
-                tableBody.innerHTML = ''; // Clear loading message
-                users.forEach(user => {
+                tableBody.innerHTML = '';
+                ALL_USERS_CACHE.forEach(user => {
                     const row = tableBody.insertRow();
                     row.innerHTML = `
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${user.fullName}</td>
@@ -109,46 +220,125 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${user.role}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${user.department || 'N/A'}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <button type="button" class="button button-outline button-sm mr-2" onclick="editUser(${user.id})"><i data-lucide="edit-2" class="h-4 w-4"></i> Edit</button>
-                            <button type="button" class="button button-secondary button-sm" onclick="deleteUser(${user.id})"><i data-lucide="trash-2" class="h-4 w-4"></i> Delete</button>
+                            <button type="button" class="button button-outline button-sm mr-2 editUserBtn" data-userid="${user.id}"><i data-lucide="edit-2" class="h-4 w-4"></i> Edit</button>
+                            <button type="button" class="button button-secondary button-sm deleteUserBtn" data-userid="${user.id}"><i data-lucide="trash-2" class="h-4 w-4"></i> Delete</button>
                         </td>
                     `;
                 });
+                attachActionListeners();
                 if (window.lucide) window.lucide.createIcons();
-
             } catch (error) {
-                console.error('Error fetching or rendering users:', error);
+                console.error('Error rendering users table:', error);
                 tableBody.innerHTML = `<tr><td colspan="5" class="text-center p-4 text-red-500">Error loading users: ${error.message}</td></tr>`;
             }
         }
-
-        // Placeholder functions for edit/delete actions
-        function editUser(userId) {
-            alert('Placeholder: Edit user functionality for ID ' + userId + ' is not fully implemented. This would typically open a modal form.');
-        }
-
-        function deleteUser(userId) {
-            if (confirm('Are you sure you want to delete user with ID ' + userId + '? This is a placeholder action and will not actually delete the user.')) {
-                alert('Placeholder: Delete user functionality for ID ' + userId + ' is not fully implemented. This would call a DELETE API endpoint.');
-                // In a full implementation:
-                // fetch(`${window.API_BASE_URL}/admin/users/${userId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }})
-                // .then(response => { if(response.ok) loadAndRenderUsers(); else alert('Failed to delete user.'); });
-            }
-        }
         
-        const addNewUserBtn = document.getElementById('addNewUserBtn');
-        if(addNewUserBtn) {
-            addNewUserBtn.addEventListener('click', () => {
-                alert('Placeholder: Add new user functionality is not fully implemented. This would typically open a modal form.');
+        function attachActionListeners() {
+            document.querySelectorAll('.editUserBtn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const userIdToEdit = this.dataset.userid;
+                    const userToEdit = ALL_USERS_CACHE.find(u => u.id == userIdToEdit);
+                    if (userToEdit) openUserForm(userToEdit);
+                });
+            });
+            document.querySelectorAll('.deleteUserBtn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const userIdToDelete = this.dataset.userid;
+                    handleDeleteUser(userIdToDelete);
+                });
             });
         }
 
+        async function handleUserFormSubmit(event) {
+            event.preventDefault();
+            userFormMessage.textContent = '';
+            userFormMessage.style.display = 'none';
+
+            const userData = {
+                fullName: document.getElementById('userFullName').value,
+                email: document.getElementById('userEmail').value,
+                role: document.getElementById('userRole').value,
+                department: document.getElementById('userDepartment').value || null
+            };
+            const password = document.getElementById('userPassword').value;
+
+            let url, method;
+            if (EDITING_USER_ID) {
+                url = `${window.API_BASE_URL}/admin/users/${EDITING_USER_ID}`;
+                method = 'PUT';
+                // Password is not sent for updates unless specifically changing it (not implemented here for simplicity)
+            } else { // Adding new user
+                url = `${window.API_BASE_URL}/admin/users`;
+                method = 'POST';
+                if (!password || password.length < 6) {
+                    userFormMessage.textContent = 'Password is required for new users and must be at least 6 characters.';
+                    userFormMessage.style.display = 'block';
+                    return;
+                }
+                userData.password = password;
+            }
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(userData)
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    alert(`User ${EDITING_USER_ID ? 'updated' : 'added'} successfully!`);
+                    closeUserModal();
+                    await renderUsersTable();
+                } else {
+                    userFormMessage.textContent = result.msg || `Failed to ${EDITING_USER_ID ? 'update' : 'add'} user.`;
+                    userFormMessage.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error submitting user form:', error);
+                userFormMessage.textContent = 'An error occurred. Please try again.';
+                userFormMessage.style.display = 'block';
+            }
+        }
+        
+        async function handleDeleteUser(userId) {
+            if (!confirm(`Are you sure you want to delete user with ID ${userId}? This might also delete their bookings.`)) return;
+
+            try {
+                const response = await fetch(`${window.API_BASE_URL}/admin/users/${userId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    alert(result.msg || 'User deleted successfully.');
+                    await renderUsersTable();
+                } else {
+                    alert(`Failed to delete user: ${result.msg || 'Server error'}`);
+                }
+            } catch (error) {
+                console.error('Error deleting user:', error);
+                alert('An error occurred while deleting user.');
+            }
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
             if (!window.roleGuard(window.USER_ROLES.ADMIN)) return;
             window.initializeDashboard();
             window.setDashboardHomeLink();
-            loadAndRenderUsers(); 
+            
+            populateRoleDropdown('userRole');
+            populateDepartmentDropdown('userDepartment');
+            renderUsersTable();
+
+            if(openAddUserModalBtn) openAddUserModalBtn.addEventListener('click', () => openUserForm());
+            if(closeUserModalBtn) closeUserModalBtn.addEventListener('click', closeUserModal);
+            if(cancelUserModalBtn) cancelUserModalBtn.addEventListener('click', closeUserModal);
+            if(userModal) userModal.addEventListener('click', (e) => { if(e.target === userModal) closeUserModal(); });
+            if(userForm) userForm.addEventListener('submit', handleUserFormSubmit);
+            
             if (window.lucide) window.lucide.createIcons();
         });
     </script>
