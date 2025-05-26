@@ -1,0 +1,124 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Overview & Reports - Optimized Lab Management System</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="dashboard-layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                 <a href="admin.html" class="sidebar-header-link" id="dashboardHomeLink">
+                    <i data-lucide="atom"></i>
+                    <span class="sidebar-title">Optimized Lab Management</span>
+                </a>
+            </div>
+            <ul class="sidebar-nav" id="sidebarNav">
+                <!-- Nav items will be populated by JS -->
+            </ul>
+        </aside>
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <div class="main-content-wrapper">
+            <header class="dashboard-header">
+                <button type="button" class="mobile-menu-button" id="mobileMenuButton">
+                    <i data-lucide="menu"></i>
+                </button>
+                <div class="user-nav" id="userNavContainer">
+                    <!-- UserNav will be populated by JS -->
+                </div>
+            </header>
+            <main class="page-content">
+                <div class="custom-card">
+                    <div class="custom-card-header">
+                        <i data-lucide="activity"></i>
+                        <h1 class="custom-card-title">System Overview & Reports</h1>
+                    </div>
+                    <div class="custom-card-content">
+                        <p class="text-muted-foreground mb-6">
+                            View system activity logs and generate various reports.
+                        </p>
+                        
+                        <section id="systemLogsSection" class="mb-8">
+                            <h2 class="text-xl font-semibold mb-3">System Activity Logs (Placeholder)</h2>
+                            <div class="bg-gray-100 p-4 rounded-md border border-gray-200 min-h-[150px]">
+                                <p class="text-sm text-gray-700">
+                                    Log entries will appear here.
+                                </p>
+                                <ul class="list-disc list-inside space-y-1 text-sm text-gray-600 mt-2">
+                                    <li>[<span class="text-blue-600">YYYY-MM-DD HH:MM:SS</span>] Admin 'admin@example.com' updated Lab 'Physics Lab Alpha'.</li>
+                                    <li>[<span class="text-blue-600">YYYY-MM-DD HH:MM:SS</span>] Faculty 'prof@example.com' booked Computer Lab for 'CS101'.</li>
+                                </ul>
+                                <p class="mt-4 text-xs text-gray-500">Full log viewing and filtering will be implemented here.</p>
+                            </div>
+                        </section>
+
+                        <section id="generateReportsSection">
+                            <h2 class="text-xl font-semibold mb-3">Generate Reports (Placeholder)</h2>
+                             <div class="grid sm-grid-cols-2 md-grid-cols-3 gap-4">
+                                <div class="form-group">
+                                    <label for="reportType">Report Type:</label>
+                                    <select id="reportType" name="reportType" class="custom-card-content select">
+                                        <option value="lab_usage">Lab Usage Statistics</option>
+                                        <option value="resource_allocation">Resource Allocation Summary</option>
+                                        <option value="conflict_summary">Conflict Resolution Summary</option>
+                                        <option value="session_history">Session History by Lab</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="reportDateRangeStart">Start Date:</label>
+                                    <input type="date" id="reportDateRangeStart" name="reportDateRangeStart" class="custom-card-content input">
+                                </div>
+                                <div class="form-group">
+                                    <label for="reportDateRangeEnd">End Date:</label>
+                                    <input type="date" id="reportDateRangeEnd" name="reportDateRangeEnd" class="custom-card-content input">
+                                </div>
+                            </div>
+                            <button type="button" id="generateReportBtnPlaceholder" class="button button-primary mt-4">Generate Report (Placeholder)</button>
+                            <div id="reportOutputAreaPlaceholder" class="mt-6 p-4 border rounded-md bg-gray-50" style="display: none;">
+                                <h3 class="font-semibold text-lg mb-2">Report Results:</h3>
+                                <pre id="reportContentPlaceholder" class="text-sm whitespace-pre-wrap"></pre>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="../js/constants.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!window.roleGuard(window.USER_ROLES.ADMIN)) return;
+            
+            window.initializeDashboard();
+            window.setDashboardHomeLink();
+
+            const generateReportBtn = document.getElementById('generateReportBtnPlaceholder');
+            const reportOutputArea = document.getElementById('reportOutputAreaPlaceholder');
+            const reportContent = document.getElementById('reportContentPlaceholder');
+            const reportTypeSelect = document.getElementById('reportType');
+
+            if (generateReportBtn) {
+                generateReportBtn.addEventListener('click', () => {
+                    const reportType = reportTypeSelect.value;
+                    if (reportContent) {
+                        reportContent.textContent = `Simulating report generation for: '${reportType.replace(/_/g, ' ')}'...\n\n(This is a placeholder. In a real system, data would be fetched from the backend and formatted here.)`;
+                    }
+                    if (reportOutputArea) {
+                        reportOutputArea.style.display = 'block';
+                    }
+                });
+            }
+
+            if (window.lucide) window.lucide.createIcons();
+        });
+    </script>
+</body>
+</html>

@@ -1,4 +1,6 @@
-
+<!-- This file is no longer directly linked from the sidebar based on user request. -->
+<!-- Profile access is available via the user dropdown in the dashboard header. -->
+<!-- Keeping the file in case it's linked from elsewhere or for future use, but it's not a primary admin sidebar item. -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -156,6 +158,8 @@
             const userEmail = localStorage.getItem('userEmail');
             const userRole = localStorage.getItem('userRole');
             const userDepartment = localStorage.getItem('userDepartment');
+            const token = localStorage.getItem('token');
+
 
             if (fullNameInput && userName) fullNameInput.value = userName;
             if (emailInput && userEmail) emailInput.value = userEmail;
@@ -169,6 +173,7 @@
                     const newDepartment = departmentSelect.value;
 
                     // Simulate update - in a real app, this would be an API call
+                    // For now, we just update localStorage and UI
                     localStorage.setItem('userName', newFullName);
                     localStorage.setItem('userDepartment', newDepartment);
                     
@@ -190,7 +195,7 @@
             if (openChangePasswordModalBtn && changePasswordModal) {
                 openChangePasswordModalBtn.addEventListener('click', () => {
                     changePasswordModal.classList.add('open');
-                    changePasswordForm.reset();
+                    if(changePasswordForm) changePasswordForm.reset();
                     clearChangePasswordErrors();
                     if(changePasswordMessage) changePasswordMessage.style.display = 'none';
                 });
@@ -205,7 +210,7 @@
                     changePasswordModal.classList.remove('open');
                 });
             }
-            if (changePasswordModal) { // Close modal if overlay is clicked
+            if (changePasswordModal) { 
                 changePasswordModal.addEventListener('click', (event) => {
                     if (event.target === changePasswordModal) {
                         changePasswordModal.classList.remove('open');
@@ -242,8 +247,7 @@
                     const currentPassword = currentPasswordInput.value;
                     const newPassword = newPasswordInput.value;
                     const confirmNewPassword = confirmNewPasswordInput.value;
-                    const token = localStorage.getItem('token');
-
+                    
                     let isValid = true;
                     if (!currentPassword) {
                         showChangePasswordError('currentPassword', 'Current password is required.');
@@ -258,7 +262,14 @@
                         isValid = false;
                     }
 
-                    if (!isValid) return;
+                    if (!isValid || !window.API_BASE_URL || !token) {
+                        if (!token && changePasswordMessage) {
+                             changePasswordMessage.textContent = 'Error: Not authenticated.';
+                             changePasswordMessage.style.color = 'red';
+                             changePasswordMessage.style.display = 'block';
+                        }
+                        return;
+                    }
 
                     const submitButton = changePasswordForm.querySelector('button[type="submit"]');
                     const originalButtonHtml = submitButton.innerHTML;
@@ -314,5 +325,3 @@
     </script>
 </body>
 </html>
-
-    

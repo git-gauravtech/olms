@@ -73,7 +73,7 @@ code {
     margin-bottom: 0.625rem; /* Adjusted margin */
     font-weight: 500;
     font-size: 0.9rem; /* Slightly smaller label */
-    color: #495057; 
+    color: #495057;
 }
 
 .auth-form input[type="text"],
@@ -86,10 +86,10 @@ code {
     padding: 0.875rem 1rem; /* Adjusted padding */
     font-size: 1rem;
     line-height: 1.5;
-    color: #495057; 
+    color: #495057;
     background-color: #f8f9fa; /* very light grey input bg */
     background-clip: padding-box;
-    border: 1px solid #ced4da; 
+    border: 1px solid #ced4da;
     border-radius: 0.5rem; /* Increased border radius */
     transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
 }
@@ -133,6 +133,15 @@ code {
     height: 1.25rem;
 }
 
+.forgot-password-link {
+    font-size: 0.85rem;
+    color: #14997A;
+    text-decoration: none;
+}
+.forgot-password-link:hover {
+    text-decoration: underline;
+}
+
 
 .auth-switch-link {
     margin-top: 2rem; /* Increased margin */
@@ -155,10 +164,10 @@ code {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.875rem 1.5rem; 
-  font-size: 0.95rem; 
+  padding: 0.875rem 1.5rem;
+  font-size: 0.95rem;
   font-weight: 500;
-  border-radius: 0.5rem; 
+  border-radius: 0.5rem;
   border: 1px solid transparent;
   cursor: pointer;
   transition: background-color 0.2s, border-color 0.2s, color 0.2s, transform 0.1s, box-shadow 0.2s;
@@ -212,11 +221,11 @@ code {
   background-color: transparent;
   border-color: #14997A; /* Teal */
   color: #14997A;
-  box-shadow: none; 
+  box-shadow: none;
 }
 .button-outline:hover {
   background-color: rgba(20, 153, 122, 0.08); /* Lighter teal background on hover */
-  transform: none; 
+  transform: none;
   box-shadow: none;
 }
 
@@ -224,7 +233,7 @@ code {
 .error-message {
   color: #dc3545; /* Bootstrap Red */
   font-size: 0.875em;
-  margin-top: 0.5rem; 
+  margin-top: 0.5rem;
   display: none; /* Hidden by default */
 }
 .error-message.visible {
@@ -246,9 +255,9 @@ code {
 }
 
 .sidebar {
-    width: 260px; 
+    width: 260px;
     border-right: 1px solid #e9ecef; /* Softer border */
-    background-color: #ffffff; 
+    background-color: #ffffff;
     padding: 1rem;
     display: flex;
     flex-direction: column;
@@ -265,29 +274,29 @@ code {
 }
 
 .sidebar-header {
-    padding: 1.25rem 1rem; 
-    border-bottom: 1px solid #e9ecef; 
+    padding: 1.25rem 1rem;
+    border-bottom: 1px solid #e9ecef;
     margin-bottom: 1.25rem;
 }
 .sidebar-header-link {
     display: flex;
     align-items: center;
-    gap: 0.75rem; 
+    gap: 0.75rem;
     text-decoration: none;
     color: inherit;
 }
 .sidebar-header-link .lucide-atom {
-    height: 2.25rem; 
+    height: 2.25rem;
     width: 2.25rem;
     color: #14997A; /* Teal */
 }
 .sidebar-title {
-    font-size: 1.2rem; 
+    font-size: 1.2rem;
     font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    color: #343a40; 
+    color: #343a40;
 }
 
 .sidebar-nav {
@@ -298,20 +307,20 @@ code {
     overflow-y: auto;
 }
 .sidebar-nav-item {
-    margin-bottom: 0.25rem; 
+    margin-bottom: 0.25rem;
 }
 .sidebar-nav-link {
     display: flex;
     align-items: center;
-    padding: 0.875rem 1.25rem; 
-    border-radius: 0.5rem; 
+    padding: 0.875rem 1.25rem;
+    border-radius: 0.5rem;
     text-decoration: none;
-    color: #495057; 
+    color: #495057;
     transition: background-color 0.2s, color 0.2s;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    font-weight: 500; 
+    font-weight: 500;
 }
 .sidebar-nav-link:hover {
     background-color: #f8f9fa; /* very light hover */
@@ -327,8 +336,8 @@ code {
     background-color: #107C63; /* Darker teal on hover for active link */
 }
 .sidebar-nav-link .lucide {
-    margin-right: 0.875rem; 
-    height: 1.125rem; 
+    margin-right: 0.875rem;
+    height: 1.125rem;
     width: 1.125rem;
 }
 
@@ -340,13 +349,13 @@ code {
 }
 
 .dashboard-header {
-    height: 4.5rem; 
+    height: 4.5rem;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    border-bottom: 1px solid #e9ecef; 
+    border-bottom: 1px solid #e9ecef;
     background-color: white;
-    padding: 0 2rem; 
+    padding: 0 2rem;
     box-shadow: 0 1px 5px rgba(0,0,0,0.04); /* Very subtle shadow */
     position: sticky;
     top: 0;
@@ -358,13 +367,13 @@ code {
     cursor: pointer;
     padding: 0.5rem;
     display: none; /* Shown via JS/CSS media query */
-    color: #495057; 
+    color: #495057;
 }
 .mobile-menu-button:hover {
     color: #14997A; /* Teal */
 }
 .mobile-menu-button .lucide-menu {
-    width: 28px; 
+    width: 28px;
     height: 28px;
 }
 
@@ -381,7 +390,7 @@ code {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 44px; 
+    height: 44px;
     width: 44px;
     color: white;
     font-size: 1.3rem;
@@ -396,43 +405,43 @@ code {
     display: none;
     position: absolute;
     right: 0;
-    top: calc(100% + 0.75rem); 
+    top: calc(100% + 0.75rem);
     background-color: white;
-    min-width: 240px; 
+    min-width: 240px;
     box-shadow: 0 10px 20px rgba(0,0,0,0.08), 0 4px 8px rgba(0,0,0,0.04); /* Standard shadow */
     z-index: 1000;
-    border-radius: 0.5rem; 
-    border: 1px solid #e9ecef; 
-    padding: 0.5rem 0; 
+    border-radius: 0.5rem;
+    border: 1px solid #e9ecef;
+    padding: 0.5rem 0;
 }
 .user-nav-dropdown.open {
     display: block;
 }
 .user-nav-label {
-    padding: 0.75rem 1.25rem; 
+    padding: 0.75rem 1.25rem;
     border-bottom: 1px solid #e9ecef;
     margin-bottom: 0.5rem;
 }
 .user-nav-label p:first-child {
-    font-size: 0.9rem; font-weight: 600; line-height: 1.25; margin:0; color: #343a40; 
+    font-size: 0.9rem; font-weight: 600; line-height: 1.25; margin:0; color: #343a40;
 }
 .user-nav-label p:last-child {
     font-size: 0.8rem; line-height: 1.25; color: #6c757d; margin:0; margin-top: 0.25rem;
 }
 .user-nav-item {
-    padding: 0.625rem 1.25rem; 
+    padding: 0.625rem 1.25rem;
     text-decoration: none;
     display: flex;
     align-items: center;
-    gap: 0.75rem; 
-    color: #495057; 
+    gap: 0.75rem;
+    color: #495057;
     cursor: pointer;
     font-size: 0.9rem;
-    border-radius: 0.25rem; 
-    margin: 0 0.25rem; 
+    border-radius: 0.25rem;
+    margin: 0 0.25rem;
 }
 .user-nav-item:hover {
-    background-color: #f8f9fa; 
+    background-color: #f8f9fa;
     color: #14997A; /* Teal text on hover */
 }
 .user-nav-item .lucide {
@@ -446,7 +455,7 @@ code {
 
 .page-content {
     flex: 1;
-    padding: 2rem; 
+    padding: 2rem;
     overflow-y: auto;
     background-color: #f4f7f9; /* Lighter, slightly blue-tinted content background */
 }
@@ -513,7 +522,7 @@ code {
     margin-bottom: 0.5rem;
     font-weight: 500;
     font-size: 0.9rem;
-    color: #495057; 
+    color: #495057;
 }
 .custom-card-content input[type="text"],
 .custom-card-content input[type="email"],
@@ -527,7 +536,7 @@ code {
     box-sizing: border-box;
     padding: 0.75rem 1rem; /* Adjusted padding */
     font-size: 0.95rem;
-    border: 1px solid #ced4da; 
+    border: 1px solid #ced4da;
     border-radius: 0.375rem; /* Consistent radius */
     background-color: #f8f9fa; /* Light grey for inputs */
     transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
@@ -595,12 +604,12 @@ code {
 }
 
 .text-center { text-align: center; }
-.font-bold { font-weight: bold; } 
+.font-bold { font-weight: bold; }
 .font-semibold { font-weight: 600; }
 .text-lg { font-size: 1.125rem; }
 .text-xl { font-size: 1.25rem; }
 .text-2xl { font-size: 1.5rem; }
-.text-muted-foreground { color: #6c757d; } 
+.text-muted-foreground { color: #6c757d; }
 .mb-1 { margin-bottom: 0.25rem; }
 .mb-2 { margin-bottom: 0.5rem; }
 .mb-3 { margin-bottom: 0.75rem; }
@@ -678,8 +687,8 @@ code {
 }
 .lab-grid-header-cell {
     font-weight: 600; /* Bolder header */
-    background-color: #f8f9fa; 
-    color: #495057; 
+    background-color: #f8f9fa;
+    color: #495057;
     padding: 0.75rem 0.5rem; /* Adjusted padding */
     font-size: 0.85rem;
 }
@@ -711,7 +720,7 @@ code {
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
-    color: #6c757d; 
+    color: #6c757d;
 }
 
 /* Softer status colors, more pastel */
@@ -741,31 +750,31 @@ code {
 }
 .dialog-content {
   background-color: white;
-  padding: 0; 
-  border-radius: 0.75rem; 
+  padding: 0;
+  border-radius: 0.75rem;
   min-width: 320px;
   max-width: 95%;
   width: auto;
   box-shadow: 0 20px 30px -10px rgba(0,0,0,0.1), 0 10px 15px -5px rgba(0,0,0,0.05); /* Significant shadow */
   position: relative;
-  overflow: hidden; 
+  overflow: hidden;
 }
 .dialog-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem 2rem; 
-  border-bottom: 1px solid #e9ecef; 
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid #e9ecef;
 }
 .dialog-title {
-  font-size: 1.375rem; 
+  font-size: 1.375rem;
   font-weight: 600;
   margin: 0;
-  color: #343a40; 
+  color: #343a40;
 }
 .dialog-description {
   font-size: 0.9rem;
-  color: #6c757d; 
+  color: #6c757d;
   margin-top: 0.25rem;
   margin-bottom: 0;
 }
@@ -773,13 +782,13 @@ code {
     background: none;
     border: none;
     cursor: pointer;
-    padding: 0.5rem; 
-    color: #adb5bd; 
+    padding: 0.5rem;
+    color: #adb5bd;
     border-radius: 50%;
     transition: background-color 0.2s, color 0.2s;
 }
 .dialog-close-button:hover {
-    background-color: #f1f3f5; 
+    background-color: #f1f3f5;
     color: #14997A; /* Teal */
 }
 .dialog-close-button .lucide {
@@ -788,20 +797,20 @@ code {
 }
 
 .dialog-body {
-    padding: 1.5rem 2rem; 
-    margin-bottom: 0; 
+    padding: 1.5rem 2rem;
+    margin-bottom: 0;
     max-height: 70vh;
     overflow-y: auto;
 }
 .dialog-body p {
-    margin: 0.75rem 0; 
-    line-height: 1.7; 
+    margin: 0.75rem 0;
+    line-height: 1.7;
 }
 
 .dialog-body .form-group {
     margin-bottom: 1.5rem;
 }
-.dialog-body label { 
+.dialog-body label {
     display: block;
     margin-bottom: 0.5rem;
     font-weight: 500;
@@ -810,8 +819,9 @@ code {
 }
 .dialog-body input[type="text"],
 .dialog-body input[type="number"],
+.dialog-body input[type="password"], /* Added for change password modal */
 .dialog-body select,
-.dialog-body textarea { 
+.dialog-body textarea {
     display: block;
     width: 100%;
     box-sizing: border-box;
@@ -823,7 +833,7 @@ code {
 }
 .dialog-body input:focus,
 .dialog-body select:focus,
-.dialog-body textarea:focus { 
+.dialog-body textarea:focus {
   border-color: #14997A; /* Teal */
   outline: 0;
   box-shadow: 0 0 0 0.15rem rgba(20, 153, 122, .2);
@@ -836,9 +846,9 @@ code {
   justify-content: flex-end;
   gap: 0.75rem;
   flex-wrap: wrap;
-  padding: 1.5rem 2rem; 
-  border-top: 1px solid #e9ecef; 
-  background-color: #f8f9fa; 
+  padding: 1.5rem 2rem;
+  border-top: 1px solid #e9ecef;
+  background-color: #f8f9fa;
 }
 
 /* Lab Slot Detail Dialog Enhancements & Interactive Seat Updater Layout */
@@ -848,9 +858,9 @@ code {
     gap: 0.75rem; /* Gap between main sections */
     margin-top: 1rem;
     padding: 1rem;
-    border: 1px solid #e9ecef; 
+    border: 1px solid #e9ecef;
     border-radius: 0.5rem;
-    background-color: #f8f9fa; 
+    background-color: #f8f9fa;
 }
 .dialog-lab-layout-section {
     display: flex;
@@ -863,7 +873,7 @@ code {
     gap: 0.25rem; /* Gap between desks in a row */
 }
 
-.lab-layout-desk { 
+.lab-layout-desk {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -897,7 +907,7 @@ code {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    margin: 0 auto 1rem auto; 
+    margin: 0 auto 1rem auto;
     padding: 0.5rem;
 }
 .lab-layout-teacher-desk .lucide-user-cog {
@@ -910,7 +920,7 @@ code {
 .teacher-desk-label {
     font-size: 0.75rem;
     font-weight: 500;
-    color: #343a40; 
+    color: #343a40;
 }
 
 
@@ -921,11 +931,11 @@ code {
     margin: 0;
 }
 .entity-list-item {
-    margin-bottom: 1rem; 
+    margin-bottom: 1rem;
 }
-.entity-list-item h3 { 
-    color: #14997A; 
-    font-size: 1.1rem; 
+.entity-list-item h3 {
+    color: #14997A;
+    font-size: 1.1rem;
 }
 .entity-actions .button-sm .lucide {
     width: 1rem;
@@ -936,11 +946,11 @@ code {
 /* Specific text color overrides if needed, but generally rely on body color */
 .text-green-600 { color: #28a745; }
 .text-yellow-600 { color: #ffc107; }
-.text-gray-500 { color: #6c757d; } 
-.text-gray-400 { color: #adb5bd; } 
+.text-gray-500 { color: #6c757d; }
+.text-gray-400 { color: #adb5bd; }
 
 .button-sm {
-    padding: 0.625rem 1rem; 
+    padding: 0.625rem 1rem;
     font-size: 0.875rem;
-    border-radius: 0.375rem; 
+    border-radius: 0.375rem;
 }

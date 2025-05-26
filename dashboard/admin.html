@@ -40,10 +40,10 @@
                     </div>
                     <div class="custom-card-content">
                         <p class="text-lg text-muted-foreground mb-4">
-                            Welcome, Admin! This is your central control panel for managing the Optimized Lab Management System.
+                            Welcome, Admin! This is your central control panel for the Optimized Lab Management System.
                         </p>
                         <p class="text-muted-foreground">
-                            From here, you can oversee all aspects of the lab management system, including lab and equipment configurations, user accounts, bookings, and system optimizations.
+                            From here, you can oversee all aspects of the lab management system, including lab and equipment configurations, user accounts, and system health.
                         </p>
                     </div>
                 </div>
@@ -60,14 +60,14 @@
     <script src="js/dashboard.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            console.log("Admin dashboard DOM fully loaded and parsed.");
-            if (!roleGuard(USER_ROLES.ADMIN)) {
-                console.log("Admin role guard failed. User does not have Admin role.");
+            // console.log("Admin dashboard DOM fully loaded and parsed.");
+            if (!window.roleGuard(window.USER_ROLES.ADMIN)) {
+                // console.log("Admin role guard failed. User does not have Admin role.");
                 return;
             }
             
-            initializeDashboard(); 
-            console.log("Dashboard initialized for Admin.");
+            window.initializeDashboard();
+            // console.log("Dashboard initialized for Admin.");
 
 
             const featureCardsContainer = document.getElementById('featureCardsContainer');
@@ -75,12 +75,8 @@
                 { title: "Manage Labs", description: "Configure lab details, capacities, room assignments, and locations.", icon: "settings-2", href: "admin_manage_labs.html", label: "Go to Lab Management" },
                 { title: "Manage Equipment", description: "Oversee laboratory equipment, inventory, status, and assignments.", icon: "wrench", href: "admin_manage_equipment.html", label: "Go to Equipment Management" },
                 { title: "Lab Availability", description: "View current lab schedules and slot availability.", icon: "flask-conical", href: "labs.html", label: "View Lab Grid" },
-                { title: "View All Bookings", description: "Monitor all lab bookings and manage scheduling conflicts.", icon: "calendar-days", href: "admin_view_bookings.html", label: "Go to Bookings Overview" },
-                { title: "Assistant Requests", description: "Review reschedule or special booking requests from Assistants.", icon: "clipboard-list", href: "admin_assistant_requests.html", label: "View Assistant Requests" },
                 { title: "Faculty Requests", description: "Review direct requests or approvals needed from Faculty.", icon: "user-check", href: "admin_faculty_requests.html", label: "View Faculty Requests" },
-                { title: "Run Algorithms", description: "Execute optimization algorithms for scheduling and resources.", icon: "brain-circuit", href: "admin_run_algorithms.html", label: "Go to Algorithm Console" },
-                { title: "View Logs", description: "Access system activity logs and scheduling history.", icon: "history", href: "admin_view_logs.html", label: "Access Logs" },
-                { title: "Generate Reports", description: "Create reports on lab usage, resource allocation, etc.", icon: "file-text", href: "admin_reports.html", label: "View Reports" },
+                { title: "System Overview & Reports", description: "Access system activity logs and generate reports.", icon: "activity", href: "admin_system_overview.html", label: "View System Overview" },
                 { title: "User Management", description: "Manage user accounts, roles, and permissions.", icon: "users", href: "admin_manage_users.html", label: "Manage Users" }
             ];
 
@@ -88,20 +84,18 @@
                 adminFeatures.forEach(feature => {
                     featureCardsContainer.appendChild(createFeatureCard(feature));
                 });
-                 console.log("Admin feature cards populated.");
+                 // console.log("Admin feature cards populated.");
             } else {
                 console.error("featureCardsContainer not found on admin.html");
             }
 
              if (window.lucide) {
                 window.lucide.createIcons();
-                console.log("Lucide icons created on admin dashboard.");
+                // console.log("Lucide icons created on admin dashboard.");
             } else {
-                console.warn("Lucide library not found on admin dashboard.");
+                // console.warn("Lucide library not found on admin dashboard.");
             }
         });
     </script>
 </body>
 </html>
-
-    

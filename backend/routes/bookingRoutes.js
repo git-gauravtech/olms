@@ -4,36 +4,16 @@ const router = express.Router();
 const pool = require('../config/db');
 const { auth, isAdmin } = require('../middleware/authMiddleware');
 
-// @route   GET api/bookings
-// @desc    Get all bookings (Admin view, with filters)
-// @access  Private (Admin only)
-router.get('/', [auth, isAdmin], async (req, res) => {
-    try {
-        // Basic query, frontend will handle more specific filtering if needed after fetching all
-        const [bookings] = await pool.query(`
-            SELECT b.*, u.fullName as userName, u.email as userEmail, l.name as labName 
-            FROM bookings b
-            JOIN users u ON b.userId = u.id
-            JOIN labs l ON b.labId = l.id
-            ORDER BY b.date DESC, b.timeSlotId ASC
-        `);
-        res.json(bookings);
-    } catch (err) {
-        console.error('Error fetching all bookings:', err.message);
-        res.status(500).send('Server Error: Could not fetch bookings');
-    }
-});
-
 // @route   GET api/bookings/my
 // @desc    Get bookings for the currently logged-in user
 // @access  Private
 router.get('/my', auth, async (req, res) => {
     try {
         const [myBookings] = await pool.query(`
-            SELECT b.*, l.name as labName 
+            SELECT b.*, l.name as labName
             FROM bookings b
             JOIN labs l ON b.labId = l.id
-            WHERE b.userId = ? 
+            WHERE b.userId = ?
             ORDER BY b.date DESC, b.timeSlotId ASC
         `, [req.user.id]);
         res.json(myBookings);
@@ -62,12 +42,11 @@ router.post('/', auth, async (req, res) => {
     if (requestedByRole === 'Faculty') {
         status = 'booked'; // Faculty bookings are auto-approved
     } else if (requestedByRole === 'Assistant') {
-        status = 'pending'; // Assistant bookings need Admin approval
+        status = 'pending'; // Assistant bookings need Admin approval (via faculty_assistant_requests page)
     } else {
-        // Students typically don't book directly in this model, they are assigned or part of faculty/assistant bookings
         return res.status(403).json({ msg: 'Your role is not authorized to create bookings directly.' });
     }
-    
+
     try {
         // Check for conflicting bookings if status is 'booked'
         if (status === 'booked') {
@@ -92,12 +71,12 @@ router.post('/', auth, async (req, res) => {
             batchIdentifier: requestedByRole === 'Assistant' ? batchIdentifier : null,
             submittedDate: new Date()
         };
-        
+
         const [result] = await pool.query('INSERT INTO bookings SET ?', newBooking);
         const [createdBooking] = await pool.query(
-            `SELECT b.*, l.name as labName, u.fullName as userName 
-             FROM bookings b 
-             JOIN labs l ON b.labId = l.id 
+            `SELECT b.*, l.name as labName, u.fullName as userName
+             FROM bookings b
+             JOIN labs l ON b.labId = l.id
              JOIN users u ON b.userId = u.id
              WHERE b.id = ?`, [result.insertId]
         );
@@ -105,10 +84,10 @@ router.post('/', auth, async (req, res) => {
 
     } catch (err) {
         console.error('Error creating booking:', err.message);
-        if (err.code === 'ER_NO_REFERENCED_ROW_2') { // Check if labId or userId is invalid
-            if (err.message.includes('CONSTRAINT `bookings_ibfk_1`')) { // Assuming constraint name for labId
+        if (err.code === 'ER_NO_REFERENCED_ROW_2') {
+            if (err.sqlMessage && err.sqlMessage.includes('FOREIGN KEY (`labId`)')) {
                  return res.status(400).json({ msg: 'Invalid Lab ID. The specified lab does not exist.' });
-            } else if (err.message.includes('CONSTRAINT `bookings_ibfk_2`')) { // Assuming constraint name for userId
+            } else if (err.sqlMessage && err.sqlMessage.includes('FOREIGN KEY (`userId`)')) {
                  return res.status(400).json({ msg: 'Invalid User ID. The specified user does not exist.' });
             }
             return res.status(400).json({ msg: 'Invalid labId or userId.' });
@@ -128,7 +107,6 @@ router.put('/:bookingId/status', [auth, isAdmin], async (req, res) => {
     if (!status) {
         return res.status(400).json({ msg: 'Status is required' });
     }
-    // Define allowed statuses for admin actions
     const allowedStatuses = ['booked', 'rejected', 'cancelled', 'pending-admin-approval', 'approved-by-admin', 'rejected-by-admin'];
     if (!allowedStatuses.includes(status)) {
         return res.status(400).json({ msg: 'Invalid status value provided.' });
@@ -153,12 +131,12 @@ router.put('/:bookingId/status', [auth, isAdmin], async (req, res) => {
         }
 
         await pool.query('UPDATE bookings SET status = ? WHERE id = ?', [status, bookingId]);
-        
+
         const [updatedBookingResult] = await pool.query(
-            `SELECT b.*, l.name as labName, u.fullName as userName 
-             FROM bookings b 
-             JOIN labs l ON b.labId = l.id 
-             JOIN users u ON b.userId = u.id 
+            `SELECT b.*, l.name as labName, u.fullName as userName
+             FROM bookings b
+             JOIN labs l ON b.labId = l.id
+             JOIN users u ON b.userId = u.id
              WHERE b.id = ?`, [bookingId]
         );
         res.json(updatedBookingResult[0]);
@@ -190,7 +168,7 @@ router.delete('/:bookingId', auth, async (req, res) => {
 
         // Instead of deleting, change status to 'cancelled'
         await pool.query('UPDATE bookings SET status = ? WHERE id = ?', ['cancelled', bookingId]);
-        
+
         res.json({ msg: 'Booking cancelled successfully' });
 
     } catch (err) {

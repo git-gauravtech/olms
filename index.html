@@ -31,8 +31,10 @@
                     </div>
                     <p class="error-message" id="passwordError"></p>
                 </div>
-                <!-- Role Dropdown Removed -->
-                <p class="error-message" id="generalLoginError"></p> <!-- General error message area -->
+                 <div class="form-group" style="text-align: right; margin-top: -0.75rem; margin-bottom: 1.5rem;">
+                    <a href="forgot_password.html" class="forgot-password-link">Forgot Password?</a>
+                </div>
+                <p class="error-message" id="generalLoginError"></p>
                 <button type="submit" class="button button-primary full-width">Login</button>
             </form>
             <p class="auth-switch-link">
@@ -45,12 +47,12 @@
     <script src="js/auth.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            console.log("Login page DOM fully loaded and parsed.");
+            // console.log("Login page DOM fully loaded and parsed.");
             if (window.lucide) {
                 window.lucide.createIcons();
-                console.log("Lucide icons created on login page.");
+                // console.log("Lucide icons created on login page.");
             } else {
-                console.warn("Lucide library not found on login page.");
+                // console.warn("Lucide library not found on login page.");
             }
         });
     </script>
