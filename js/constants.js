@@ -11,7 +11,7 @@ const USER_ROLES_OBJ = {
   ASSISTANT: 'Assistant',
 };
 const ROLES_ARRAY_CONST = Object.values(USER_ROLES_OBJ);
-const USER_ROLE_VALUES_CONST = Object.values(USER_ROLES_OBJ);
+const USER_ROLE_VALUES_CONST = Object.values(USER_ROLES_OBJ); // For convenience in dropdowns
 
 const NAV_LINKS_OBJ = {
   [USER_ROLES_OBJ.ADMIN]: [
@@ -20,6 +20,9 @@ const NAV_LINKS_OBJ = {
     { href: 'admin_manage_equipment.html', label: 'Manage Equipment', icon: 'wrench' },
     { href: 'labs.html', label: 'Lab Availability', icon: 'flask-conical' },
     { href: 'admin_faculty_requests.html', label: 'Faculty Requests', icon: 'user-check' },
+    // { href: 'admin_assistant_requests.html', label: 'Assistant Requests', icon: 'user-cog' }, // Removed
+    // { href: 'admin_view_bookings.html', label: 'View All Bookings', icon: 'book-open-check' }, // Removed
+    // { href: 'admin_run_algorithms.html', label: 'Run Algorithms', icon: 'cpu' }, // Removed
     { href: 'admin_system_overview.html', label: 'System Overview & Reports', icon: 'activity' },
     { href: 'admin_manage_users.html', label: 'User Management', icon: 'users' },
   ],
@@ -36,8 +39,9 @@ const NAV_LINKS_OBJ = {
   [USER_ROLES_OBJ.ASSISTANT]: [
     { href: 'assistant.html', label: 'Assistant Dashboard', icon: 'layout-dashboard' },
     { href: 'labs.html', label: 'Lab Availability', icon: 'flask-conical' },
-    { href: 'assistant_request_lab.html', label: 'Request Lab Slot', icon: 'user-plus' },
+    // { href: 'assistant_request_lab.html', label: 'Request Lab Slot', icon: 'user-plus' }, // Removed
     { href: 'assistant_update_seat_status.html', label: 'Update Seat Status', icon: 'edit-3' },
+    // { href: 'student_my_bookings.html', label: 'View My Schedule', icon: 'calendar-check' }, // Removed for Assistant
   ],
 };
 
@@ -59,31 +63,40 @@ const MOCK_TIME_SLOTS_CONST = [
 ];
 
 function formatDate(dateInput) {
-    if (!dateInput && dateInput !== 0) return '';
+    if (!dateInput && dateInput !== 0) return ''; // Handle undefined or null
     let d;
     if (dateInput instanceof Date) {
         d = dateInput;
     } else if (typeof dateInput === 'string' || typeof dateInput === 'number') {
         const potentialDate = new Date(dateInput);
-        if (String(dateInput).length > 0 && String(dateInput).includes('-') && !isNaN(potentialDate.getTime())) {
-            // Handles "YYYY-MM-DD" correctly, ensuring it's not UTC midnight of the previous day
-            const parts = String(dateInput).split('T')[0].split('-');
-            d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        // Check if the input string is primarily YYYY-MM-DD to avoid timezone issues
+        // when creating date from string
+        if (String(dateInput).length >= 10 && String(dateInput).includes('-') && !isNaN(potentialDate.getTime())) {
+            const parts = String(dateInput).split('T')[0].split('-'); // Get YYYY-MM-DD part
+            if (parts.length === 3) {
+                 // Create date in UTC to avoid timezone shifts converting it to local YYYY-MM-DD
+                d = new Date(Date.UTC(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2])));
+            } else {
+                d = potentialDate; // Fallback if not YYYY-MM-DD
+            }
         } else if (!isNaN(potentialDate.getTime())) {
              d = potentialDate;
         } else {
+            // console.warn('formatDate: Invalid Date String', dateInput);
             return 'Invalid Date String';
         }
     } else {
+        // console.warn('formatDate: Invalid Date Type', dateInput);
         return 'Invalid Date Type';
     }
 
     if (isNaN(d.getTime())) {
+        // console.warn('formatDate: Invalid Date Value after processing', dateInput);
         return 'Invalid Date Value';
     }
-    let month = '' + (d.getMonth() + 1);
-    let day = '' + d.getDate();
-    const year = d.getFullYear();
+    let month = '' + (d.getUTCMonth() + 1); // Use getUTCMonth for UTC date
+    let day = '' + d.getUTCDate(); // Use getUTCDate for UTC date
+    const year = d.getUTCFullYear(); // Use getUTCFullYear for UTC date
     if (month.length < 2) month = '0' + month;
     if (day.length < 2) day = '0' + day;
     return [year, month, day].join('-');
@@ -109,9 +122,6 @@ const DEPARTMENTS_CONST = [
 const EQUIPMENT_STATUSES_CONST = ['available', 'in-use', 'maintenance', 'broken'];
 const BOOKING_STATUSES_ARRAY_CONST = ['pending', 'booked', 'rejected', 'cancelled', 'pending-admin-approval', 'approved-by-admin', 'rejected-by-admin'];
 
-const LAB_SEAT_STATUSES_STORAGE_KEY = 'labSeatStatusesV2'; // V2 to avoid conflict if old format exists
-const MOCK_BOOKINGS_STORAGE_KEY = 'mockBookingsV5';
-
 
 // Expose to global window object for access in other scripts
 window.API_BASE_URL = API_BASE_URL_CONST;
@@ -127,48 +137,8 @@ window.EQUIPMENT_STATUSES = EQUIPMENT_STATUSES_CONST;
 window.BOOKING_STATUSES_ARRAY = BOOKING_STATUSES_ARRAY_CONST;
 window.formatDate = formatDate;
 
-// console.log('[constants.js] Constants and mock data definitions complete. API_BASE_URL:', window.API_BASE_URL);
+// console.log('[constants.js] Constants and mock data definitions complete.');
 // console.log('[constants.js] window.USER_ROLES:', window.USER_ROLES);
 // console.log('[constants.js] window.NAV_LINKS:', window.NAV_LINKS);
-// console.log('[constants.js] window.COMMON_NAV_LINKS:', window.COMMON_NAV_LINKS);
-
-// Functions for localStorage interactions
-window.loadLabs = function() {
-    const storedLabs = localStorage.getItem('labsList');
-    return storedLabs ? JSON.parse(storedLabs) : [];
-};
-window.saveLabs = function(labs) {
-    localStorage.setItem('labsList', JSON.stringify(labs));
-};
-window.loadEquipment = function() {
-    const storedEquipment = localStorage.getItem('equipmentList');
-    return storedEquipment ? JSON.parse(storedEquipment) : [];
-};
-window.saveEquipment = function(equipment) {
-    localStorage.setItem('equipmentList', JSON.stringify(equipment));
-};
-
-window.loadLabSeatStatuses = function(labId) {
-    const allStatuses = JSON.parse(localStorage.getItem(LAB_SEAT_STATUSES_STORAGE_KEY) || '{}');
-    return allStatuses[labId] || {};
-};
-
-window.saveLabSeatStatuses = function(labId, labStatuses) {
-    const allStatuses = JSON.parse(localStorage.getItem(LAB_SEAT_STATUSES_STORAGE_KEY) || '{}');
-    allStatuses[labId] = labStatuses;
-    try {
-        localStorage.setItem(LAB_SEAT_STATUSES_STORAGE_KEY, JSON.stringify(allStatuses));
-    } catch (e) {
-        console.error("Error saving lab seat statuses to localStorage:", e);
-    }
-};
-window.getAllLabSeatStatuses = function() { // Used by assistant_seat_updater.js
-    return JSON.parse(localStorage.getItem(LAB_SEAT_STATUSES_STORAGE_KEY) || '{}');
-};
-window.saveAllLabSeatStatuses = function(allStatuses) { // Used by assistant_seat_updater.js
-     try {
-        localStorage.setItem(LAB_SEAT_STATUSES_STORAGE_KEY, JSON.stringify(allStatuses));
-    } catch (e) {
-        console.error("Error saving all lab seat statuses to localStorage:", e);
-    }
-};
+// console.log('[constants.js] API_BASE_URL:', window.API_BASE_URL);
+// console.log('[constants.js] formatDate function available on window.');

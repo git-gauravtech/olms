@@ -54,23 +54,28 @@ router.post('/', auth, async (req, res) => {
     if (!labId || !date || !timeSlotId || !purpose) {
         return res.status(400).json({ msg: 'Please provide all required booking fields (lab, date, time, purpose)' });
     }
-    if (requestedByRole === 'Assistant' && !batchIdentifier) {
-        return res.status(400).json({ msg: 'Batch identifier is required for Assistant bookings.' });
-    }
 
     let status;
+    // As per request, Assistants can no longer submit 'pending' requests through this general endpoint.
+    // They primarily manage seat statuses. If Assistants need to book, it would be a direct booking.
+    // For now, let's assume only Faculty can make direct 'booked' entries.
+    // If Assistants *were* to book, their status logic would need to be defined here.
+    // For now, this endpoint is primarily for Faculty making direct bookings.
     if (requestedByRole === 'Faculty') {
         status = 'booked'; // Faculty bookings are auto-approved
     } else if (requestedByRole === 'Assistant') {
-        status = 'pending'; // Assistant bookings need Admin approval
+        // Assistants are no longer making requests that become 'pending' through this mechanism.
+        // This part of the logic needs re-evaluation if Assistants are to book directly.
+        // For now, reject booking attempts from Assistants via this general route.
+        return res.status(403).json({ msg: 'Assistants cannot create bookings through this endpoint. Please use specific interfaces if available.' });
     } else {
         // This case should ideally not be reached if frontend restricts booking creation by role
         return res.status(403).json({ msg: 'Your role is not authorized to create bookings directly.' });
     }
 
-    try {
-        // Check for conflicting bookings if status is 'booked'
-        if (status === 'booked') {
+    // This check is relevant if status is 'booked'
+    if (status === 'booked') {
+        try {
             const [conflictingBookings] = await pool.query(
                 'SELECT * FROM bookings WHERE labId = ? AND date = ? AND timeSlotId = ? AND status = ?',
                 [parseInt(labId), date, timeSlotId, 'booked']
@@ -78,18 +83,23 @@ router.post('/', auth, async (req, res) => {
             if (conflictingBookings.length > 0) {
                 return res.status(409).json({ msg: 'This slot is already booked. Please choose another time or lab.'});
             }
+        } catch (dbErr) {
+            console.error('Error checking for conflicting bookings:', dbErr.message, dbErr.stack);
+            return res.status(500).send('Server Error while checking for booking conflicts');
         }
+    }
 
+    try {
         const newBooking = {
             labId: parseInt(labId),
             userId,
             date,
             timeSlotId,
             purpose,
-            equipmentIds: equipmentIds ? JSON.stringify(equipmentIds) : null, // Ensure equipmentIds is stored as JSON string or NULL
+            equipmentIds: equipmentIds ? JSON.stringify(equipmentIds) : null,
             status,
-            requestedByRole,
-            batchIdentifier: requestedByRole === 'Assistant' ? batchIdentifier : null,
+            requestedByRole, // Role of the user making the direct booking
+            batchIdentifier: requestedByRole === 'Assistant' && batchIdentifier ? batchIdentifier : null, // Retained but Assistant role is blocked above
             submittedDate: new Date()
         };
 
@@ -112,7 +122,6 @@ router.post('/', auth, async (req, res) => {
             if (err.sqlMessage && err.sqlMessage.includes('FOREIGN KEY (`labId`)')) {
                  return res.status(400).json({ msg: 'Invalid Lab ID. The specified lab does not exist.' });
             } else if (err.sqlMessage && err.sqlMessage.includes('FOREIGN KEY (`userId`)')) {
-                 // This should not happen if userId is from JWT, but good to have
                  return res.status(400).json({ msg: 'Invalid User ID. The specified user does not exist.' });
             }
             return res.status(400).json({ msg: 'Invalid labId or userId reference.' });
