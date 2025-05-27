@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
         signupForm.addEventListener('submit', handleSignup);
         const departmentSelect = document.getElementById('department');
         if (departmentSelect && window.DEPARTMENTS) {
+            departmentSelect.innerHTML = '<option value="">Select your department</option>'; // Clear existing options
             window.DEPARTMENTS.forEach(dept => {
                 const option = document.createElement('option');
                 option.value = dept;
@@ -43,22 +44,20 @@ async function handleLogin(event) {
     clearErrors();
     console.log("[auth.js] handleLogin triggered");
 
-    // Defensive check again, in case DOMContentLoaded fires before constants.js is fully processed by browser.
-    if (typeof window.API_BASE_URL === 'undefined' || typeof window.USER_ROLES === 'undefined') {
-        console.error('[auth.js] CRITICAL ERROR in handleLogin: API_BASE_URL or USER_ROLES not defined.');
-        showError('generalLoginError', 'Application configuration error. Please refresh.', document.getElementById('generalLoginError'));
-        return;
-    }
-
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
     const loginButton = document.querySelector('#loginForm button[type="submit"]');
-    const generalErrorElement = document.getElementById('generalLoginError');
+    // const generalErrorElement = document.getElementById('generalLoginError'); // We'll use alert for general errors
 
+    if (!window.API_BASE_URL || !window.USER_ROLES) {
+        console.error('[auth.js] CRITICAL ERROR in handleLogin: API_BASE_URL or USER_ROLES not defined.');
+        alert('Application configuration error. Please refresh.');
+        return;
+    }
 
     if (!emailInput || !passwordInput || !loginButton) {
         console.error("[auth.js] Login form elements not found!");
-        if(generalErrorElement) showError('generalLoginError', 'Login form elements missing. Please refresh.', generalErrorElement);
+        alert('Login form elements missing. Please refresh.');
         return;
     }
     
@@ -101,7 +100,7 @@ async function handleLogin(event) {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ email, password }),
+            body: JSON.stringify({ email, password }), // Role is determined by backend
         });
 
         const data = await response.json();
@@ -121,7 +120,7 @@ async function handleLogin(event) {
             const currentUserRoleConst = window.USER_ROLES; 
             if (!currentUserRoleConst) {
                  console.error("[auth.js] CRITICAL ERROR: window.USER_ROLES not defined on frontend post-login!");
-                 if(generalErrorElement) showError('generalLoginError', 'Frontend configuration error. Cannot redirect.', generalErrorElement);
+                 alert('Frontend configuration error. Cannot redirect.');
                  loginButton.disabled = false;
                  loginButton.innerHTML = originalButtonText;
                  if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
@@ -149,15 +148,15 @@ async function handleLogin(event) {
                     break;
                 default:
                     console.error("[auth.js] Login: No matching role for redirection. Role from backend:", data.user.role);
-                    if(generalErrorElement) showError('generalLoginError', `Invalid role (${data.user.role}) received from server. Cannot redirect.`, generalErrorElement);
+                    alert(`Invalid role (${data.user.role}) received from server. Cannot redirect.`);
             }
         } else {
             console.error("[auth.js] Login failed from backend:", data);
-            if(generalErrorElement) showError('generalLoginError', data.msg || 'Login failed. Please check your credentials.', generalErrorElement);
+            alert(data.msg || 'Login failed. Please check your credentials.');
         }
     } catch (error) {
         console.error('[auth.js] Login request failed:', error);
-        if(generalErrorElement) showError('generalLoginError', 'An error occurred during login. Could not connect to server.', generalErrorElement);
+        alert('An error occurred during login. Could not connect to server.');
     } finally {
         loginButton.disabled = false;
         loginButton.innerHTML = originalButtonText;
@@ -170,17 +169,18 @@ async function handleSignup(event) {
     clearErrors();
     console.log("[auth.js] handleSignup triggered");
 
-    // Defensive check
     if (typeof window.API_BASE_URL === 'undefined') {
         console.error('[auth.js] CRITICAL ERROR in handleSignup: API_BASE_URL not defined.');
-        showError('generalSignupError', 'Application configuration error. Please refresh.', document.getElementById('generalSignupError'));
+        alert('Application configuration error. Please refresh.');
         return;
     }
 
-    const signupButton = document.getElementById('signupButton'); // Corrected ID
-    const generalErrorElement = document.getElementById('generalSignupError'); 
+    const signupButton = document.getElementById('signupButton');
+    // const generalErrorElement = document.getElementById('generalSignupError'); // Using alert for general errors
+
     if (!signupButton) {
         console.error("[auth.js] Signup button not found!");
+        alert('Signup form button missing. Please refresh.');
         return;
     }
 
@@ -237,16 +237,14 @@ async function handleSignup(event) {
         console.log('[auth.js] Signup response data:', data);
 
         if (response.status === 201) { 
-            alert(`Account Created! ${data.msg || `Welcome, ${fullName}! Please login.`}`);
+            alert(data.msg || `Account Created! Welcome, ${fullName}! Please login.`);
             window.location.href = 'index.html'; 
         } else {
-            const targetErrorElement = generalErrorElement || document.getElementById('roleError'); 
-            showError(targetErrorElement ? targetErrorElement.id : 'roleError', data.msg || 'Signup failed. Please try again.', targetErrorElement); 
+            alert(data.msg || 'Signup failed. Please try again.');
         }
     } catch (error) {
         console.error('[auth.js] Signup request failed:', error);
-        const targetErrorElement = generalErrorElement || document.getElementById('roleError'); 
-        showError(targetErrorElement ? targetErrorElement.id : 'roleError', 'An error occurred during signup. Could not connect to server.', targetErrorElement);
+        alert('An error occurred during signup. Could not connect to server.');
     } finally {
         signupButton.disabled = false;
         signupButton.innerHTML = originalButtonText;
@@ -264,15 +262,8 @@ function showError(elementId, message, elementInstance = null) {
         }
     } else {
         console.warn(`[auth.js] Error element with ID '${elementId}' not found. Message: ${message}`);
-        // alert(message); // Avoid alert if specific element not found, rely on general error area
-        const generalErrorArea = document.getElementById('generalLoginError') || document.getElementById('generalSignupError');
-        if (generalErrorArea) {
-            generalErrorArea.textContent = message;
-            generalErrorArea.classList.add('visible');
-            if(generalErrorArea.style.display === 'none') generalErrorArea.style.display = 'block';
-        } else {
-            alert(message); // Ultimate fallback
-        }
+        // For critical missing elements, an alert might be too disruptive if it's a minor field.
+        // Fallback to general alert if no specific field error element found is handled by main try-catch.
     }
 }
 
