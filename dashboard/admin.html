@@ -43,7 +43,7 @@
                             Welcome, Admin! This is your central control panel for the Optimized Lab Management System.
                         </p>
                         <p class="text-muted-foreground">
-                            From here, you can oversee all aspects of the lab management system, including lab and equipment configurations, user accounts, and system health.
+                            From here, you can oversee all aspects of the lab management system.
                         </p>
                     </div>
                 </div>
@@ -60,43 +60,36 @@
     <script src="js/dashboard.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // console.log("Admin dashboard DOM fully loaded and parsed.");
+            console.log('DOM fully loaded and parsed for admin.html');
             if (!window.roleGuard(window.USER_ROLES.ADMIN)) {
-                // console.log("Admin role guard failed. User does not have Admin role.");
                 return;
             }
             
             window.initializeDashboard();
-            // console.log("Dashboard initialized for Admin.");
-
 
             const featureCardsContainer = document.getElementById('featureCardsContainer');
             const adminFeatures = [
                 { title: "Manage Labs", description: "Configure lab details, capacities, room assignments, and locations.", icon: "settings-2", href: "admin_manage_labs.html", label: "Go to Lab Management" },
                 { title: "Manage Equipment", description: "Oversee laboratory equipment, inventory, status, and assignments.", icon: "wrench", href: "admin_manage_equipment.html", label: "Go to Equipment Management" },
+                { title: "Faculty Requests", description: "Review and manage requests needing admin approval from Faculty.", icon: "user-check", href: "admin_faculty_requests.html", label: "View Faculty Requests" },
+                { title: "User Management", description: "Manage user accounts, roles, and permissions.", icon: "users", href: "admin_manage_users.html", label: "Manage Users" },
                 { title: "Lab Availability", description: "View current lab schedules and slot availability.", icon: "flask-conical", href: "labs.html", label: "View Lab Grid" },
-                { title: "Faculty Requests", description: "Review direct requests or approvals needed from Faculty.", icon: "user-check", href: "admin_faculty_requests.html", label: "View Faculty Requests" },
-                // { title: "Assistant Requests", description: "Review and manage lab requests from Assistants.", icon: "user-cog", href: "admin_assistant_requests.html", label: "View Assistant Requests" }, // Removed
-                // { title: "View All Bookings", description: "View and manage all system bookings.", icon: "book-open-check", href: "admin_view_bookings.html", label: "View All Bookings" }, // Removed
-                // { title: "Run Algorithms", description: "Trigger scheduling and optimization algorithms.", icon: "cpu", href: "admin_run_algorithms.html", label: "Run Algorithms" }, // Removed
-                { title: "System Overview & Reports", description: "Access system activity logs and generate reports.", icon: "activity", href: "admin_system_overview.html", label: "View System Overview" },
-                { title: "User Management", description: "Manage user accounts, roles, and permissions.", icon: "users", href: "admin_manage_users.html", label: "Manage Users" }
+                { title: "Run Optimization Algorithms", description: "Trigger DAA algorithms for scheduling and resource allocation.", icon: "cpu", href: "admin_run_algorithms.html", label: "Run Algorithms" },
+                { title: "System Overview & Reports", description: "Access system activity logs and generate reports.", icon: "activity", href: "admin_system_overview.html", label: "View System Overview" }
             ];
 
             if (featureCardsContainer) {
                 adminFeatures.forEach(feature => {
                     featureCardsContainer.appendChild(createFeatureCard(feature));
                 });
-                 // console.log("Admin feature cards populated.");
             } else {
                 console.error("featureCardsContainer not found on admin.html");
             }
 
              if (window.lucide) {
                 window.lucide.createIcons();
-                // console.log("Lucide icons created on admin dashboard.");
             } else {
-                // console.warn("Lucide library not found on admin dashboard.");
+                console.warn("Lucide library not found on admin dashboard.");
             }
         });
     </script>

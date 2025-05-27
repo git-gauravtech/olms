@@ -1,30 +1,26 @@
-
 // Global constants for the application
 console.log('[constants.js] Script start.');
 
-const API_BASE_URL_CONST = 'http://localhost:5001/api';
-console.log('[constants.js] API_BASE_URL_CONST defined:', API_BASE_URL_CONST);
-
+const API_BASE_URL_CONST = 'http://localhost:5001/api'; // Make sure this matches your backend port
 const USER_ROLES_OBJ = {
   ADMIN: 'Admin',
   FACULTY: 'Faculty',
   STUDENT: 'Student',
   ASSISTANT: 'Assistant',
 };
-console.log('[constants.js] USER_ROLES_OBJ defined:', USER_ROLES_OBJ);
-
 const ROLES_ARRAY_CONST = Object.values(USER_ROLES_OBJ);
-const USER_ROLE_VALUES_CONST = Object.values(USER_ROLES_OBJ);
+const USER_ROLE_VALUES_CONST = Object.values(USER_ROLES_OBJ); // For dropdowns
 
 const NAV_LINKS_OBJ = {
   [USER_ROLES_OBJ.ADMIN]: [
     { href: 'admin.html', label: 'Admin Dashboard', icon: 'layout-dashboard' },
     { href: 'admin_manage_labs.html', label: 'Manage Labs', icon: 'settings-2' },
     { href: 'admin_manage_equipment.html', label: 'Manage Equipment', icon: 'wrench' },
-    { href: 'labs.html', label: 'Lab Availability', icon: 'flask-conical' },
     { href: 'admin_faculty_requests.html', label: 'Faculty Requests', icon: 'user-check' },
-    { href: 'admin_system_overview.html', label: 'System Overview & Reports', icon: 'activity' },
     { href: 'admin_manage_users.html', label: 'User Management', icon: 'users' },
+    { href: 'labs.html', label: 'Lab Availability', icon: 'flask-conical' },
+    { href: 'admin_run_algorithms.html', label: 'Run Optimization Algorithms', icon: 'cpu' },
+    { href: 'admin_system_overview.html', label: 'System Overview & Reports', icon: 'activity' },
   ],
   [USER_ROLES_OBJ.FACULTY]: [
     { href: 'faculty.html', label: 'Faculty Dashboard', icon: 'layout-dashboard' },
@@ -35,16 +31,19 @@ const NAV_LINKS_OBJ = {
   [USER_ROLES_OBJ.STUDENT]: [
     { href: 'student.html', label: 'Student Dashboard', icon: 'layout-dashboard' },
     { href: 'student_my_bookings.html', label: 'My Schedule', icon: 'calendar-check' },
+    { href: 'labs.html', label: 'View Lab Availability', icon: 'flask-conical' },
   ],
   [USER_ROLES_OBJ.ASSISTANT]: [
     { href: 'assistant.html', label: 'Assistant Dashboard', icon: 'layout-dashboard' },
     { href: 'labs.html', label: 'Lab Availability', icon: 'flask-conical' },
     { href: 'assistant_update_seat_status.html', label: 'Update Seat Status', icon: 'edit-3' },
+    { href: 'student_my_bookings.html', label: 'My Assigned Tasks/Bookings', icon: 'calendar-check' },
   ],
 };
-console.log('[constants.js] NAV_LINKS_OBJ defined.');
 
-const COMMON_NAV_LINKS_CONST = []; // Profile is via user dropdown
+const COMMON_NAV_LINKS_CONST = [
+  // Profile is accessed via user dropdown in header, not direct sidebar link for now
+];
 
 const MOCK_TIME_SLOTS_CONST = [
   { id: 'ts_0800_0900', startTime: '08:00', endTime: '09:00', displayTime: '08:00 AM - 09:00 AM' },
@@ -60,42 +59,46 @@ const MOCK_TIME_SLOTS_CONST = [
 ];
 
 function formatDate(dateInput) {
-    if (!dateInput && dateInput !== 0) return '';
+    if (!dateInput && dateInput !== 0) return ''; // Handle null, undefined, empty string
     let d;
+
     if (dateInput instanceof Date) {
-        d = dateInput;
+        // If it's already a Date object, ensure it's not an invalid date
+        if (isNaN(dateInput.getTime())) {
+            console.warn('[constants.js] formatDate: Invalid Date object passed', dateInput);
+            return 'Invalid Date Value';
+        }
+        // Use UTC methods to get date parts to avoid timezone shifts when formatting YYYY-MM-DD
+        const year = dateInput.getUTCFullYear();
+        const month = String(dateInput.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(dateInput.getUTCDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
     } else if (typeof dateInput === 'string' || typeof dateInput === 'number') {
+        // Attempt to parse string or number (timestamp)
+        // Common case: YYYY-MM-DDTHH:mm:ss.sssZ or YYYY-MM-DD
         const potentialDate = new Date(dateInput);
-        if (String(dateInput).length >= 10 && String(dateInput).includes('-') && !isNaN(potentialDate.getTime())) {
-            const parts = String(dateInput).split('T')[0].split('-');
-            if (parts.length === 3) {
-                d = new Date(Date.UTC(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2])));
-            } else {
-                d = potentialDate;
-            }
-        } else if (!isNaN(potentialDate.getTime())) {
-             d = potentialDate;
+        if (!isNaN(potentialDate.getTime())) {
+            // If valid, use UTC methods as above
+            const year = potentialDate.getUTCFullYear();
+            const month = String(potentialDate.getUTCMonth() + 1).padStart(2, '0');
+            const day = String(potentialDate.getUTCDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
         } else {
-            console.warn('[constants.js] formatDate: Invalid Date String', dateInput);
-            return 'Invalid Date String';
+            // Handle simple YYYY-MM-DD string that might be parsed as local midnight by new Date()
+            // and then toISOString() converts it to UTC, potentially shifting the date.
+            // This regex check ensures we are dealing with a simple date string.
+            const simpleDateRegex = /^\d{4}-\d{2}-\d{2}$/;
+            if (simpleDateRegex.test(String(dateInput))) {
+                return String(dateInput); // Assume it's already in YYYY-MM-DD format and return as is
+            }
+            console.warn('[constants.js] formatDate: Invalid Date String/Number', dateInput);
+            return 'Invalid Date String/Number';
         }
     } else {
-        console.warn('[constants.js] formatDate: Invalid Date Type', dateInput);
+        console.warn('[constants.js] formatDate: Invalid Date Type', typeof dateInput, dateInput);
         return 'Invalid Date Type';
     }
-
-    if (isNaN(d.getTime())) {
-        console.warn('[constants.js] formatDate: Invalid Date Value after processing', dateInput);
-        return 'Invalid Date Value';
-    }
-    let month = '' + (d.getUTCMonth() + 1);
-    let day = '' + d.getUTCDate();
-    const year = d.getUTCFullYear();
-    if (month.length < 2) month = '0' + month;
-    if (day.length < 2) day = '0' + day;
-    return [year, month, day].join('-');
 }
-
 
 const DAYS_OF_WEEK_CONST = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -117,23 +120,32 @@ const EQUIPMENT_STATUSES_CONST = ['available', 'in-use', 'maintenance', 'broken'
 const BOOKING_STATUSES_ARRAY_CONST = ['pending', 'booked', 'rejected', 'cancelled', 'pending-admin-approval', 'approved-by-admin', 'rejected-by-admin'];
 
 
-// Expose to global window object for access in other scripts
-console.log('[constants.js] Assigning to window object...');
-window.API_BASE_URL = API_BASE_URL_CONST;
-console.log('[constants.js] window.API_BASE_URL set to:', window.API_BASE_URL);
+// No longer storing MOCK_LABS_INITIAL, MOCK_EQUIPMENT_INITIAL, MOCK_BOOKINGS_INITIAL here
+// Frontend should fetch all dynamic data from backend APIs.
+// localStorage helpers for these lists are also removed.
 
-window.USER_ROLES = USER_ROLES_OBJ;
-console.log('[constants.js] window.USER_ROLES set to:', window.USER_ROLES);
+console.log('[constants.js] Assigning constants to window object...');
+if (typeof window !== 'undefined') {
+    window.API_BASE_URL = API_BASE_URL_CONST;
+    console.log('[constants.js] window.API_BASE_URL set to:', window.API_BASE_URL);
 
-window.ROLES_ARRAY = ROLES_ARRAY_CONST;
-window.USER_ROLE_VALUES = USER_ROLE_VALUES_CONST;
-window.NAV_LINKS = NAV_LINKS_OBJ;
-window.COMMON_NAV_LINKS = COMMON_NAV_LINKS_CONST;
-window.MOCK_TIME_SLOTS = MOCK_TIME_SLOTS_CONST;
-window.DAYS_OF_WEEK = DAYS_OF_WEEK_CONST;
-window.DEPARTMENTS = DEPARTMENTS_CONST;
-window.EQUIPMENT_STATUSES = EQUIPMENT_STATUSES_CONST;
-window.BOOKING_STATUSES_ARRAY = BOOKING_STATUSES_ARRAY_CONST;
-window.formatDate = formatDate;
+    window.USER_ROLES = USER_ROLES_OBJ;
+    console.log('[constants.js] window.USER_ROLES set to:', window.USER_ROLES);
 
+    window.ROLES_ARRAY = ROLES_ARRAY_CONST;
+    window.USER_ROLE_VALUES = USER_ROLE_VALUES_CONST;
+
+    window.NAV_LINKS = NAV_LINKS_OBJ;
+    console.log('[constants.js] window.NAV_LINKS set.');
+
+    window.COMMON_NAV_LINKS = COMMON_NAV_LINKS_CONST;
+    window.MOCK_TIME_SLOTS = MOCK_TIME_SLOTS_CONST; // Used for display and form options
+    window.DAYS_OF_WEEK = DAYS_OF_WEEK_CONST;
+    window.DEPARTMENTS = DEPARTMENTS_CONST;
+    window.EQUIPMENT_STATUSES = EQUIPMENT_STATUSES_CONST;
+    window.BOOKING_STATUSES_ARRAY = BOOKING_STATUSES_ARRAY_CONST;
+    window.formatDate = formatDate; // Make utility function globally available
+} else {
+    console.error('[constants.js] CRITICAL: window object not found. This script is intended for browser environment.');
+}
 console.log('[constants.js] Script end. All constants and functions should be available on window.');
