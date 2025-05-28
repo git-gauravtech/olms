@@ -1,12 +1,19 @@
--- SQL Schema for Optimized Lab Management System
 
--- Users Table
+-- Drop tables if they exist to ensure a clean setup, especially during development.
+-- In a production environment, you would use ALTER TABLE for modifications.
+DROP TABLE IF EXISTS lab_seat_statuses;
+DROP TABLE IF EXISTS bookings;
+DROP TABLE IF EXISTS equipment;
+DROP TABLE IF EXISTS labs;
+DROP TABLE IF EXISTS users;
+
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     fullName VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     passwordHash VARCHAR(255) NOT NULL,
-    role VARCHAR(50) NOT NULL, -- e.g., 'Admin', 'Faculty', 'Student', 'Assistant'
+    secretWordHash VARCHAR(255) NOT NULL, -- Added for secret word
+    role VARCHAR(50) NOT NULL,
     department VARCHAR(255),
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -14,64 +21,58 @@ CREATE TABLE IF NOT EXISTS users (
     resetPasswordExpires DATETIME DEFAULT NULL
 );
 
--- Labs Table
 CREATE TABLE IF NOT EXISTS labs (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     capacity INT NOT NULL,
     roomNumber VARCHAR(50) NOT NULL,
-    location VARCHAR(255), -- For Dijkstra's algorithm potential use
+    location VARCHAR(255),
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Equipment Table
 CREATE TABLE IF NOT EXISTS equipment (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     type VARCHAR(100) NOT NULL,
-    status VARCHAR(50) NOT NULL DEFAULT 'available', -- e.g., 'available', 'in-use', 'maintenance', 'broken'
-    labId INT, -- Foreign key to labs table, can be NULL if equipment is not assigned to a specific lab
+    status VARCHAR(50) NOT NULL DEFAULT 'available', -- e.g., available, in-use, maintenance
+    labId INT, -- Foreign key to labs table, can be NULL if equipment is not assigned
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (labId) REFERENCES labs(id) ON DELETE SET NULL -- If lab is deleted, equipment becomes unassigned
+    FOREIGN KEY (labId) REFERENCES labs(id) ON DELETE SET NULL
 );
 
--- Bookings Table
 CREATE TABLE IF NOT EXISTS bookings (
     id INT AUTO_INCREMENT PRIMARY KEY,
     labId INT NOT NULL,
-    userId INT NOT NULL, -- User who made the booking or is associated with the class
+    userId INT NOT NULL,
     date DATE NOT NULL,
-    timeSlotId VARCHAR(50) NOT NULL, -- e.g., 'ts_0900_1000', maps to predefined time slots
+    timeSlotId VARCHAR(50) NOT NULL, -- Assuming timeSlotId is a string identifier like 'ts_0900_1000'
     purpose TEXT,
-    equipmentIds JSON, -- Store as JSON array of equipment IDs, or use a junction table for many-to-many
-    status VARCHAR(50) NOT NULL DEFAULT 'pending', -- e.g., 'pending', 'booked', 'rejected', 'cancelled', 'pending-admin-approval', 'approved-by-admin', 'rejected-by-admin'
-    requestedByRole VARCHAR(50), -- Role of the user who initiated the request/booking (e.g., Faculty, Assistant)
-    batchIdentifier VARCHAR(255), -- For class bookings, e.g., 'CSE Year 2 - Section A'
+    equipmentIds JSON, -- Store as JSON array of equipment IDs, or use a junction table
+    status VARCHAR(50) NOT NULL DEFAULT 'pending', -- e.g., pending, booked, rejected, cancelled, pending-admin-approval
+    requestedByRole VARCHAR(50),
+    batchIdentifier VARCHAR(255),
     submittedDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (labId) REFERENCES labs(id) ON DELETE CASCADE, -- If a lab is deleted, its bookings are removed
-    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE -- If a user is deleted, their bookings are removed
+    FOREIGN KEY (labId) REFERENCES labs(id) ON DELETE CASCADE,
+    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Lab Seat Statuses Table
 CREATE TABLE IF NOT EXISTS lab_seat_statuses (
     id INT AUTO_INCREMENT PRIMARY KEY,
     labId INT NOT NULL,
-    seatIndex VARCHAR(50) NOT NULL, -- Using VARCHAR to allow for flexible seat IDs e.g., "0", "A1", etc.
-    status VARCHAR(20) NOT NULL DEFAULT 'working', -- e.g., 'working', 'not-working'
+    seatIndex VARCHAR(50) NOT NULL, -- Combined identifier like 'labId_seatIndex_row_col' or just an index '0', '1' etc.
+    status VARCHAR(20) NOT NULL DEFAULT 'working', -- 'working' or 'not-working'
     updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (labId) REFERENCES labs(id) ON DELETE CASCADE,
-    UNIQUE KEY `unique_seat_in_lab` (labId, seatIndex) -- Ensures each seat in a lab has only one status entry
+    UNIQUE KEY `unique_seat_in_lab` (labId, seatIndex) -- Ensures a seat index is unique per lab
 );
 
--- Example: Add a default Admin user (optional, for initial setup)
--- Ensure to change the password after first login if using a default
--- INSERT INTO users (fullName, email, passwordHash, role) VALUES ('Admin User', 'admin@example.com', '$2a$10$YOUR_STRONG_DEFAULT_HASH_HERE', 'Admin')
--- To generate a hash for bcrypt:
--- const bcrypt = require('bcryptjs');
--- const salt = await bcrypt.genSalt(10);
--- const hashedPassword = await bcrypt.hash('adminpassword', salt);
--- console.log(hashedPassword);
--- Replace '$2a$10$YOUR_STRONG_DEFAULT_HASH_HERE' with the generated hash.
+-- Example: Insert initial Admin user (replace with your desired credentials)
+-- Make sure to hash the password and secret word appropriately if inserting manually.
+-- This is commented out as user creation should ideally happen via the signup form.
+/*
+INSERT INTO users (fullName, email, passwordHash, secretWordHash, role)
+VALUES ('Admin User', 'admin@example.com', '$2a$10$your_bcrypt_hashed_password_here', '$2a$10$your_bcrypt_hashed_secret_word_here', 'Admin');
+*/

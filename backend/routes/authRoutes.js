@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const crypto = require('crypto'); // Ensure crypto is required
+const crypto = require('crypto');
 const pool = require('../config/db');
 const { auth } = require('../middleware/authMiddleware');
 
@@ -11,13 +11,16 @@ const { auth } = require('../middleware/authMiddleware');
 // @desc    Register a new user
 // @access  Public
 router.post('/signup', async (req, res) => {
-    const { fullName, email, password, role, department } = req.body;
+    const { fullName, email, password, secretWord, role, department } = req.body;
 
-    if (!fullName || !email || !password || !role) {
-        return res.status(400).json({ msg: 'Please enter all required fields' });
+    if (!fullName || !email || !password || !role || !secretWord) {
+        return res.status(400).json({ msg: 'Please enter all required fields (fullName, email, password, secretWord, role)' });
     }
     if (password.length < 6) {
         return res.status(400).json({ msg: 'Password must be at least 6 characters long' });
+    }
+    if (secretWord.length < 4) { // Basic validation for secret word
+        return res.status(400).json({ msg: 'Secret word must be at least 4 characters long' });
     }
 
     try {
@@ -28,11 +31,13 @@ router.post('/signup', async (req, res) => {
 
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
+        const hashedSecretWord = await bcrypt.hash(secretWord, salt); // Hash the secret word
 
         const newUser = {
             fullName,
             email,
             passwordHash: hashedPassword,
+            secretWordHash: hashedSecretWord, // Store hashed secret word
             role,
             department: department || null
         };
@@ -49,7 +54,7 @@ router.post('/signup', async (req, res) => {
 // @desc    Authenticate user & get token
 // @access  Public
 router.post('/login', async (req, res) => {
-    const { email, password } = req.body;
+    const { email, password } = req.body; // Role is not needed from client for login
 
     if (!email || !password) {
         return res.status(400).json({ msg: 'Please provide email and password' });
@@ -70,14 +75,14 @@ router.post('/login', async (req, res) => {
         const payload = {
             user: {
                 id: user.id,
-                role: user.role // Role from database
+                role: user.role
             }
         };
 
         jwt.sign(
             payload,
             process.env.JWT_SECRET,
-            { expiresIn: process.env.JWT_EXPIRES_IN || '1h' }, // Use JWT_EXPIRES_IN from .env
+            { expiresIn: process.env.JWT_EXPIRES_IN || '1h' },
             (err, token) => {
                 if (err) throw err;
                 res.json({
@@ -139,22 +144,28 @@ router.put('/change-password', auth, async (req, res) => {
 // @desc    Request password reset
 // @access  Public
 router.post('/forgot-password', async (req, res) => {
-    const { email } = req.body;
-    if (!email) {
-        return res.status(400).json({ msg: 'Email is required.' });
+    const { email, secretWord } = req.body;
+    if (!email || !secretWord) {
+        return res.status(400).json({ msg: 'Email and secret word are required.' });
     }
 
     try {
-        const [users] = await pool.query('SELECT id, email FROM users WHERE email = ?', [email]);
+        const [users] = await pool.query('SELECT id, email, secretWordHash FROM users WHERE email = ?', [email]);
         if (users.length === 0) {
-            // Still send a generic message to prevent email enumeration
-            console.log(`Password reset requested for non-existent email: ${email}`);
-            return res.json({ msg: 'If an account with that email exists, a password reset link has been sent.' });
+            console.log(`Password reset requested for non-existent email or email/secret word mismatch: ${email}`);
+            return res.status(400).json({ msg: 'Invalid email or secret word. Please try again.' });
         }
         const user = users[0];
 
+        // Verify secret word
+        const isSecretWordMatch = await bcrypt.compare(secretWord, user.secretWordHash);
+        if (!isSecretWordMatch) {
+            console.log(`Secret word mismatch for email: ${email}`);
+            return res.status(400).json({ msg: 'Invalid email or secret word. Please try again.' });
+        }
+
         const resetToken = crypto.randomBytes(32).toString('hex');
-        const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex'); // Store hashed token
+        const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
         const resetTokenExpires = new Date(Date.now() + 3600000); // 1 hour from now
 
         await pool.query(
@@ -162,20 +173,16 @@ router.post('/forgot-password', async (req, res) => {
             [hashedToken, resetTokenExpires, user.id]
         );
 
-        // In a real app, you would send an email here.
-        // For this project, we log the token and link.
-        const resetUrl = `http://localhost:9002/reset_password.html?token=${resetToken}`; // Port for frontend
+        const resetUrl = `http://localhost:9002/reset_password.html?token=${resetToken}`;
         console.log('------------------------------------');
-        console.log('PASSWORD RESET REQUESTED');
+        console.log('PASSWORD RESET REQUESTED & VALIDATED (SECRET WORD MATCH)');
         console.log(`User: ${user.email} (ID: ${user.id})`);
         console.log(`Reset Token (raw, send this in URL): ${resetToken}`);
         console.log(`Reset URL (for user): ${resetUrl}`);
         console.log('------------------------------------');
-        // IMPORTANT: The resetToken in the URL is the raw one. The DB stores the hashed one.
 
-        // Return the raw token for automatic redirection in this simulated environment
         res.json({
-            msg: 'If an account with that email exists, a password reset link has been sent.',
+            msg: 'If your email and secret word are correct, you will be redirected. Check backend console for the link/token in a real scenario.',
             resetToken: resetToken // For frontend auto-redirect simulation
         });
 
@@ -222,7 +229,7 @@ router.post('/reset-password', async (req, res) => {
 
         res.json({ msg: 'Password has been reset successfully. You can now login.' });
 
-    } catch (err)_ {
+    } catch (err) { // Corrected variable name from err_ to err
         console.error('Reset password error:', err.message, err.stack);
         res.status(500).json({ msg: 'Server error while resetting password.' });
     }

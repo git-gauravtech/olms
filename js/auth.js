@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const loginForm = document.getElementById('loginForm');
     const signupForm = document.getElementById('signupForm');
+    const forgotPasswordForm = document.getElementById('forgotPasswordForm'); // Added for forgot password page logic
 
     if (loginForm) {
         console.log('[auth.js] Login form found. Attaching submit listener.');
@@ -37,6 +38,13 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         console.log('[auth.js] Signup form not found on this page.');
     }
+
+    if (forgotPasswordForm) {
+        console.log('[auth.js] Forgot password form found. Attaching submit listener.');
+        forgotPasswordForm.addEventListener('submit', handleForgotPassword);
+    } else {
+        console.log('[auth.js] Forgot password form not found on this page.');
+    }
 });
 
 async function handleLogin(event) {
@@ -47,7 +55,8 @@ async function handleLogin(event) {
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
     const loginButton = document.querySelector('#loginForm button[type="submit"]');
-    // const generalErrorElement = document.getElementById('generalLoginError'); // We'll use alert for general errors
+    const generalErrorElement = document.getElementById('generalLoginError');
+
 
     if (!window.API_BASE_URL || !window.USER_ROLES) {
         console.error('[auth.js] CRITICAL ERROR in handleLogin: API_BASE_URL or USER_ROLES not defined.');
@@ -100,7 +109,7 @@ async function handleLogin(event) {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ email, password }), // Role is determined by backend
+            body: JSON.stringify({ email, password }),
         });
 
         const data = await response.json();
@@ -152,11 +161,21 @@ async function handleLogin(event) {
             }
         } else {
             console.error("[auth.js] Login failed from backend:", data);
-            alert(data.msg || 'Login failed. Please check your credentials.');
+            const errorMessage = data.msg || 'Login failed. Please check your credentials or role selection.';
+            if (generalErrorElement) {
+                showError(null, errorMessage, generalErrorElement);
+            } else {
+                alert(errorMessage);
+            }
         }
     } catch (error) {
         console.error('[auth.js] Login request failed:', error);
-        alert('An error occurred during login. Could not connect to server.');
+        const errorMessage = 'An error occurred during login. Could not connect to server.';
+        if (generalErrorElement) {
+            showError(null, errorMessage, generalErrorElement);
+        } else {
+            alert(errorMessage);
+        }
     } finally {
         loginButton.disabled = false;
         loginButton.innerHTML = originalButtonText;
@@ -176,7 +195,7 @@ async function handleSignup(event) {
     }
 
     const signupButton = document.getElementById('signupButton');
-    // const generalErrorElement = document.getElementById('generalSignupError'); // Using alert for general errors
+    const generalErrorElement = null; // Use alert for general signup errors for now
 
     if (!signupButton) {
         console.error("[auth.js] Signup button not found!");
@@ -194,6 +213,7 @@ async function handleSignup(event) {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     const confirmPassword = document.getElementById('confirmPassword').value;
+    const secretWord = document.getElementById('secretWord').value; // Get secret word
     const role = document.getElementById('role').value;
     const department = document.getElementById('department').value;
 
@@ -214,6 +234,10 @@ async function handleSignup(event) {
         showError('confirmPasswordError', 'Passwords do not match.');
         isValid = false;
     }
+    if (!secretWord || secretWord.length < 4) { // Add validation for secret word
+        showError('secretWordError', 'Secret word must be at least 4 characters.');
+        isValid = false;
+    }
     if (!role) {
         showError('roleError', 'Please select a role.');
         isValid = false;
@@ -230,7 +254,7 @@ async function handleSignup(event) {
         const response = await fetch(`${window.API_BASE_URL}/auth/signup`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ fullName, email, password, role, department }),
+            body: JSON.stringify({ fullName, email, password, secretWord, role, department }), // Send secretWord
         });
         const data = await response.json();
         console.log('[auth.js] Signup response status:', response.status);
@@ -240,11 +264,21 @@ async function handleSignup(event) {
             alert(data.msg || `Account Created! Welcome, ${fullName}! Please login.`);
             window.location.href = 'index.html'; 
         } else {
-            alert(data.msg || 'Signup failed. Please try again.');
+             const errorMessage = data.msg || 'Signup failed. Please try again.';
+            if (generalErrorElement) {
+                showError(null, errorMessage, generalErrorElement);
+            } else {
+                alert(errorMessage);
+            }
         }
     } catch (error) {
         console.error('[auth.js] Signup request failed:', error);
-        alert('An error occurred during signup. Could not connect to server.');
+        const errorMessage = 'An error occurred during signup. Could not connect to server.';
+        if (generalErrorElement) {
+            showError(null, errorMessage, generalErrorElement);
+        } else {
+            alert(errorMessage);
+        }
     } finally {
         signupButton.disabled = false;
         signupButton.innerHTML = originalButtonText;
@@ -252,8 +286,74 @@ async function handleSignup(event) {
     }
 }
 
+async function handleForgotPassword(event) {
+    event.preventDefault();
+    clearErrors(); // Clear previous errors
+    console.log("[auth.js] handleForgotPassword triggered");
+
+    const emailInput = document.getElementById('email');
+    const secretWordInput = document.getElementById('secretWord'); // Get secret word input
+    const formMessage = document.getElementById('formMessage'); // For general messages
+    const submitButton = document.querySelector('#forgotPasswordForm button[type="submit"]');
+
+    if (!emailInput || !secretWordInput || !formMessage || !submitButton) {
+        console.error("[auth.js] Forgot password form elements missing!");
+        alert('Page error. Please refresh.');
+        return;
+    }
+
+    const email = emailInput.value.trim();
+    const secretWord = secretWordInput.value.trim(); // Get secret word value
+
+    let isValid = true;
+    if (!email) {
+        showError('emailError', 'Email is required.');
+        isValid = false;
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+        showError('emailError', 'Please enter a valid email address.');
+        isValid = false;
+    }
+    if (!secretWord) { // Add validation for secret word
+        showError('secretWordError', 'Secret word is required.');
+        isValid = false;
+    }
+
+    if (!isValid) return;
+
+    const originalButtonText = submitButton.innerHTML;
+    submitButton.disabled = true;
+    submitButton.innerHTML = '<i data-lucide="loader-2" style="animation: spin 1s linear infinite; display: inline-block; margin-right: 0.5rem;"></i> Sending...';
+    if(window.lucide) window.lucide.createIcons();
+
+    try {
+        const response = await fetch(`${window.API_BASE_URL}/auth/forgot-password`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email, secretWord }) // Send email and secretWord
+        });
+        const data = await response.json();
+
+        if (response.ok && data.resetToken) { // Backend now returns token for auto-redirect simulation
+            window.location.href = `reset_password.html?token=${data.resetToken}`;
+        } else {
+            // Generic message if email/secret word combo not found or other error
+            showError(null, data.msg || 'Could not process request. Please check your email and secret word.', formMessage);
+        }
+    } catch (error) {
+        console.error('Forgot password request failed:', error);
+        showError(null, 'Could not connect to the server. Please try again later.', formMessage);
+    } finally {
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalButtonText;
+        if(window.lucide) window.lucide.createIcons();
+    }
+}
+
+
 function showError(elementId, message, elementInstance = null) {
-    const errorElement = elementInstance || document.getElementById(elementId);
+    const errorElement = elementId ? document.getElementById(elementId) : elementInstance;
     if (errorElement) {
         errorElement.textContent = message;
         errorElement.classList.add('visible');
@@ -261,9 +361,7 @@ function showError(elementId, message, elementInstance = null) {
              errorElement.style.display = 'block';
         }
     } else {
-        console.warn(`[auth.js] Error element with ID '${elementId}' not found. Message: ${message}`);
-        // For critical missing elements, an alert might be too disruptive if it's a minor field.
-        // Fallback to general alert if no specific field error element found is handled by main try-catch.
+        console.warn(`[auth.js] Error element with ID '${elementId}' or instance not found. Message: ${message}`);
     }
 }
 
