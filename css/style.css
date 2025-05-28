@@ -999,3 +999,34 @@ code {
 /* General class for fillable icons if needed */
 .legend-icon-working .lucide-check-circle { color: #28a745; }
 .legend-icon-not-working .lucide-x-circle { color: #dc3545; }
+
+/* Styling for the new Modify Purpose UI in the dialog */
+.modify-purpose-ui {
+    margin-top: 1rem;
+    padding: 1rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 0.5rem;
+    background-color: #f9f9f9;
+}
+.modify-purpose-ui label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    font-size: 0.9rem;
+    color: #495057;
+}
+.modify-purpose-ui input[type="text"] {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    background-color: white; /* White background for active input */
+    margin-bottom: 0.75rem;
+}
+.modify-purpose-ui input[type="text"]:focus {
+    border-color: #14997A; /* Teal */
+    outline: 0;
+    box-shadow: 0 0 0 0.15rem rgba(20, 153, 122, .2);
+}

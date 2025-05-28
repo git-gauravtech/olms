@@ -2,34 +2,22 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
-const { auth, isAdmin } = require('../middleware/authMiddleware');
+const { auth, isAdmin } = require('../middleware/authMiddleware'); // isAdmin is already imported
 const bcrypt = require('bcryptjs');
-const { spawn } = require('child_process'); // Import spawn for C++ integration
+const { spawn } = require('child_process'); 
 
 // @route   GET api/admin/requests/faculty
 // @desc    Get faculty requests needing admin approval
 // @access  Private (Admin only)
 router.get('/requests/faculty', [auth, isAdmin], async (req, res) => {
     try {
+        // This query looks for bookings made by 'Faculty' with status 'pending-admin-approval'
         const [requests] = await pool.query(`
-            SELECT b.*, u.fullName as userName, u.email as userEmail, l.name as labName,
-                   t.displayTime as timeSlotDisplay
+            SELECT b.*, u.fullName as userName, u.email as userEmail, l.name as labName
             FROM bookings b
             JOIN users u ON b.userId = u.id
             LEFT JOIN labs l ON b.labId = l.id
-            LEFT JOIN ( 
-                SELECT 'ts_0800_0900' as id, '08:00 AM - 09:00 AM' as displayTime UNION ALL
-                SELECT 'ts_0900_1000', '09:00 AM - 10:00 AM' UNION ALL
-                SELECT 'ts_1000_1100', '10:00 AM - 11:00 AM' UNION ALL
-                SELECT 'ts_1100_1200', '11:00 AM - 12:00 PM' UNION ALL
-                SELECT 'ts_1200_1300', '12:00 PM - 01:00 PM' UNION ALL
-                SELECT 'ts_1300_1400', '01:00 PM - 02:00 PM' UNION ALL
-                SELECT 'ts_1400_1500', '02:00 PM - 03:00 PM' UNION ALL
-                SELECT 'ts_1500_1600', '03:00 PM - 04:00 PM' UNION ALL
-                SELECT 'ts_1600_1700', '04:00 PM - 05:00 PM' UNION ALL
-                SELECT 'ts_1700_1800', '05:00 PM - 06:00 PM'
-            ) t ON b.timeSlotId = t.id
-            WHERE b.status = ? AND b.requestedByRole = ?
+            WHERE b.status = ? AND b.requestedByRole = ? 
             ORDER BY b.submittedDate ASC
         `, ['pending-admin-approval', 'Faculty']);
         res.json(requests);
@@ -40,56 +28,49 @@ router.get('/requests/faculty', [auth, isAdmin], async (req, res) => {
 });
 
 // @route   POST api/admin/algorithms/:algorithmName
-// @desc    Trigger a specific DAA algorithm
+// @desc    Trigger a specific DAA algorithm (Simulated with one full child_process example)
 // @access  Private (Admin only)
 router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
     const { algorithmName } = req.params;
-    // const { inputPayload } = req.body; // Optional input from frontend
+    // const { inputPayload } = req.body; // Optional input from frontend for specific algorithms
 
     console.log(`[Backend] Admin triggered algorithm: ${algorithmName}`);
-    // console.log(`[Backend] Optional input payload from frontend:`, inputPayload);
-
+    
     let actualInputForCpp = {};
-    let simulatedOutputFromCpp = {}; // Keep this for simulating structure if C++ call fails or is bypassed
+    let simulatedOutputFromCpp = {}; // To store what C++ might output
     let dbUpdateSummary = "No database changes made by algorithm.";
-    let successMessage = `Algorithm '${algorithmName}' processed.`;
+    let successMessage = `Algorithm '${algorithmName}' process initiated.`;
 
     try {
-        console.log(`[Backend] Preparing data for ${algorithmName}...`);
-
         if (algorithmName === 'run-scheduling') { // Graph Coloring
-            successMessage = `Graph Coloring scheduling attempted.`;
+            successMessage = `Graph Coloring scheduling process initiated.`;
             console.log("[Backend] Preparing input for Graph Coloring (Scheduling)...");
+            
             // Simulate fetching data from DB for C++ algorithm
-            console.log("[Backend] DB Query (Simulated): SELECT id, name, capacity FROM labs;");
-            const labsData = [{id: 1, name: "CS Lab 1", capacity: 30}, {id: 2, name: "Physics Lab Alpha", capacity: 20}]; // Simulated
-            
-            console.log("[Backend] DB Query (Simulated): SELECT id, userId, requestedLabType, duration, batchIdentifier, priority FROM bookings WHERE status='pending' OR status='pending-admin-approval';");
-            const pendingRequestsData = [ // Simulated
-                {id: 101, userId: 5, requestedLabType: "CS", duration: 2, batchIdentifier: "CS-A", priority: 10, purpose: "CS101 Lab for CS-A"},
-                {id: 102, userId: 6, requestedLabType: "Physics", duration: 2, batchIdentifier: "PHY-B", priority: 8, purpose: "PHY101 Lab for PHY-B"}
-            ];
-            
-            console.log("[Backend] DB Query (Simulated): SELECT id, startTime, endTime, displayTime FROM time_slots;"); // Assuming a time_slots table or use constants
-            const timeSlotsData = [ // Simulated from constants
+            const [labsDataFromDB] = await pool.query("SELECT id, name, capacity, location FROM labs");
+            const [pendingRequestsFromDB] = await pool.query(
+                "SELECT b.id, b.userId, u.fullName as userName, b.labId as requestedLabId, l.name as requestedLabName, b.purpose, b.batchIdentifier, b.timeSlotId as preferredTimeSlotId, b.date as preferredDate FROM bookings b JOIN users u ON b.userId = u.id LEFT JOIN labs l ON b.labId = l.id WHERE b.status IN (?, ?)", 
+                ['pending', 'pending-admin-approval'] // Consider which requests to feed
+            );
+            // Assuming MOCK_TIME_SLOTS are still valid for this simulation
+            const timeSlotsData = window.MOCK_TIME_SLOTS || [ 
                 { id: 'ts_0900_1000', startTime: '09:00', endTime: '10:00', displayTime: '09:00 AM - 10:00 AM' },
-                { id: 'ts_1000_1100', startTime: '10:00', endTime: '11:00', displayTime: '10:00 AM - 11:00 AM' },
-                // ... more time slots
+                 // ... more time slots
             ];
 
             actualInputForCpp = {
-                labs: labsData,
-                requests: pendingRequestsData,
-                timeSlots: timeSlotsData,
+                labs: labsDataFromDB,
+                requests: pendingRequestsFromDB,
+                timeSlots: timeSlotsData, // This should come from DB or config if dynamic
                 constraints: ["InstructorA cannot teach CS-A and PHY-B simultaneously"] // Example constraint
             };
-            console.log("[Backend] Actual input for C++ (Graph Coloring):", JSON.stringify(actualInputForCpp, null, 2));
+            console.log("[Backend] Actual input for C++ (Graph Coloring):", JSON.stringify(actualInputForCpp, null, 2).substring(0, 1000) + "...");
 
-            // --- Actual C++ Process Invocation ---
-            const cppExecutablePath = './cpp_algorithms/graph_coloring_scheduler'; // IMPORTANT: Replace with actual path to your compiled C++ exe
+
+            const cppExecutablePath = './cpp_algorithms/graph_coloring_scheduler'; // IMPORTANT: Replace with actual path
             console.log(`[Backend] Attempting to spawn C++ process: ${cppExecutablePath}`);
 
-            const cppProcess = spawn(cppExecutablePath, []); // Add command line args if your C++ program expects them
+            const cppProcess = spawn(cppExecutablePath, []); 
 
             let cppOutput = '';
             let cppErrorOutput = '';
@@ -105,7 +86,7 @@ router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
                 cppErrorOutput += data.toString();
                 console.error(`[C++ Stderr for ${algorithmName}]: ${data.toString()}`);
             });
-
+            
             // Using a Promise to handle the asynchronous nature of the child process
             await new Promise((resolve, reject) => {
                 cppProcess.on('close', async (code) => {
@@ -116,16 +97,18 @@ router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
 
                     if (code === 0 && cppOutput) {
                         try {
-                            simulatedOutputFromCpp = JSON.parse(cppOutput); // Expecting JSON output from C++
+                            simulatedOutputFromCpp = JSON.parse(cppOutput); // Expecting JSON output
                             console.log("[Backend] Parsed output from C++ (Graph Coloring):", JSON.stringify(simulatedOutputFromCpp, null, 2));
 
                             // Simulate database update with results from C++
                             console.log(`[Backend] Simulating database update with results from Graph Coloring...`);
                             if (simulatedOutputFromCpp.newlyScheduledBookings && simulatedOutputFromCpp.newlyScheduledBookings.length > 0) {
-                                for (const booking of simulatedOutputFromCpp.newlyScheduledBookings) {
-                                    console.log(`[Backend] DB Update (Simulated): INSERT INTO bookings (labId, userId, date, timeSlotId, purpose, status, ...) VALUES (${booking.labId}, ${booking.userId}, '${booking.date}', '${booking.timeSlotId}', '${booking.purpose}', 'booked', ...);`);
-                                    console.log(`[Backend] DB Update (Simulated): UPDATE bookings SET status='scheduled' WHERE id=${booking.requestId};`);
-                                }
+                                // Example of DB update:
+                                // for (const booking of simulatedOutputFromCpp.newlyScheduledBookings) {
+                                //   await pool.query('INSERT INTO bookings (labId, userId, date, timeSlotId, purpose, status, ...) VALUES (?, ?, ?, ?, ?, "booked", ...)', 
+                                //     [booking.labId, booking.userId, booking.date, booking.timeSlotId, booking.purpose]);
+                                //   await pool.query('UPDATE bookings SET status="scheduled_by_algo" WHERE id=?', [booking.originalRequestId]);
+                                // }
                                 dbUpdateSummary = `${simulatedOutputFromCpp.newlyScheduledBookings.length} sessions scheduled based on C++ output.`;
                             } else {
                                 dbUpdateSummary = "C++ algorithm ran, but no new sessions were scheduled based on its output.";
@@ -140,34 +123,31 @@ router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
                             console.error(`[Backend] Raw C++ output for ${algorithmName}:`, cppOutput);
                             dbUpdateSummary = "C++ process ran, but output was not valid JSON.";
                             successMessage = `Graph Coloring algorithm executed with errors parsing output.`;
-                            // It's important to resolve or reject to not hang the promise
                             reject(new Error(`Error parsing C++ output: ${parseError.message}. Raw output: ${cppOutput.substring(0, 500)}...`));
                         }
                     } else if (code !== 0) {
-                        dbUpdateSummary = `C++ process for ${algorithmName} failed with exit code ${code}.`;
+                        dbUpdateSummary = `C++ process for ${algorithmName} failed with exit code ${code}. Error: ${cppErrorOutput}`;
                         successMessage = `Graph Coloring algorithm execution failed.`;
                         reject(new Error(`C++ process exited with code ${code}. Error: ${cppErrorOutput.substring(0,500)}...`));
                     } else {
                          dbUpdateSummary = `C++ process for ${algorithmName} ran but produced no output to parse.`;
                          successMessage = `Graph Coloring algorithm executed but yielded no parsable results.`;
-                         resolve(); // Resolve if no output but also no error code, or handle as error
+                         resolve(); 
                     }
                 });
 
                 cppProcess.on('error', (err) => {
                     console.error(`[Backend] Failed to start C++ process for ${algorithmName}: `, err);
                     dbUpdateSummary = "Failed to start C++ process.";
-                    successMessage = `Graph Coloring algorithm could not be started.`;
-                    reject(err);
+                    successMessage = `Graph Coloring algorithm could not be started. Check executable path and permissions.`;
+                    reject(err); 
                 });
             });
             // End of Promise for child process
 
-        } else if (algorithmName === 'run-resource-allocation') { // 0/1 Knapsack
-            // ... (Keep detailed simulation as before, for brevity of this example,
-            //      or adapt the spawn pattern from 'run-scheduling' if you have this C++ exe ready)
+        } else if (algorithmName === 'run-resource-allocation') { // 0/1 Knapsack - Simulation
             console.log("[Backend] Simulating: Fetching scarce equipment, availability, requesting sessions, priorities for 0/1 Knapsack.");
-            actualInputForCpp = {
+             actualInputForCpp = {
                 equipmentCapacities: [{type: "Microscope", available: 5}, {type: "Spectrometer", available: 2}],
                 sessions: [
                     {id: 201, priority: 10, needs: {Microscope: 2, Spectrometer: 1}},
@@ -188,11 +168,9 @@ router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
             console.log("[Backend] Simulated output from C++ (Knapsack):", JSON.stringify(simulatedOutputFromCpp, null, 2));
             dbUpdateSummary = `${simulatedOutputFromCpp.allocatedSessions.length} sessions allocated resources. ${simulatedOutputFromCpp.unallocatedSessions.length} sessions could not be fully resourced.`;
             successMessage = `0/1 Knapsack resource allocation simulated: ${dbUpdateSummary}`;
-
-        } else if (algorithmName === 'optimize-lab-usage') { // Greedy Algorithm
-            // ... (Keep detailed simulation as before)
+        } else if (algorithmName === 'optimize-lab-usage') { // Greedy Algorithm - Simulation
             console.log("[Backend] Simulating: Fetching current schedule, empty slots, pending high-priority requests for Greedy Algorithm.");
-            actualInputForCpp = {
+             actualInputForCpp = {
                 emptySlots: [{labId: 1, date: "2024-07-02", timeSlotId: "ts_1400_1500"}, {labId: 3, date: "2024-07-02", timeSlotId: "ts_1000_1100"}],
                 pendingRequests: [
                     {id: 301, priority: 100, needs: "Any Lab", duration: 1},
@@ -211,9 +189,7 @@ router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
             console.log("[Backend] Simulated output from C++ (Greedy):", JSON.stringify(simulatedOutputFromCpp, null, 2));
             dbUpdateSummary = `${simulatedOutputFromCpp.filledSlots.length} empty slots filled.`;
             successMessage = `Greedy lab usage optimization simulated: ${dbUpdateSummary}`;
-
-        } else if (algorithmName === 'assign-nearest-labs') { // Dijkstra's
-            // ... (Keep detailed simulation as before)
+        } else if (algorithmName === 'assign-nearest-labs') { // Dijkstra's - Simulation
             console.log("[Backend] Simulating: Fetching lab locations, user department location, available labs for Dijkstra's.");
             actualInputForCpp = {
                 campusGraph: { nodes: ["A", "B", "C", "L1", "L2", "L3"], edges: [["A","B",5],["B","L1",3],["A","L2",10]]},
@@ -237,8 +213,8 @@ router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
         res.json({
             success: true,
             message: successMessage,
-            simulatedInputForCpp: actualInputForCpp, // Changed from simulatedInput
-            simulatedOutputFromCpp: simulatedOutputFromCpp, // Changed from simulatedOutput
+            simulatedInputForCpp: actualInputForCpp, 
+            simulatedOutputFromCpp: simulatedOutputFromCpp, 
             dbUpdateSummary: dbUpdateSummary
         });
 
@@ -262,10 +238,11 @@ router.get('/system-activity', [auth, isAdmin], async (req, res) => {
 
         // Using mock data for now
         const mockLogs = [
-            { timestamp: new Date(Date.now() - 3600000).toISOString(), user: 'admin@example.com', action: 'Updated Lab "Physics Lab Alpha" details via API.' },
+            { timestamp: new Date(Date.now() - 3600000).toISOString(), user: 'admin@example.com', action: 'Updated Lab "Physics Lab Alpha" details via API.', details: 'Capacity changed to 25' },
             { timestamp: new Date(Date.now() - 7200000).toISOString(), user: 'faculty@example.com', action: 'Booked Computer Lab for "CS101" via API.' },
             { timestamp: new Date(Date.now() - 10800000).toISOString(), user: 'assistant@example.com', action: 'Updated seat status for 5 seats in "Electronics Lab" via API.' },
             { timestamp: new Date().toISOString(), user: 'admin@example.com', action: 'Triggered "run-scheduling" algorithm simulation via API.' },
+            { timestamp: new Date(Date.now() - 24 * 3600000).toISOString(), user: 'admin@example.com', action: 'User "newfaculty@example.com" created via API.' },
         ];
         res.json(mockLogs);
     } catch (err) {
@@ -301,6 +278,12 @@ router.post('/users', [auth, isAdmin], async (req, res) => {
     if (password.length < 6) {
         return res.status(400).json({ msg: 'Password must be at least 6 characters long' });
     }
+     // Add validation for role
+    const validRoles = ['Admin', 'Faculty', 'Student', 'Assistant'];
+    if (!validRoles.includes(role)) {
+        return res.status(400).json({ msg: 'Invalid role specified.' });
+    }
+
 
     try {
         let [users] = await pool.query('SELECT email FROM users WHERE email = ?', [email]);
@@ -310,13 +293,16 @@ router.post('/users', [auth, isAdmin], async (req, res) => {
 
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
-
+        
+        // For admin creation, secretWordHash can be omitted or set to a default/null
+        // If your schema requires it NOT NULL, you might need to pass a placeholder or adjust schema
         const newUser = {
             fullName,
             email,
             passwordHash: hashedPassword,
             role,
-            department: department || null
+            department: department || null,
+            // secretWordHash: 'ADMIN_CREATED_USER_NO_SECRET' // Or similar if required, ensure schema allows NULL or has default
         };
         const [result] = await pool.query('INSERT INTO users SET ?', newUser);
         const [createdUserResult] = await pool.query('SELECT id, fullName, email, role, department, createdAt FROM users WHERE id = ?', [result.insertId]);
@@ -327,6 +313,9 @@ router.post('/users', [auth, isAdmin], async (req, res) => {
         res.status(201).json(createdUserResult[0]);
     } catch (err) {
         console.error('Admin create user error:', err.message, err.stack);
+        if (err.code === 'ER_NO_DEFAULT_FOR_FIELD' && err.sqlMessage.includes('secretWordHash')) {
+            return res.status(500).json({ msg: 'Database schema error: secretWordHash may be missing a default value or not allowing NULLs when admin creates user. Please check schema.'})
+        }
         res.status(500).json({ msg: 'Server error during user creation by admin' });
     }
 });
@@ -344,6 +333,11 @@ router.put('/users/:userId', [auth, isAdmin], async (req, res) => {
     if (isNaN(parseInt(userId))) {
         return res.status(400).json({ msg: 'Invalid User ID format.' });
     }
+    // Add validation for role
+    const validRoles = ['Admin', 'Faculty', 'Student', 'Assistant'];
+    if (!validRoles.includes(role)) {
+        return res.status(400).json({ msg: 'Invalid role specified.' });
+    }
 
     try {
         const [existingUsers] = await pool.query('SELECT id, email, department FROM users WHERE id = ?', [userId]);
@@ -351,7 +345,6 @@ router.put('/users/:userId', [auth, isAdmin], async (req, res) => {
             return res.status(404).json({ msg: 'User not found' });
         }
 
-        // Check if email is being changed and if the new email already exists for another user
         if (email !== existingUsers[0].email) {
             const [emailCheck] = await pool.query('SELECT id FROM users WHERE email = ? AND id != ?', [email, userId]);
             if (emailCheck.length > 0) {
@@ -363,7 +356,7 @@ router.put('/users/:userId', [auth, isAdmin], async (req, res) => {
             fullName,
             email,
             role,
-            department: department !== undefined ? department : existingUsers[0].department // Keep old department if not provided
+            department: department !== undefined ? (department || null) : existingUsers[0].department 
         };
 
         await pool.query('UPDATE users SET ? WHERE id = ?', [updatedUserData, userId]);
@@ -396,15 +389,13 @@ router.delete('/users/:userId', [auth, isAdmin], async (req, res) => {
         }
 
         // DB schema has ON DELETE CASCADE for bookings related to userId.
-        // Add similar logic or DB constraints for other tables referencing users if necessary.
         await pool.query('DELETE FROM users WHERE id = ?', [userId]);
         res.json({ msg: 'User deleted successfully by admin.' });
 
     } catch (err) {
         console.error('Admin delete user error:', err.message, err.stack);
-        // A more specific error code for foreign key constraint violation
         if (err.code === 'ER_ROW_IS_REFERENCED_2' || (err.sqlMessage && err.sqlMessage.toLowerCase().includes('foreign key constraint fails'))) {
-            return res.status(400).json({ msg: 'Cannot delete user. They are referenced in other records (e.g., bookings, equipment assignments not covered by cascade). Consider deactivating or reassigning records first.' });
+            return res.status(400).json({ msg: 'Cannot delete user. They are referenced in other records. Consider deactivating or reassigning records first.' });
         }
         res.status(500).json({ msg: 'Server error while deleting user by admin.' });
     }
@@ -412,4 +403,3 @@ router.delete('/users/:userId', [auth, isAdmin], async (req, res) => {
 
 
 module.exports = router;
-    

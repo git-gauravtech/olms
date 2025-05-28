@@ -45,7 +45,7 @@
                         
                         <section id="systemLogsSection" class="mb-8">
                             <h2 class="text-xl font-semibold mb-3">System Activity Logs</h2>
-                            <div class="bg-gray-100 p-4 rounded-md border border-gray-200 min-h-[150px]">
+                            <div class="bg-gray-100 p-4 rounded-md border border-gray-200 min-h-[150px] max-h-[300px] overflow-y-auto">
                                 <ul id="systemLogsList" class="list-disc list-inside space-y-1 text-sm text-gray-600 mt-2">
                                     <li>Loading logs...</li>
                                 </ul>
@@ -53,27 +53,29 @@
                         </section>
 
                         <section id="generateReportsSection">
-                            <h2 class="text-xl font-semibold mb-3">Generate Reports (Placeholder)</h2>
-                             <div class="grid sm-grid-cols-2 md-grid-cols-3 gap-4">
+                            <h2 class="text-xl font-semibold mb-3">Generate Reports</h2>
+                             <div class="grid sm-grid-cols-2 md-grid-cols-3 gap-4 items-end">
                                 <div class="form-group">
                                     <label for="reportType">Report Type:</label>
                                     <select id="reportType" name="reportType" class="custom-card-content select">
                                         <option value="lab_usage">Lab Usage Statistics</option>
                                         <option value="resource_allocation">Resource Allocation Summary</option>
-                                        <option value="conflict_summary">Conflict Resolution Summary</option>
-                                        <option value="session_history">Session History by Lab</option>
+                                        <option value="user_activity">User Activity Log</option>
+                                        <option value="booking_history">Booking History by Lab</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
-                                    <label for="reportDateRangeStart">Start Date:</label>
+                                    <label for="reportDateRangeStart">Start Date (Optional):</label>
                                     <input type="date" id="reportDateRangeStart" name="reportDateRangeStart" class="custom-card-content input">
                                 </div>
                                 <div class="form-group">
-                                    <label for="reportDateRangeEnd">End Date:</label>
+                                    <label for="reportDateRangeEnd">End Date (Optional):</label>
                                     <input type="date" id="reportDateRangeEnd" name="reportDateRangeEnd" class="custom-card-content input">
                                 </div>
                             </div>
-                            <button type="button" id="generateReportBtnPlaceholder" class="button button-primary mt-4">Generate Report (Placeholder)</button>
+                            <button type="button" id="generateMockReportBtn" class="button button-primary mt-4">
+                                <i data-lucide="download-cloud" class="mr-2 h-4 w-4"></i>Download Mock Report (CSV)
+                            </button>
                             <div id="reportOutputAreaPlaceholder" class="mt-6 p-4 border rounded-md bg-gray-50" style="display: none;">
                                 <h3 class="font-semibold text-lg mb-2">Report Results:</h3>
                                 <pre id="reportContentPlaceholder" class="text-sm whitespace-pre-wrap"></pre>
@@ -114,6 +116,9 @@
                     logs.forEach(log => {
                         const li = document.createElement('li');
                         li.textContent = `[${window.formatDateForDisplay ? window.formatDateForDisplay(new Date(log.timestamp)) : new Date(log.timestamp).toLocaleString()}] User: ${log.user || 'System'} - Action: ${log.action}`;
+                        if (log.details) {
+                            li.textContent += ` - Details: ${log.details}`;
+                        }
                         logsList.appendChild(li);
                     });
                 } else {
@@ -125,29 +130,95 @@
             }
         }
 
+        function generateMockCSV(bookings, reportType) {
+            if (!bookings || bookings.length === 0) {
+                return "No data available for this report.";
+            }
+            let csvContent = "data:text/csv;charset=utf-8,";
+            let headers = [];
+            let rows = [];
+
+            // For simplicity, we'll use a subset of bookings for mock reports
+            // In a real system, specific queries would fetch tailored data.
+            const mockDataSubset = bookings.slice(0, 10); // Use up to 10 bookings for mock report
+
+            switch(reportType) {
+                case "lab_usage":
+                    headers = ["LabName", "Date", "TimeSlot", "Purpose", "BookedBy"];
+                    mockDataSubset.forEach(b => {
+                        const timeSlotDisplay = window.MOCK_TIME_SLOTS.find(ts => ts.id === b.timeSlotId)?.displayTime || b.timeSlotId;
+                        rows.push([b.labName || "N/A", window.formatDate(new Date(b.date)), timeSlotDisplay, b.purpose, b.userName || "N/A"].join(","));
+                    });
+                    break;
+                case "booking_history": // Example
+                    headers = ["BookingID", "LabName", "Date", "TimeSlot", "Status", "BookedBy", "Purpose"];
+                     mockDataSubset.forEach(b => {
+                        const timeSlotDisplay = window.MOCK_TIME_SLOTS.find(ts => ts.id === b.timeSlotId)?.displayTime || b.timeSlotId;
+                        rows.push([b.id, b.labName || "N/A", window.formatDate(new Date(b.date)), timeSlotDisplay, b.status, b.userName || "N/A", b.purpose].join(","));
+                    });
+                    break;
+                default:
+                    return `Report type "${reportType}" not yet implemented for mock generation.`;
+            }
+            
+            csvContent += headers.join(",") + "\n";
+            rows.forEach(row => csvContent += row + "\n");
+            return csvContent;
+        }
+
+        function downloadCSV(csvContent, filename) {
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", filename);
+            document.body.appendChild(link); 
+            link.click();
+            document.body.removeChild(link);
+        }
+
 
         document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM fully loaded and parsed for admin_system_overview.html');
             if (!window.roleGuard(window.USER_ROLES.ADMIN)) return;
             
             window.initializeDashboard();
             window.setDashboardHomeLink();
             loadSystemLogs();
 
-            const generateReportBtn = document.getElementById('generateReportBtnPlaceholder');
-            const reportOutputArea = document.getElementById('reportOutputAreaPlaceholder');
-            const reportContent = document.getElementById('reportContentPlaceholder');
+            const generateReportBtn = document.getElementById('generateMockReportBtn');
             const reportTypeSelect = document.getElementById('reportType');
+            const reportOutputArea = document.getElementById('reportOutputAreaPlaceholder'); // For future use if displaying inline
+            const reportContent = document.getElementById('reportContentPlaceholder'); // For future use
 
-            if (generateReportBtn) {
-                generateReportBtn.addEventListener('click', () => {
+            if (generateReportBtn && reportTypeSelect) {
+                generateReportBtn.addEventListener('click', async () => {
                     const reportType = reportTypeSelect.value;
-                    if (reportContent) {
-                        reportContent.textContent = `Simulating report generation for: '${reportType.replace(/_/g, ' ')}'...\n\n(This is a placeholder. In a real system, data would be fetched from the backend and formatted here.)`;
+                    const reportTypeName = reportTypeSelect.options[reportTypeSelect.selectedIndex].text.replace(/\s+/g, '_');
+                    const filename = `${reportTypeName}_${new Date().toISOString().split('T')[0]}.csv`;
+                    
+                    // For mock CSV, we might use existing bookings data if available, or generate purely static mock
+                    // Let's try to fetch some bookings as a base for the mock data
+                    let bookingsForReport = [];
+                    const token = localStorage.getItem('token');
+                    try {
+                         const response = await fetch(`${window.API_BASE_URL}/bookings`, { // Fetch all bookings (admin view)
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        if (response.ok) {
+                            bookingsForReport = await response.json();
+                        } else {
+                            console.warn("Could not fetch bookings for mock report, using empty data.");
+                        }
+                    } catch(e) {
+                        console.warn("Error fetching bookings for mock report:", e);
                     }
-                    if (reportOutputArea) {
-                        reportOutputArea.style.display = 'block';
+
+                    const csvData = generateMockCSV(bookingsForReport, reportType);
+                    if (csvData.startsWith("data:text/csv")) {
+                        downloadCSV(csvData, filename);
+                    } else {
+                        alert(csvData); // Show error message if report type not implemented
                     }
-                     if (window.lucide) window.lucide.createIcons(); // Ensure icons are rendered if any in report output
                 });
             }
 
