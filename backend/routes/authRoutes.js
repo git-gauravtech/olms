@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
+const crypto = require('crypto'); // For reset token generation
 const pool = require('../config/db');
 const { auth } = require('../middleware/authMiddleware');
 
@@ -31,13 +31,13 @@ router.post('/signup', async (req, res) => {
 
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
-        const hashedSecretWord = await bcrypt.hash(secretWord, salt); 
+        const hashedSecretWord = await bcrypt.hash(secretWord, salt); // Hash the secret word
 
         const newUser = {
             fullName,
             email,
             passwordHash: hashedPassword,
-            secretWordHash: hashedSecretWord, 
+            secretWordHash: hashedSecretWord, // Store hashed secret word
             role,
             department: department || null // Save department
         };
@@ -82,7 +82,7 @@ router.post('/login', async (req, res) => {
         jwt.sign(
             payload,
             process.env.JWT_SECRET,
-            { expiresIn: process.env.JWT_EXPIRES_IN || '1h' },
+            { expiresIn: process.env.JWT_EXPIRES_IN || '1h' }, // Use JWT_EXPIRES_IN from .env
             (err, token) => {
                 if (err) throw err;
                 res.json({
@@ -141,7 +141,7 @@ router.put('/change-password', auth, async (req, res) => {
 });
 
 // @route   POST api/auth/forgot-password
-// @desc    Request password reset
+// @desc    Request password reset (validates email and secret word)
 // @access  Public
 router.post('/forgot-password', async (req, res) => {
     const { email, secretWord } = req.body;
@@ -152,6 +152,7 @@ router.post('/forgot-password', async (req, res) => {
     try {
         const [users] = await pool.query('SELECT id, email, secretWordHash FROM users WHERE email = ?', [email]);
         if (users.length === 0) {
+            // Generic message for security (don't reveal if email exists or if secret word is wrong)
             console.log(`Password reset requested for non-existent email or email/secret word mismatch: ${email}`);
             return res.status(400).json({ msg: 'Invalid email or secret word. Please try again.' });
         }
@@ -164,16 +165,19 @@ router.post('/forgot-password', async (req, res) => {
             return res.status(400).json({ msg: 'Invalid email or secret word. Please try again.' });
         }
 
+        // Generate raw token (to be sent in URL) and its hash (to be stored in DB)
         const resetToken = crypto.randomBytes(32).toString('hex');
         const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-        const resetTokenExpires = new Date(Date.now() + 3600000); // 1 hour from now
+        const resetTokenExpires = new Date(Date.now() + 3600000); // Token valid for 1 hour
 
         await pool.query(
             'UPDATE users SET resetPasswordToken = ?, resetPasswordExpires = ? WHERE id = ?',
             [hashedToken, resetTokenExpires, user.id]
         );
 
-        const resetUrl = `http://localhost:9002/reset_password.html?token=${resetToken}`; // Assuming frontend is on port 9002
+        // For simulation, we log the link and return the token for auto-redirect
+        // In a real app, you would email this link.
+        const resetUrl = `http://localhost:9002/reset_password.html?token=${resetToken}`; // Adjust frontend URL/port if needed
         console.log('------------------------------------');
         console.log('PASSWORD RESET REQUESTED & VALIDATED (SECRET WORD MATCH)');
         console.log(`User: ${user.email} (ID: ${user.id})`);
@@ -207,6 +211,7 @@ router.post('/reset-password', async (req, res) => {
     }
 
     try {
+        // Hash the token received from the client to compare with the stored hash
         const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
         const [users] = await pool.query(

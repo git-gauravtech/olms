@@ -15,12 +15,13 @@ async function initializeBookingForm() {
         if(formSubmissionMessageEl) showFormSubmissionMessage('Error: User role not found. Cannot initialize form.', true, formSubmissionMessageEl);
         return;
     }
+    console.log('[booking_form.js] Initializing for role:', currentUserRole);
+
 
     if (batchIdentifierGroup && batchIdentifierInput) {
-        // Show for Faculty and Admin as they might book for specific sections/batches
         if (currentUserRole === window.USER_ROLES.FACULTY || currentUserRole === window.USER_ROLES.ADMIN) {
             batchIdentifierGroup.style.display = 'block'; 
-            batchIdentifierInput.required = false; // Making it optional for faculty/admin
+            batchIdentifierInput.required = false; // Optional for faculty/admin
         } else {
             batchIdentifierGroup.style.display = 'none';
             batchIdentifierInput.required = false;
@@ -32,7 +33,7 @@ async function initializeBookingForm() {
         if (labIdSelect) {
             labIdSelect.innerHTML = '<option value="">Loading labs...</option>';
             const labsResponse = await fetch(`${window.API_BASE_URL}/labs`, { headers: { 'Authorization': `Bearer ${token}` } });
-            if (!labsResponse.ok) throw new Error('Failed to fetch labs');
+            if (!labsResponse.ok) throw new Error(`Failed to fetch labs: ${labsResponse.status} ${labsResponse.statusText}`);
             const labs = await labsResponse.json();
             labIdSelect.innerHTML = '<option value="">Select Lab</option>';
             if (labs && labs.length > 0) {
@@ -62,7 +63,7 @@ async function initializeBookingForm() {
         if (equipmentCheckboxesContainer) {
             equipmentCheckboxesContainer.innerHTML = '<p>Loading equipment...</p>';
             const equipmentResponse = await fetch(`${window.API_BASE_URL}/equipment?status=available`, { headers: { 'Authorization': `Bearer ${token}` } });
-            if (!equipmentResponse.ok) throw new Error('Failed to fetch equipment');
+            if (!equipmentResponse.ok) throw new Error(`Failed to fetch equipment: ${equipmentResponse.status} ${equipmentResponse.statusText}`);
             const availableEquipment = await equipmentResponse.json();
             equipmentCheckboxesContainer.innerHTML = '';
             if (availableEquipment.length === 0) {
@@ -142,9 +143,9 @@ async function initializeBookingForm() {
                 timeSlotId: timeSlotId,
                 purpose: purpose,
                 equipmentIds: selectedEquipment.length > 0 ? selectedEquipment : null, 
-                batchIdentifier: batchId,
+                batchIdentifier: batchId || null, // Ensure it sends null if empty
             };
-            console.log("Frontend: New booking data to send:", JSON.parse(JSON.stringify(bookingData))); // Log a clone for safety
+            console.log("[booking_form.js] New booking data to send:", JSON.parse(JSON.stringify(bookingData)));
 
             const submitButton = bookingForm.querySelector('button[type="submit"]');
             const originalButtonHtml = submitButton.innerHTML;
@@ -164,15 +165,9 @@ async function initializeBookingForm() {
 
                 const result = await response.json();
 
-                if (response.ok || response.status === 202) { // 201 for created, 202 for accepted (faculty conflict)
-                    const labNameFromResult = result.booking?.labName || result.labName || (labIdSelect.options[labIdSelect.selectedIndex]?.textContent.split(' (')[0] || 'Selected Lab');
-                    let successMessage = `Booking for "${result.booking?.purpose || result.purpose}" (Lab: ${labNameFromResult}, Status: ${result.booking?.status?.toUpperCase() || result.status?.toUpperCase()}) processed.`;
-                    if (response.status === 202 && result.message) { // Specific message for faculty conflict leading to admin review
-                        successMessage = result.message;
-                    } else if (response.ok) {
-                         successMessage = `Booking for "${result.purpose}" (Lab: ${labNameFromResult}, Status: ${result.status?.toUpperCase()}) processed successfully!`;
-                    }
-                    
+                if (response.ok) { // Typically 201 Created for successful POST
+                    const labNameFromResult = result.labName || (labIdSelect.options[labIdSelect.selectedIndex]?.textContent.split(' (')[0] || 'Selected Lab');
+                    let successMessage = `Booking for "${result.purpose}" (Lab: ${labNameFromResult}, Status: ${result.status?.toUpperCase()}) processed successfully!`;
                     showFormSubmissionMessage(successMessage, false, formSubmissionMessageEl);
                     bookingForm.reset(); 
                     if (batchIdentifierInput) batchIdentifierInput.value = ''; 
@@ -182,13 +177,14 @@ async function initializeBookingForm() {
                         const newURL = window.location.pathname; 
                         history.pushState({path:newURL}, '', newURL);
                     }
-                } else {
-                    // Handle conflict with alternatives specifically
-                    if (response.status === 409 && result.conflict && result.message) {
-                         showFormSubmissionMessage(`${result.message}`, true, formSubmissionMessageEl); // Display simulated alternatives
-                    } else {
-                         showFormSubmissionMessage(`Booking failed: ${result.msg || 'An unknown error occurred.'}`, true, formSubmissionMessageEl);
-                    }
+                } else if (response.status === 202 && result.conflict && result.message) { // Accepted for admin review
+                     showFormSubmissionMessage(result.message, false, formSubmissionMessageEl); // Display conflict message with alternatives
+                     bookingForm.reset(); 
+                     if (batchIdentifierInput) batchIdentifierInput.value = ''; 
+                     if (bookingDateInput) bookingDateInput.min = window.formatDate(new Date());
+                }
+                 else {
+                     showFormSubmissionMessage(`Booking failed: ${result.msg || 'An unknown error occurred.'}`, true, formSubmissionMessageEl);
                 }
 
             } catch (error) {

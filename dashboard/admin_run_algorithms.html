@@ -1,5 +1,4 @@
-<!-- This file is no longer used and can be deleted. Functionality removed. -->
-<!-- Running algorithms feature has been removed from Admin dashboard based on user request. -->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -37,43 +36,45 @@
                 <div class="custom-card">
                     <div class="custom-card-header">
                         <i data-lucide="cpu"></i>
-                        <h1 class="custom-card-title">Run Optimization Algorithms (Simulation)</h1>
+                        <h1 class="custom-card-title">Run Optimization Algorithms (Simulation & Integration Point)</h1>
                     </div>
                     <div class="custom-card-content">
                         <p class="text-muted-foreground mb-6">
                             Trigger backend DAA algorithms to optimize lab scheduling and resource allocation.
-                            Results shown are simulations. Real integration requires C++ executables.
+                            Results shown are simulations unless actual C++ integration is complete.
+                            The "Run Scheduling (Graph Coloring)" button demonstrates a full Node.js `spawn` call structure for C++ integration.
                         </p>
                         
                         <div class="grid md-grid-cols-2 gap-4 mb-6">
-                            <button type="button" class="button button-primary" onclick="runAlgorithm('Graph Coloring Scheduling', 'run-scheduling')">
+                            <button type="button" class="button button-primary" onclick="runAlgorithm('Graph Coloring Scheduling', 'run-scheduling', this)">
                                 <i data-lucide="palette" class="mr-2 h-4 w-4"></i> Run Scheduling (Graph Coloring)
                             </button>
-                            <button type="button" class="button button-primary" onclick="runAlgorithm('0/1 Knapsack Resource Allocation', 'run-resource-allocation')">
+                            <button type="button" class="button button-primary" onclick="runAlgorithm('0/1 Knapsack Resource Allocation', 'run-resource-allocation', this)">
                                 <i data-lucide="package" class="mr-2 h-4 w-4"></i> Run Resource Allocation (Knapsack)
                             </button>
-                            <button type="button" class="button button-primary" onclick="runAlgorithm('Greedy Lab Usage Optimization', 'optimize-lab-usage')">
+                            <button type="button" class="button button-primary" onclick="runAlgorithm('Greedy Lab Usage Optimization', 'optimize-lab-usage', this)">
                                 <i data-lucide="zap" class="mr-2 h-4 w-4"></i> Optimize Lab Usage (Greedy)
                             </button>
-                            <button type="button" class="button button-primary" onclick="runAlgorithm('Dijkstra Nearest Lab Assignment', 'assign-nearest-labs')">
+                            <button type="button" class="button button-primary" onclick="runAlgorithm('Dijkstra Nearest Lab Assignment', 'assign-nearest-labs', this)">
                                 <i data-lucide="map-pin" class="mr-2 h-4 w-4"></i> Assign Nearest Labs (Dijkstra)
                             </button>
                         </div>
 
                         <div id="algorithmStatusSection" class="mt-6 p-4 border rounded-md bg-gray-50" style="display: none;">
                             <h3 id="algorithmStatusTitle" class="font-semibold text-lg mb-2">Algorithm Status:</h3>
-                            <div id="algorithmStatusMessage" class="text-sm whitespace-pre-wrap"></div>
+                            <div id="algorithmStatusMessage" class="text-sm whitespace-pre-wrap mb-3"></div>
+                            
                             <div id="algorithmInputDisplay" class="mt-3" style="display:none;">
-                                <h4 class="font-medium text-md">Simulated Input to C++:</h4>
-                                <pre class="text-xs bg-gray-100 p-2 rounded-md overflow-x-auto"></pre>
+                                <h4 class="font-medium text-md">Simulated/Actual Input Sent to C++ (or C++ Layer):</h4>
+                                <pre class="text-xs bg-gray-100 p-2 rounded-md overflow-x-auto max-h-60"></pre>
                             </div>
                              <div id="algorithmOutputDisplay" class="mt-3" style="display:none;">
-                                <h4 class="font-medium text-md">Simulated Output from C++:</h4>
-                                <pre class="text-xs bg-gray-100 p-2 rounded-md overflow-x-auto"></pre>
+                                <h4 class="font-medium text-md">Simulated/Actual Output Received from C++ (or C++ Layer):</h4>
+                                <pre class="text-xs bg-gray-100 p-2 rounded-md overflow-x-auto max-h-60"></pre>
                             </div>
                              <div id="algorithmDbSummaryDisplay" class="mt-3" style="display:none;">
-                                <h4 class="font-medium text-md">Simulated DB Update Summary:</h4>
-                                <p class="text-xs"></p>
+                                <h4 class="font-medium text-md">Simulated Database Update Summary:</h4>
+                                <p class="text-xs whitespace-pre-wrap"></p>
                             </div>
                         </div>
                     </div>
@@ -95,7 +96,7 @@
             if (window.lucide) window.lucide.createIcons();
         });
 
-        async function runAlgorithm(algorithmFriendlyName, algorithmEndpointName) {
+        async function runAlgorithm(algorithmFriendlyName, algorithmEndpointName, buttonElement) {
             const statusSection = document.getElementById('algorithmStatusSection');
             const statusTitle = document.getElementById('algorithmStatusTitle');
             const statusMessage = document.getElementById('algorithmStatusMessage');
@@ -111,20 +112,30 @@
                 alert('Error: UI elements for displaying algorithm status are missing.');
                 return;
             }
-            
-            statusTitle.textContent = `Algorithm Status: ${algorithmFriendlyName}`;
-            statusMessage.innerHTML = `<i data-lucide="loader-2" style="animation: spin 1s linear infinite; display: inline-block; margin-right: 0.5rem;"></i> Running ${algorithmFriendlyName}... Please wait. This is a simulation.`;
-            statusSection.style.display = 'block';
-            inputDisplay.style.display = 'none';
-            outputDisplay.style.display = 'none';
-            dbSummaryDisplay.style.display = 'none';
 
-            if (window.lucide) window.lucide.createIcons();
+            // Disable all algorithm buttons
+            const allAlgoButtons = document.querySelectorAll('.custom-card-content .button-primary');
+            allAlgoButtons.forEach(btn => btn.disabled = true);
+            
+            const originalButtonHTML = buttonElement.innerHTML;
+            buttonElement.innerHTML = `<i data-lucide="loader-2" style="animation: spin 1s linear infinite; display: inline-block; margin-right: 0.5rem;"></i> Running...`;
+            if (window.lucide) window.lucide.createIcons(); // Render loader icon
+
+            statusTitle.textContent = `Algorithm Status: ${algorithmFriendlyName}`;
+            statusMessage.innerHTML = `Running ${algorithmFriendlyName}... Please wait. This may take a moment.`;
+            statusSection.style.display = 'block';
+            inputDisplay.style.display = 'none'; inputPre.textContent = '';
+            outputDisplay.style.display = 'none'; outputPre.textContent = '';
+            dbSummaryDisplay.style.display = 'none'; dbSummaryP.textContent = '';
+
 
             const token = localStorage.getItem('token');
             if (!token) {
                 statusMessage.innerHTML = `<i data-lucide="alert-triangle" style="color: orange; display: inline-block; margin-right: 0.5rem;"></i> Error: Not authenticated. Please log in.`;
                 if (window.lucide) window.lucide.createIcons();
+                buttonElement.innerHTML = originalButtonHTML;
+                allAlgoButtons.forEach(btn => btn.disabled = false);
+                if (window.lucide) window.lucide.createIcons(); // Re-render original button icon
                 return;
             }
 
@@ -135,33 +146,47 @@
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     }
+                    // body: JSON.stringify({ somePayload: 'if_needed' }) // Example if you need to send payload
                 });
 
                 const result = await response.json();
 
                 if (response.ok && result.success) {
-                    statusMessage.innerHTML = `<i data-lucide="check-circle" style="color: green; display: inline-block; margin-right: 0.5rem;"></i> ${algorithmFriendlyName} simulation completed: ${result.message || 'Success!'}`;
+                    statusMessage.innerHTML = `<i data-lucide="check-circle" style="color: green; display: inline-block; margin-right: 0.5rem;"></i> ${algorithmFriendlyName} process completed: ${result.message || 'Success!'}`;
                     
-                    if(result.simulatedInputForCpp) {
-                        inputPre.textContent = JSON.stringify(result.simulatedInputForCpp, null, 2);
+                    if(result.simulatedInputSentToCpp) {
+                        inputPre.textContent = JSON.stringify(result.simulatedInputSentToCpp, null, 2);
                         inputDisplay.style.display = 'block';
                     }
-                    if(result.simulatedOutputFromCpp) {
-                        outputPre.textContent = JSON.stringify(result.simulatedOutputFromCpp, null, 2);
+                    if(result.simulatedOutputReceivedFromCpp) {
+                        outputPre.textContent = JSON.stringify(result.simulatedOutputReceivedFromCpp, null, 2);
                         outputDisplay.style.display = 'block';
                     }
-                     if(result.dbUpdateSummary) {
-                        dbSummaryP.textContent = result.dbUpdateSummary;
+                     if(result.simulatedDatabaseUpdateSummary) {
+                        dbSummaryP.textContent = result.simulatedDatabaseUpdateSummary;
                         dbSummaryDisplay.style.display = 'block';
                     }
-
                 } else {
-                    statusMessage.innerHTML = `<i data-lucide="x-circle" style="color: red; display: inline-block; margin-right: 0.5rem;"></i> ${algorithmFriendlyName} simulation failed: ${result.msg || result.message || 'Unknown error from server'}`;
+                    statusMessage.innerHTML = `<i data-lucide="x-circle" style="color: red; display: inline-block; margin-right: 0.5rem;"></i> ${algorithmFriendlyName} process failed: ${result.msg || result.message || 'Unknown error from server'}`;
+                     if(result.simulatedInputSentToCpp) {
+                        inputPre.textContent = JSON.stringify(result.simulatedInputSentToCpp, null, 2);
+                        inputDisplay.style.display = 'block';
+                    }
+                    if(result.simulatedOutputReceivedFromCpp && Object.keys(result.simulatedOutputReceivedFromCpp).length > 0) {
+                        outputPre.textContent = JSON.stringify(result.simulatedOutputReceivedFromCpp, null, 2);
+                        outputDisplay.style.display = 'block';
+                    }
+                     if(result.simulatedDatabaseUpdateSummary) {
+                        dbSummaryP.textContent = result.simulatedDatabaseUpdateSummary;
+                        dbSummaryDisplay.style.display = 'block';
+                    }
                 }
             } catch (error) {
                 console.error(`Error running ${algorithmFriendlyName}:`, error);
-                statusMessage.innerHTML = `<i data-lucide="alert-triangle" style="color: orange; display: inline-block; margin-right: 0.5rem;"></i> Error communicating with server for ${algorithmFriendlyName}. Check console for details.`;
+                statusMessage.innerHTML = `<i data-lucide="alert-triangle" style="color: orange; display: inline-block; margin-right: 0.5rem;"></i> Error communicating with server for ${algorithmFriendlyName}. Check console for details. Message: ${error.message}`;
             } finally {
+                buttonElement.innerHTML = originalButtonHTML;
+                allAlgoButtons.forEach(btn => btn.disabled = false);
                 if (window.lucide) window.lucide.createIcons();
             }
         }

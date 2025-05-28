@@ -46,6 +46,7 @@ The core DAA algorithms are intended to be implemented in C++ and integrated wit
     ```bash
     npm install
     ```
+    *(Note: Ensure you have also run `npm install` inside the `backend` directory as per "Backend Setup")*
 3.  **Start the Server**:
     *   From the **root directory**, run:
         ```bash
@@ -109,4 +110,5 @@ If you only want to work on frontend HTML/CSS/JS changes without running the ful
 *   The backend now serves the static frontend files, unifying the application under one server process for easier running.
 *   Authentication is handled using JWT (JSON Web Tokens).
 *   Icons are from the [Lucide Icons](https://lucide.dev/) library, loaded via CDN on the frontend.
-*   The C++ algorithm integration points are simulated in the backend (`POST /api/admin/algorithms/:algorithmName`). The actual execution of C++ code from Node.js (e.g., via `child_process`) is a subsequent implementation step.
+*   The C++ algorithm integration points are simulated in the backend (`POST /api/admin/algorithms/:algorithmName`). The actual execution of C++ code from Node.js (e.g., via `child_process`) is a subsequent implementation step. The path to the C++ executable in `backend/routes/adminRoutes.js` is a placeholder and **must be updated** to your actual compiled C++ program's location.
+
