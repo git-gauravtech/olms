@@ -88,8 +88,13 @@
                                 </div>
                                 <div class="form-group" id="passwordGroup">
                                     <label for="userPassword">Password</label>
-                                    <input type="password" id="userPassword" name="userPassword" placeholder="Min. 6 characters" required> <!-- Made required for "Add User" -->
+                                    <input type="password" id="userPassword" name="userPassword" placeholder="Min. 6 characters">
                                     <p class="text-xs text-muted-foreground mt-1" id="passwordHelpText">Required for new users. Leave blank if not changing existing user's password.</p>
+                                </div>
+                                <div class="form-group" id="secretWordGroup">
+                                    <label for="userSecretWord">Secret Word</label>
+                                    <input type="text" id="userSecretWord" name="userSecretWord" placeholder="Min. 4 characters">
+                                    <p class="text-xs text-muted-foreground mt-1" id="secretWordHelpText">Required for new users. Used for password recovery.</p>
                                 </div>
                                 <div class="form-group">
                                     <label for="userRole">Role</label>
@@ -139,15 +144,19 @@
             const cancelUserModalBtn = document.getElementById('cancelUserModalBtn');
             const userFormMessage = document.getElementById('userFormMessage');
             const token = localStorage.getItem('token');
+
             const passwordGroup = document.getElementById('passwordGroup');
             const userPasswordInput = document.getElementById('userPassword');
             const passwordHelpText = document.getElementById('passwordHelpText');
+            const secretWordGroup = document.getElementById('secretWordGroup');
+            const userSecretWordInput = document.getElementById('userSecretWord');
+            const secretWordHelpText = document.getElementById('secretWordHelpText');
 
 
             function populateRoleDropdown(selectElementId) {
                 const roleSelect = document.getElementById(selectElementId);
                 if (roleSelect && window.USER_ROLE_VALUES) {
-                    roleSelect.innerHTML = ''; // Clear previous options
+                    roleSelect.innerHTML = ''; 
                     window.USER_ROLE_VALUES.forEach(roleValue => {
                         const option = document.createElement('option');
                         option.value = roleValue;
@@ -174,7 +183,7 @@
             }
             
             function openUserForm(user = null) {
-                if (!userForm || !userModalTitle || !passwordGroup || !userPasswordInput || !passwordHelpText) {
+                if (!userForm || !userModalTitle || !passwordGroup || !userPasswordInput || !passwordHelpText || !secretWordGroup || !userSecretWordInput || !secretWordHelpText) {
                     console.error("Modal form elements not found for openUserForm.");
                     alert("Error: User form cannot be opened.");
                     return;
@@ -199,11 +208,20 @@
                     userPasswordInput.required = false; 
                     passwordHelpText.textContent = "Password cannot be changed from this admin interface for existing users.";
 
+                    secretWordGroup.style.display = 'none';
+                    userSecretWordInput.required = false;
+                    secretWordHelpText.textContent = "Secret word cannot be changed from this admin interface for existing users.";
+
+
                 } else { // Adding new user
                     userModalTitle.textContent = 'Add New User';
                     passwordGroup.style.display = 'block';
                     userPasswordInput.required = true;
                     passwordHelpText.textContent = "Required for new users. Min. 6 characters.";
+
+                    secretWordGroup.style.display = 'block';
+                    userSecretWordInput.required = true;
+                    secretWordHelpText.textContent = "Required for new users. Min. 4 characters. Used for password recovery.";
                 }
                 if(userModal) userModal.classList.add('open');
                 if (window.lucide) window.lucide.createIcons();
@@ -270,11 +288,11 @@
             
             function attachActionListeners() {
                 document.querySelectorAll('.editUserBtn').forEach(button => {
-                    button.removeEventListener('click', handleEditUserClick); // Remove old listener if any
+                    button.removeEventListener('click', handleEditUserClick); 
                     button.addEventListener('click', handleEditUserClick);
                 });
                 document.querySelectorAll('.deleteUserBtn').forEach(button => {
-                     button.removeEventListener('click', handleDeleteUserClick); // Remove old listener
+                     button.removeEventListener('click', handleDeleteUserClick); 
                     button.addEventListener('click', handleDeleteUserClick);
                 });
             }
@@ -304,12 +322,13 @@
                     department: document.getElementById('userDepartment').value || null
                 };
                 const password = userPasswordInput.value;
+                const secretWord = userSecretWordInput.value;
 
                 let url, method;
                 if (EDITING_USER_ID) {
                     url = `${window.API_BASE_URL}/admin/users/${EDITING_USER_ID}`;
                     method = 'PUT';
-                    // Password is not sent for updates via admin panel
+                    // Password & Secret Word are not sent for updates via admin panel for existing users
                 } else { // Adding new user
                     url = `${window.API_BASE_URL}/admin/users`;
                     method = 'POST';
@@ -321,7 +340,16 @@
                         }
                         return;
                     }
+                    if (!secretWord || secretWord.length < 4) {
+                        if(userFormMessage) {
+                            userFormMessage.textContent = 'Secret Word is required for new users and must be at least 4 characters.';
+                            userFormMessage.style.display = 'block';
+                            userFormMessage.className = 'error-message visible';
+                        }
+                        return;
+                    }
                     userData.password = password;
+                    userData.secretWord = secretWord;
                 }
 
                 try {
@@ -337,7 +365,7 @@
                     if (response.ok) {
                         alert(`User ${EDITING_USER_ID ? 'updated' : 'added'} successfully!`);
                         closeUserModal();
-                        await renderUsersTable(); // Refresh table
+                        await renderUsersTable(); 
                     } else {
                         if(userFormMessage) {
                             userFormMessage.textContent = result.msg || `Failed to ${EDITING_USER_ID ? 'update' : 'add'} user.`;
@@ -366,7 +394,7 @@
                     const result = await response.json();
                     if (response.ok) {
                         alert(result.msg || 'User deleted successfully.');
-                        await renderUsersTable(); // Refresh table
+                        await renderUsersTable(); 
                     } else {
                         alert(`Failed to delete user: ${result.msg || 'Server error'}`);
                     }
