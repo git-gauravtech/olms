@@ -40,7 +40,7 @@
                     </div>
                     <div class="custom-card-content">
                         <p class="text-muted-foreground">
-                            Oversee laboratory equipment, inventory, status, and assignments.
+                            Oversee laboratory equipment, inventory, status, and assignments. Each entry represents an individual unit.
                         </p>
                          <button type="button" id="addNewEquipmentBtn" class="button button-primary mt-4 mb-4">
                             <i data-lucide="plus-circle" class="mr-2"></i> Add New Equipment
@@ -66,12 +66,12 @@
                             <div class="dialog-body">
                                 <input type="hidden" id="equipmentId" name="equipmentId">
                                 <div class="form-group">
-                                    <label for="equipmentName">Equipment Name</label>
-                                    <input type="text" id="equipmentName" name="equipmentName" required>
+                                    <label for="equipmentName">Equipment Name (Unique Identifier)</label>
+                                    <input type="text" id="equipmentName" name="equipmentName" placeholder="e.g., Oscilloscope - Unit 1, Microscope Alpha" required>
                                 </div>
                                 <div class="form-group">
                                     <label for="equipmentType">Type</label>
-                                    <input type="text" id="equipmentType" name="equipmentType" required>
+                                    <input type="text" id="equipmentType" name="equipmentType" placeholder="e.g., Oscilloscope, Microscope, Power Supply" required>
                                 </div>
                                 <div class="form-group">
                                     <label for="equipmentStatus">Status</label>
@@ -105,13 +105,12 @@
     <script src="js/admin_management.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            if (!roleGuard(USER_ROLES.ADMIN)) return;
-            initializeDashboard();
-            initializeEquipmentManagementPage(); // From admin_management.js
+            console.log('DOM fully loaded and parsed for admin_manage_equipment.html');
+            if (!window.roleGuard(window.USER_ROLES.ADMIN)) return;
+            window.initializeDashboard();
+            window.initializeEquipmentManagementPage(); // From admin_management.js
             if (window.lucide) window.lucide.createIcons();
         });
     </script>
 </body>
 </html>
-
-    

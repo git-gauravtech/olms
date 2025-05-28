@@ -40,7 +40,7 @@
                     </div>
                     <div class="custom-card-content">
                         <p class="text-muted-foreground mb-4">
-                            Review and manage booking requests or other items from Faculty that require admin approval.
+                            Review and manage booking requests or other items from Faculty that require admin approval (e.g., status 'pending-admin-approval').
                         </p>
                         <div id="facultyRequestsListContainer" class="space-y-4">
                            <p>Loading Faculty requests...</p>
@@ -59,8 +59,8 @@
         const token = localStorage.getItem('token');
 
         async function loadAndRenderFacultyRequests() {
-            if (!requestsListContainer || !window.API_BASE_URL) {
-                 if (requestsListContainer) requestsListContainer.innerHTML = '<p class="error-message visible">Page setup error.</p>';
+            if (!requestsListContainer || !window.API_BASE_URL || !token) {
+                 if (requestsListContainer) requestsListContainer.innerHTML = '<p class="error-message visible">Page setup error or not authenticated.</p>';
                 return;
             }
             requestsListContainer.innerHTML = '<p>Loading Faculty requests...</p>';
@@ -72,11 +72,12 @@
 
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({ msg: `Server error: ${response.status}` }));
+                    console.error("Failed to fetch faculty requests:", errorData.msg || `Status: ${response.status}`);
                     throw new Error(errorData.msg || `Failed to fetch faculty requests`);
                 }
                 const facultyPendingAdminRequests = await response.json();
                 
-                // console.log("Fetched Faculty Pending Admin Requests:", facultyPendingAdminRequests);
+                console.log("Fetched Faculty Pending Admin Requests:", facultyPendingAdminRequests);
 
                 if (facultyPendingAdminRequests.length > 0) {
                     requestsListContainer.innerHTML = ''; 
@@ -90,15 +91,15 @@
                             <h3 class="text-lg font-semibold mb-1">${requestTitle} ${request.labName ? `(Lab: ${request.labName})` : ''}</h3>
                             <p class="text-sm text-muted-foreground"><strong>Faculty:</strong> ${request.userName || 'N/A'} (${request.userEmail || 'N/A'})</p>
                             <p class="text-sm text-muted-foreground"><strong>Details/Purpose:</strong> ${request.purpose || 'N/A'}</p>
-                            <p class="text-sm text-muted-foreground"><strong>Submitted Date:</strong> ${request.submittedDate ? window.formatDate(new Date(request.submittedDate)) : 'N/A'}</p>
+                            <p class="text-sm text-muted-foreground"><strong>Submitted Date:</strong> ${request.submittedDate ? window.formatDateForDisplay(new Date(request.submittedDate)) : 'N/A'}</p>
                             ${request.labId && request.labName ? `<p class="text-sm text-muted-foreground"><strong>Associated Lab:</strong> ${request.labName}</p>` : ''}
                             ${request.date ? `<p class="text-sm text-muted-foreground"><strong>Requested Date:</strong> ${window.formatDate(new Date(request.date))}</p>` : ''}
                             ${request.timeSlotId ? `<p class="text-sm text-muted-foreground"><strong>Requested Time:</strong> ${ (window.MOCK_TIME_SLOTS && request.timeSlotId) ? (window.MOCK_TIME_SLOTS.find(ts=>ts.id === request.timeSlotId)?.displayTime || request.timeSlotId) : (request.timeSlotId || 'N/A')}</p>` : ''}
                             <p class="text-sm text-muted-foreground"><strong>Status:</strong> <span class="font-medium text-yellow-600">${request.status ? request.status.toUpperCase().replace(/-/g, ' ') : 'N/A'}</span></p>
                             <div class="mt-3 flex gap-2">
-                                <button type="button" class="button button-primary button-sm" onclick="handleFacultyRequestAction(${request.id}, 'booked')">Approve (Book Slot)</button>
-                                <button type="button" class="button button-outline button-sm" onclick="handleFacultyRequestAction(${request.id}, 'approved-by-admin')">Mark Approved (No Conflict Check)</button>
-                                <button type="button" class="button button-secondary button-sm" onclick="handleFacultyRequestAction(${request.id}, 'rejected-by-admin')">Reject</button>
+                                <button type="button" class="button button-primary button-sm" onclick="handleFacultyRequest(${request.id}, 'booked')">Approve (Book Slot)</button>
+                                <button type="button" class="button button-outline button-sm" onclick="handleFacultyRequest(${request.id}, 'approved-by-admin')">Mark Approved (No Conflict Check)</button>
+                                <button type="button" class="button button-secondary button-sm" onclick="handleFacultyRequest(${request.id}, 'rejected-by-admin')">Reject</button>
                             </div>
                         `;
                         requestsListContainer.appendChild(card);
@@ -109,7 +110,7 @@
 
             } catch (error) {
                 console.error("Error in loadAndRenderFacultyRequests:", error);
-                requestsListContainer.innerHTML = `<p class="error-message visible">Error loading requests: ${error.message}</p>`;
+                if (requestsListContainer) requestsListContainer.innerHTML = `<p class="error-message visible">Error loading requests: ${error.message}</p>`;
             }
             if (window.lucide) window.lucide.createIcons();
         }
@@ -123,7 +124,7 @@
             await loadAndRenderFacultyRequests();
         });
 
-        async function handleFacultyRequestAction(bookingId, newStatus) {
+        async function handleFacultyRequest(bookingId, newStatus) {
             const actionText = newStatus.includes('approve') || newStatus.includes('book') ? 'approve' : (newStatus.includes('reject') ? 'reject' : 'update');
             if (!confirm(`Are you sure you want to ${actionText} this request?`)) return;
             
@@ -142,10 +143,11 @@
                     alert(`Request status updated to: ${result.status ? result.status.toUpperCase().replace(/-/g, ' ') : 'Updated'}`);
                     await loadAndRenderFacultyRequests(); 
                 } else {
+                     console.error("Failed to update request status. Backend response:", result);
                     alert(`Failed to update request status: ${result.msg || 'Server error'}`);
                 }
             } catch (error) {
-                console.error("Error in handleFacultyRequestAction:", error);
+                console.error("Error in handleFacultyRequest:", error);
                 alert(`An error occurred while updating the request status: ${error.message}`);
             }
         }
