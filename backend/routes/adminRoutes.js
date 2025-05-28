@@ -11,6 +11,7 @@ const { spawn } = require('child_process'); // For actual C++ integration
 // @access  Private (Admin only)
 router.get('/requests/faculty', [auth, isAdmin], async (req, res) => {
     try {
+        // Fetches bookings made by Faculty that are in 'pending-admin-approval' status
         const [requests] = await pool.query(`
             SELECT b.*, u.fullName as userName, u.email as userEmail, l.name as labName
             FROM bookings b
@@ -45,47 +46,89 @@ router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
             successMessage = `Graph Coloring scheduling process initiated (simulation).`;
             console.log("[Backend] Simulating: Preparing input for Graph Coloring (Scheduling)...");
             
-            // Simulate fetching data from DB for C++ algorithm
-            // In a real scenario, you'd fetch detailed data for labs, requests, faculty availability, student batches, and time slots.
-            // const [labsDataFromDB] = await pool.query("SELECT id, name, capacity, location FROM labs");
-            // const [pendingRequestsFromDB] = await pool.query(
-            //     "SELECT b.id, b.userId, u.fullName as userName, b.labId as requestedLabId, l.name as requestedLabName, b.purpose, b.batchIdentifier, b.timeSlotId as preferredTimeSlotId, b.date as preferredDate, u.id as facultyId FROM bookings b JOIN users u ON b.userId = u.id LEFT JOIN labs l ON b.labId = l.id WHERE b.status IN (?, ?)", 
-            //     ['pending', 'pending-admin-approval']
-            // );
-            // const [timeSlotsDataFromDB] = await pool.query("SELECT * FROM time_slots"); // Assuming a time_slots table
-
-            console.log("[Backend] IMPORTANT: The actual C++ Graph Coloring algorithm must ensure faculty consistency for course sections.");
-            console.log("[Backend] This means a specific course section should ideally be taught by the same faculty member for all its lab sessions.");
-            console.log("[Backend] The algorithm needs faculty availability and course-faculty assignments as input constraints.");
+            // In a real scenario, you'd fetch detailed data for:
+            // - Labs: ID, name, capacity, type (e.g., 'Computer', 'Physics'), available equipment.
+            // - Booking Requests/Course Lab Requirements: 
+            //   - Unique ID for each request/session.
+            //   - Course Section ID (e.g., "CS101_SecA", "CS101_SecB") - CRITICAL for distinct scheduling.
+            //   - Student Batch ID associated with the section.
+            //   - Assigned Faculty ID for that section's labs - CRITICAL for faculty consistency.
+            //   - Required lab type.
+            //   - Required duration (e.g., number of time slots).
+            //   - Specific equipment needs (beyond general lab type).
+            //   - Any pre-assigned specific lab preference.
+            // - Faculty Availability: List of time slots when each faculty member is available.
+            // - Student Batch Schedules: Existing commitments for student batches (e.g., lectures).
+            // - Predefined Time Slots: All available time slots in the week/semester.
+            // - Existing Fixed Bookings: Any bookings that are already confirmed and immutable.
+            
+            console.log("[Backend] CORE SCHEDULING CONSTRAINTS for C++ Graph Coloring:");
+            console.log("  1. Faculty Consistency: The SAME faculty member must be assigned to all lab sessions of a specific course section (e.g., Faculty 'F10' for all 'CS101_SecA' labs).");
+            console.log("  2. Distinct Section Schedules: Different sections of the same course (e.g., 'CS101_SecA' vs 'CS101_SecB') are separate groups and MUST have their own distinct lab schedules.");
+            console.log("     They can only share a time slot if they use different labs AND different faculty.");
+            console.log("  3. Student Batch Non-Concurrency: A student batch cannot be in two different labs/sessions simultaneously.");
+            console.log("  4. Faculty Non-Concurrency: A faculty member cannot teach two different sessions simultaneously.");
+            console.log("  5. Lab Non-Concurrency: A physical lab cannot host two different sessions simultaneously.");
+            console.log("  6. Lab Capacity: Number of students in a section must not exceed lab capacity.");
 
 
             actualInputForCpp = {
-                labs: [{id: 1, name: "CS Lab 101", capacity: 30}, {id: 2, name: "Physics Lab Alpha", capacity: 25}],
-                requests: [
-                    {reqId: 101, course: "CS101_SecA", batch: "A1", facultyId: "F10", duration: 2, preferredLabType: "Computer"},
-                    {reqId: 102, course: "PHY202_SecB", batch: "B2", facultyId: "F12", duration: 1, preferredLabType: "Physics"}
+                labs: [
+                    {id: 1, name: "CS Lab 101", capacity: 30, type: "Computer"}, 
+                    {id: 2, name: "CS Lab 102", capacity: 25, type: "Computer"},
+                    {id: 3, name: "Physics Lab Alpha", capacity: 25, type: "Physics"}
                 ],
-                timeSlots: ["Mon_09_11", "Mon_11_13", "Tue_09_11"], // Simplified
-                constraints: ["Faculty F10 cannot teach CS101_SecA and another course simultaneously"]
+                requests: [ // Each object here represents a distinct lab session to be scheduled for a section
+                    {reqId: 101, courseSection: "CS101_SecA", studentBatch: "A1", facultyId: "F10", durationSlots: 1, preferredLabType: "Computer", note: "Needs 20 PCs"},
+                    {reqId: 102, courseSection: "CS101_SecB", studentBatch: "A2", facultyId: "F11", durationSlots: 1, preferredLabType: "Computer", note: "Needs 22 PCs"},
+                    {reqId: 103, courseSection: "PHY202_SecA", studentBatch: "P1", facultyId: "F12", durationSlots: 1, preferredLabType: "Physics"},
+                    {reqId: 104, courseSection: "CS101_SecA", studentBatch: "A1", facultyId: "F10", durationSlots: 1, preferredLabType: "Computer", note: "This is the 2nd lab for CS101_SecA, should have same faculty F10"}
+                ],
+                facultyAvailability: { // Simplified: facultyId -> array of available timeSlotIds
+                    "F10": ["Mon_09_11", "Mon_11_13", "Tue_09_11"],
+                    "F11": ["Mon_09_11", "Tue_11_13", "Wed_09_11"],
+                    "F12": ["Tue_09_11", "Wed_11_13", "Thu_09_11"]
+                },
+                timeSlots: [ // Representing available "colors"
+                    {id: "Mon_09_11", display: "Monday 09:00-11:00"},
+                    {id: "Mon_11_13", display: "Monday 11:00-13:00"},
+                    {id: "Tue_09_11", display: "Tuesday 09:00-11:00"},
+                    {id: "Tue_11_13", display: "Tuesday 11:00-13:00"},
+                    {id: "Wed_09_11", display: "Wednesday 09:00-11:00"},
+                    {id: "Wed_11_13", display: "Wednesday 11:00-13:00"},
+                    {id: "Thu_09_11", display: "Thursday 09:00-11:00"}
+                ],
+                constraints: [
+                    "Faculty F10 is assigned to CS101_SecA. All labs for CS101_SecA must be scheduled with F10 when F10 is available.",
+                    "Faculty F11 is assigned to CS101_SecB.",
+                    "Student Batch A1 (CS101_SecA) cannot conflict with itself."
+                ]
             };
-            console.log("[Backend] Simulated input for C++ (Graph Coloring):", JSON.stringify(actualInputForCpp, null, 2).substring(0, 500) + "...");
+            console.log("[Backend] Simulated input for C++ (Graph Coloring):", JSON.stringify(actualInputForCpp, null, 2).substring(0, 1000) + "...");
 
 
             const cppExecutablePath = './cpp_algorithms/graph_coloring_scheduler'; // IMPORTANT: Replace with actual path
             console.log(`[Backend] Simulating attempt to spawn C++ process: ${cppExecutablePath}`);
+            
             // --- Actual C++ Process Spawn (Example, currently commented out for pure simulation) ---
+            // This section demonstrates how Node.js would interact with a C++ executable.
+            // You need to uncomment and adapt this when you have your C++ program ready.
             /*
             const cppProcess = spawn(cppExecutablePath, []); 
 
             let cppOutput = '';
             let cppErrorOutput = '';
 
+            // Send data to C++ process's stdin
             cppProcess.stdin.write(JSON.stringify(actualInputForCpp));
             cppProcess.stdin.end();
 
+            // Listen for data from C++ process's stdout
             cppProcess.stdout.on('data', (data) => { cppOutput += data.toString(); });
+            // Listen for errors from C++ process's stderr
             cppProcess.stderr.on('data', (data) => { cppErrorOutput += data.toString(); console.error(`[C++ Stderr for ${algorithmName}]: ${data.toString()}`); });
             
+            // Wait for the C++ process to close
             await new Promise((resolve, reject) => {
                 cppProcess.on('close', async (code) => {
                     console.log(`[Backend] C++ process for ${algorithmName} exited with code ${code}`);
@@ -95,46 +138,71 @@ router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
                         try {
                             simulatedOutputFromCpp = JSON.parse(cppOutput); // Expecting JSON output
                             console.log("[Backend] Parsed output from C++ (Graph Coloring):", JSON.stringify(simulatedOutputFromCpp, null, 2));
-                            // Simulate database update with results
-                            dbUpdateSummary = `Simulated: ${simulatedOutputFromCpp.newlyScheduledBookings?.length || 0} sessions scheduled based on C++ output.`;
-                            successMessage = `Graph Coloring algorithm executed (simulated): ${dbUpdateSummary}`;
+                            
+                            // Simulate database update with results from C++
+                            // Example:
+                            // if (simulatedOutputFromCpp.newlyScheduledBookings && simulatedOutputFromCpp.newlyScheduledBookings.length > 0) {
+                            //     for (const booking of simulatedOutputFromCpp.newlyScheduledBookings) {
+                            //         await pool.query(
+                            //             'INSERT INTO bookings (labId, userId, date, timeSlotId, purpose, status, requestedByRole, batchIdentifier, submittedDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())',
+                            //             [booking.labId, booking.facultyId, booking.date, booking.timeSlotId, `Scheduled: ${booking.courseSection}`, 'booked', 'AdminScheduled', booking.studentBatch]
+                            //         );
+                            //     }
+                            //     dbUpdateSummary = `Simulated: ${simulatedOutputFromCpp.newlyScheduledBookings.length} sessions scheduled based on C++ output.`;
+                            // } else {
+                            //     dbUpdateSummary = "Simulated: C++ algorithm ran but no new sessions were scheduled based on output.";
+                            // }
+                            // For unscheduled requests, update their status or log them.
+                            
+                            successMessage = `Graph Coloring algorithm executed: ${dbUpdateSummary}`;
                             resolve();
                         } catch (parseError) {
                             console.error(`[Backend] Error parsing JSON output from C++ for ${algorithmName}:`, parseError, "Raw output:", cppOutput);
-                            dbUpdateSummary = "C++ process ran (simulated), but output was not valid JSON.";
-                            successMessage = `Graph Coloring algorithm executed with errors parsing output (simulated).`;
+                            dbUpdateSummary = "C++ process ran, but output was not valid JSON (simulation).";
+                            successMessage = `Graph Coloring algorithm executed with errors parsing output (simulation).`;
                             reject(new Error(`Error parsing C++ output: ${parseError.message}. Raw output: ${cppOutput.substring(0, 500)}...`));
                         }
                     } else if (code !== 0) {
-                        dbUpdateSummary = `C++ process for ${algorithmName} failed (simulated) with exit code ${code}. Error: ${cppErrorOutput}`;
-                        successMessage = `Graph Coloring algorithm execution failed (simulated).`;
+                        dbUpdateSummary = `C++ process for ${algorithmName} failed with exit code ${code}. Error: ${cppErrorOutput} (simulation).`;
+                        successMessage = `Graph Coloring algorithm execution failed (simulation).`;
                         reject(new Error(`C++ process exited with code ${code}. Error: ${cppErrorOutput.substring(0,500)}...`));
                     } else {
-                         dbUpdateSummary = `C++ process for ${algorithmName} ran (simulated) but produced no output.`;
-                         successMessage = `Graph Coloring algorithm executed but yielded no results (simulated).`;
+                         dbUpdateSummary = `C++ process for ${algorithmName} ran but produced no output (simulation).`;
+                         successMessage = `Graph Coloring algorithm executed but yielded no results (simulation).`;
                          resolve(); 
                     }
                 });
                 cppProcess.on('error', (err) => {
                     console.error(`[Backend] Failed to start C++ process for ${algorithmName}: `, err);
-                    dbUpdateSummary = "Failed to start C++ process (simulated).";
-                    successMessage = `Graph Coloring algorithm could not be started (simulated). Check path/permissions.`;
+                    dbUpdateSummary = "Failed to start C++ process (simulation). Check path/permissions.";
+                    successMessage = `Graph Coloring algorithm could not be started (simulation).`;
                     reject(err); 
                 });
             });
             */
             // --- End of Actual C++ Process Spawn ---
-            // --- Pure Simulation (if spawn is commented out) ---
-            simulatedOutputFromCpp = {
+
+            // --- Pure Simulation (if spawn is commented out or fails) ---
+            // This part runs if the actual C++ spawn is commented out.
+            // It demonstrates the expected output structure for the frontend.
+             simulatedOutputFromCpp = {
                 status: "success",
-                newlyScheduledBookings: [
-                    { reqId: 101, labId: 1, timeSlot: "Mon_09_11", facultyId: "F10"},
-                    { reqId: 102, labId: 2, timeSlot: "Tue_09_11", facultyId: "F12"}
+                summary: "Successfully scheduled 4 lab sessions.",
+                newlyScheduledBookings: [ // Each object represents a confirmed booking to be created/updated in DB
+                    // CS101_SecA (reqId: 101) with F10
+                    { reqId: 101, courseSection: "CS101_SecA", studentBatch: "A1", facultyId: "F10", labId: 1, date: "2024-09-02", timeSlotId: "Mon_09_11"}, 
+                    // CS101_SecA (reqId: 104) also with F10 (consistency) but different time/lab
+                    { reqId: 104, courseSection: "CS101_SecA", studentBatch: "A1", facultyId: "F10", labId: 1, date: "2024-09-03", timeSlotId: "Tue_09_11"}, 
+                    // CS101_SecB (reqId: 102) with F11 (different section, different faculty)
+                    { reqId: 102, courseSection: "CS101_SecB", studentBatch: "A2", facultyId: "F11", labId: 2, date: "2024-09-02", timeSlotId: "Mon_09_11"},
+                    // PHY202_SecA (reqId: 103) with F12
+                    { reqId: 103, courseSection: "PHY202_SecA", studentBatch: "P1", facultyId: "F12", labId: 3, date: "2024-09-04", timeSlotId: "Wed_11_13"}
                 ],
-                unscheduledRequests: []
+                unscheduledRequests: [], // List of reqIds that couldn't be scheduled
+                conflictsResolved: 0 // Example metric
             };
             console.log("[Backend] Simulated output from C++ (Graph Coloring):", JSON.stringify(simulatedOutputFromCpp, null, 2));
-            dbUpdateSummary = `Simulated: ${simulatedOutputFromCpp.newlyScheduledBookings?.length || 0} sessions scheduled.`;
+            dbUpdateSummary = `Simulated: ${simulatedOutputFromCpp.newlyScheduledBookings?.length || 0} sessions scheduled based on C++ output logic. ${simulatedOutputFromCpp.unscheduledRequests?.length || 0} requests remain unscheduled.`;
             successMessage = `Graph Coloring algorithm executed (simulated): ${dbUpdateSummary}`;
             // --- End of Pure Simulation ---
 
@@ -142,63 +210,96 @@ router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
         } else if (algorithmName === 'run-resource-allocation') { // 0/1 Knapsack - Simulation
             console.log("[Backend] Simulating: Fetching scarce equipment, availability, requesting sessions, priorities for 0/1 Knapsack.");
              actualInputForCpp = {
-                equipmentCapacities: [{type: "Microscope", available: 5}, {type: "Spectrometer", available: 2}],
-                sessions: [
-                    {id: 201, priority: 10, needs: {Microscope: 2, Spectrometer: 1}},
-                    {id: 202, priority: 8, needs: {Microscope: 3}},
-                    {id: 203, priority: 12, needs: {Spectrometer: 1, Microscope: 1}}
+                scarceResources: [ // Total available units of each scarce resource
+                    {resourceId: "SCOPE_ADV", type: "Advanced Oscilloscope", availableUnits: 3},
+                    {resourceId: "SPEC_XYZ", type: "Spectrometer XYZ", availableUnits: 1}
+                ],
+                sessionRequests: [ // Sessions that need these scarce resources
+                    {sessionId: 201, courseSection: "EE301_LabA", priorityValue: 10, needs: [{resourceId: "SCOPE_ADV", units: 2}]},
+                    {sessionId: 202, courseSection: "PHY400_Research", priorityValue: 12, needs: [{resourceId: "SPEC_XYZ", units: 1}, {resourceId: "SCOPE_ADV", units: 1}]},
+                    {sessionId: 203, courseSection: "EE301_LabB", priorityValue: 8, needs: [{resourceId: "SCOPE_ADV", units: 2}]}
                 ]
             };
             console.log("[Backend] Simulated input for C++ (Knapsack):", JSON.stringify(actualInputForCpp, null, 2));
             console.log(`[Backend] Simulating call to C++ executable for 0/1 Knapsack...`);
             simulatedOutputFromCpp = {
                 status: "success",
-                allocatedSessions: [
-                    { sessionId: 203, allocatedResources: {Spectrometer: 1, Microscope: 1} },
-                    { sessionId: 201, allocatedResources: {Microscope: 2} }
+                summary: "Optimally allocated scarce resources to 2 sessions.",
+                allocatedSessions: [ // Sessions that got their requested scarce resources
+                    { sessionId: 202, allocatedResources: [{resourceId: "SPEC_XYZ", units: 1}, {resourceId: "SCOPE_ADV", units: 1}]},
+                    { sessionId: 201, allocatedResources: [{resourceId: "SCOPE_ADV", units: 2}]}
                 ],
-                unallocatedSessions: [202]
-            };
-            console.log("[Backend] Simulated output from C++ (Knapsack):", JSON.stringify(simulatedOutputFromCpp, null, 2));
-            dbUpdateSummary = `Simulated: ${simulatedOutputFromCpp.allocatedSessions.length} sessions allocated resources. ${simulatedOutputFromCpp.unallocatedSessions.length} sessions could not be fully resourced.`;
-            successMessage = `0/1 Knapsack resource allocation simulated: ${dbUpdateSummary}`;
-        } else if (algorithmName === 'optimize-lab-usage') { // Greedy Algorithm - Simulation
-            console.log("[Backend] Simulating: Fetching current schedule, empty slots, pending high-priority requests for Greedy Algorithm.");
-             actualInputForCpp = {
-                emptySlots: [{labId: 1, date: "2024-07-02", timeSlotId: "ts_1400_1500"}, {labId: 3, date: "2024-07-02", timeSlotId: "ts_1000_1100"}],
-                pendingRequests: [
-                    {id: 301, priority: 100, needs: "Any Lab", duration: 1},
-                    {id: 302, priority: 90, needs: "CS Lab", duration: 1}
+                unallocatedSessions: [ // sessionIds that could not be fully resourced
+                    {sessionId: 203, reason: "Insufficient SCOPE_ADV units after higher priority allocations."}
                 ]
             };
-             console.log("[Backend] Simulated input for C++ (Greedy):", JSON.stringify(actualInputForCpp, null, 2));
+            console.log("[Backend] Simulated output from C++ (Knapsack):", JSON.stringify(simulatedOutputFromCpp, null, 2));
+            dbUpdateSummary = `Simulated: ${simulatedOutputFromCpp.allocatedSessions?.length || 0} sessions allocated scarce resources. ${simulatedOutputFromCpp.unallocatedSessions?.length || 0} sessions could not be fully resourced.`;
+            successMessage = `0/1 Knapsack resource allocation simulated: ${dbUpdateSummary}`;
+        } else if (algorithmName === 'optimize-lab-usage') { // Greedy Algorithm - Simulation
+            console.log("[Backend] Simulating: Fetching current schedule, empty slots, pending high-priority requests for Greedy Algorithm to fill gaps.");
+             actualInputForCpp = {
+                // Current empty slots in the schedule (labId, date, timeSlotId)
+                emptyTimeSlots: [
+                    {labId: 1, date: "2024-09-05", timeSlotId: "Thu_09_11"}, 
+                    {labId: 3, date: "2024-09-05", timeSlotId: "Thu_09_11"}
+                ],
+                // Pending requests sorted by a greedy heuristic (e.g., urgency, smallest duration first)
+                pendingRequests: [
+                    {reqId: 301, courseSection: "BIO101_Makeup", priority: 100, durationSlots: 1, requiredLabType: "Any", requiredCapacity: 15},
+                    {reqId: 302, courseSection: "CS_Club_Practice", priority: 90, durationSlots: 1, requiredLabType: "Computer", requiredCapacity: 20}
+                ],
+                labs: [ // To check if pending request fits lab type/capacity
+                     {id: 1, name: "CS Lab 101", capacity: 30, type: "Computer"},
+                     {id: 3, name: "Physics Lab Alpha", capacity: 25, type: "Physics"} // Assume Bio can use this general lab
+                ]
+            };
+             console.log("[Backend] Simulated input for C++ (Greedy Slot Filling):", JSON.stringify(actualInputForCpp, null, 2));
             console.log(`[Backend] Simulating call to C++ executable for Greedy slot filling...`);
             simulatedOutputFromCpp = {
                 status: "success",
-                filledSlots: [
-                    { requestId: 301, labId: 1, date: "2024-07-02", timeSlotId: "ts_1400_1500" }
+                summary: "Filled 1 empty slot using Greedy approach.",
+                filledSlots: [ // Slots that were successfully filled
+                    { requestId: 301, labId: 3, date: "2024-09-05", timeSlotId: "Thu_09_11", filledByCourse: "BIO101_Makeup" }
                 ],
-                remainingPendingRequests: [302]
+                remainingPendingRequests: [302] // reqIds that couldn't be placed
             };
-            console.log("[Backend] Simulated output from C++ (Greedy):", JSON.stringify(simulatedOutputFromCpp, null, 2));
-            dbUpdateSummary = `Simulated: ${simulatedOutputFromCpp.filledSlots.length} empty slots filled.`;
+            console.log("[Backend] Simulated output from C++ (Greedy Slot Filling):", JSON.stringify(simulatedOutputFromCpp, null, 2));
+            dbUpdateSummary = `Simulated: ${simulatedOutputFromCpp.filledSlots?.length || 0} empty slots filled.`;
             successMessage = `Greedy lab usage optimization simulated: ${dbUpdateSummary}`;
         } else if (algorithmName === 'assign-nearest-labs') { // Dijkstra's - Simulation
-            console.log("[Backend] Simulating: Fetching lab locations, user department location, available labs for Dijkstra's.");
+            console.log("[Backend] Simulating: Fetching campus graph (nodes=locations, edges=paths with distances), user department location, available labs for Dijkstra's.");
             actualInputForCpp = {
-                campusGraph: { nodes: ["A", "B", "C", "L1", "L2", "L3"], edges: [["A","B",5],["B","L1",3],["A","L2",10]]},
-                userLocationNode: "A",
-                availableLabNodes: ["L1", "L2", "L3"]
+                campusGraph: { 
+                    nodes: [ // id, name, type (e.g., 'Department', 'Lab', 'Junction')
+                        {id: "CS_Dept", name: "CS Department", type: "Department"},
+                        {id: "L101", name: "CS Lab 101", type: "Lab", lab_db_id: 1},
+                        {id: "L102", name: "CS Lab 102", type: "Lab", lab_db_id: 2},
+                        {id: "J1", name: "Junction 1", type: "Junction"}
+                    ], 
+                    edges: [ // from_node_id, to_node_id, distance_meters
+                        ["CS_Dept", "J1", 50],
+                        ["J1", "L101", 30],
+                        ["J1", "L102", 70]
+                    ]
+                },
+                sourceLocationId: "CS_Dept", // e.g., location of the faculty member or student batch
+                targetLabDbIds: [1, 2] // DB IDs of currently available labs that match general criteria (e.g., type 'Computer')
             };
             console.log("[Backend] Simulated input for C++ (Dijkstra):", JSON.stringify(actualInputForCpp, null, 2));
             console.log(`[Backend] Simulating call to C++ executable for Dijkstra's algorithm...`);
             simulatedOutputFromCpp = {
                 status: "success",
-                nearestLab: {labNode: "L1", distance: 8},
-                alternatives: [{labNode: "L2", distance: 10}]
+                summary: "Found nearest lab.",
+                assignments: [ // Lab DB ID and its distance from source
+                    {labDbId: 1, name: "CS Lab 101", distance: 80, path: ["CS_Dept", "J1", "L101"]},
+                    {labDbId: 2, name: "CS Lab 102", distance: 120, path: ["CS_Dept", "J1", "L102"]}
+                ],
+                // Could recommend L101 as the nearest
+                recommendation: {labDbId: 1, name: "CS Lab 101"}
             };
             console.log("[Backend] Simulated output from C++ (Dijkstra):", JSON.stringify(simulatedOutputFromCpp, null, 2));
-            dbUpdateSummary = `Simulated: Nearest available lab is ${simulatedOutputFromCpp.nearestLab.labNode} (distance ${simulatedOutputFromCpp.nearestLab.distance}).`;
+            dbUpdateSummary = `Simulated: Nearest suitable lab to CS_Dept is CS Lab 101 (distance ${simulatedOutputFromCpp.recommendation?.name ? simulatedOutputFromCpp.assignments.find(a=>a.labDbId === simulatedOutputFromCpp.recommendation.labDbId).distance : 'N/A'}).`;
             successMessage = `Dijkstra's nearest lab assignment simulated: ${dbUpdateSummary}`;
         } else {
             return res.status(400).json({ msg: `Algorithm '${algorithmName}' is not recognized.` });
@@ -207,9 +308,10 @@ router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
         res.json({
             success: true,
             message: successMessage,
-            simulatedInputForCpp: actualInputForCpp, 
-            simulatedOutputFromCpp: simulatedOutputFromCpp, 
-            dbUpdateSummary: dbUpdateSummary
+            algorithm: algorithmName,
+            simulatedInputSentToCpp: actualInputForCpp, 
+            simulatedOutputReceivedFromCpp: simulatedOutputFromCpp, 
+            simulatedDatabaseUpdateSummary: dbUpdateSummary
         });
 
     } catch (error) {
@@ -224,12 +326,13 @@ router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
 // @access  Private (Admin only)
 router.get('/system-activity', [auth, isAdmin], async (req, res) => {
     try {
+        // In a real system, these logs would come from a database table or logging service.
         const mockLogs = [
-            { timestamp: new Date(Date.now() - 3600000).toISOString(), user: 'admin@example.com', action: 'Updated Lab "Physics Lab Alpha" details via API.', details: 'Capacity changed to 25' },
-            { timestamp: new Date(Date.now() - 7200000).toISOString(), user: 'faculty@example.com', action: 'Booked Computer Lab for "CS101" via API.' },
-            { timestamp: new Date(Date.now() - 10800000).toISOString(), user: 'assistant@example.com', action: 'Updated seat status for 5 seats in "Electronics Lab" via API.' },
-            { timestamp: new Date().toISOString(), user: 'admin@example.com', action: 'Triggered "run-scheduling" algorithm simulation via API.' },
-            { timestamp: new Date(Date.now() - 24 * 3600000).toISOString(), user: 'admin@example.com', action: 'User "newfaculty@example.com" created via API.' },
+            { timestamp: new Date(Date.now() - 120000).toISOString(), user: 'admin@example.com', action: 'Triggered "run-scheduling" algorithm simulation.', details: 'Simulated: 4 sessions scheduled.' },
+            { timestamp: new Date(Date.now() - 3600000).toISOString(), user: 'admin@example.com', action: 'Updated Lab "Physics Lab Alpha" details.', details: 'Capacity changed to 25' },
+            { timestamp: new Date(Date.now() - 7200000).toISOString(), user: 'faculty@example.com', action: 'Booked Computer Lab for "CS101" successfully.', details: 'Lab ID: 1, Date: 2024-09-02, Time: Mon_09_11' },
+            { timestamp: new Date(Date.now() - 10800000).toISOString(), user: 'assistant@example.com', action: 'Updated seat status for 5 seats in "Electronics Lab".', details: 'Lab ID: 4 (example), Seats: S1-S5 marked as not-working' },
+            { timestamp: new Date(Date.now() - 86400000).toISOString(), user: 'admin@example.com', action: 'User "newfaculty@example.com" created successfully.' },
         ];
         res.json(mockLogs);
     } catch (err) {
@@ -265,7 +368,8 @@ router.post('/users', [auth, isAdmin], async (req, res) => {
     if (password.length < 6) {
         return res.status(400).json({ msg: 'Password must be at least 6 characters long' });
     }
-    const validRoles = ['Admin', 'Faculty', 'Student', 'Assistant'];
+    // Assuming USER_ROLE_VALUES is available or you hardcode valid roles
+    const validRoles = ['Admin', 'Faculty', 'Student', 'Assistant']; // Example, use your constants
     if (!validRoles.includes(role)) {
         return res.status(400).json({ msg: 'Invalid role specified.' });
     }
@@ -280,16 +384,23 @@ router.post('/users', [auth, isAdmin], async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
         
-        // For admin creation, secretWordHash can be omitted or set to a default/null if schema allows.
-        // Assuming secretWordHash has a DEFAULT NULL or is nullable in your schema based on previous discussions.
+        // For admin creation, secretWordHash needs a default value or should be nullable in schema if not provided
+        // Assuming 'secretWordHash' column in your 'users' table allows NULL or has a DB default.
+        // If secretWord is required from admin for new users, it should be part of req.body and handled.
         const newUser = {
             fullName,
             email,
             passwordHash: hashedPassword,
+            secretWordHash: '', // Placeholder: In a real scenario, admin might set a temporary one, or it's set to a default hashed value, or this field might not be set by admin. Assuming the schema.sql now makes it NOT NULL.
             role,
             department: department || null,
-            // secretWordHash: null, // Or remove if your schema has a default
         };
+        // If secretWordHash is NOT NULL and has no default, you must provide a value.
+        // For instance, if admin is expected to provide a secret word for the new user:
+        // const { secretWord } = req.body; 
+        // if (!secretWord) return res.status(400).json({msg: 'Secret word is required for new user'});
+        // newUser.secretWordHash = await bcrypt.hash(secretWord, salt);
+
         const [result] = await pool.query('INSERT INTO users SET ?', newUser);
         const [createdUserResult] = await pool.query('SELECT id, fullName, email, role, department, createdAt FROM users WHERE id = ?', [result.insertId]);
         
@@ -299,15 +410,15 @@ router.post('/users', [auth, isAdmin], async (req, res) => {
         res.status(201).json(createdUserResult[0]);
     } catch (err) {
         console.error('Admin create user error:', err.message, err.stack);
-        if (err.sqlMessage && err.sqlMessage.includes("Column 'secretWordHash' cannot be null") && !req.body.secretWord) {
-             return res.status(500).json({ msg: 'Server error: secretWordHash is required by the database schema for new users. Please ensure the schema allows NULL or has a default value if secretWord is not provided during admin creation, or provide a dummy secretWord.' });
+        if (err.sqlMessage && err.sqlMessage.includes("Column 'secretWordHash' cannot be null") && (!req.body.secretWord && newUser.secretWordHash === '')) { // More specific check
+             return res.status(500).json({ msg: 'Server error: secretWordHash is required by the database schema and was not provided or set. Please ensure the schema allows NULL or has a default value for secretWordHash, or provide a dummy secretWord if necessary during admin creation.' });
         }
         res.status(500).json({ msg: 'Server error during user creation by admin' });
     }
 });
 
 // @route   PUT api/admin/users/:userId
-// @desc    Admin updates a user's details (excluding password)
+// @desc    Admin updates a user's details (excluding password and secret word)
 // @access  Private (Admin only)
 router.put('/users/:userId', [auth, isAdmin], async (req, res) => {
     const { fullName, email, role, department } = req.body;
@@ -319,7 +430,7 @@ router.put('/users/:userId', [auth, isAdmin], async (req, res) => {
     if (isNaN(parseInt(userId))) {
         return res.status(400).json({ msg: 'Invalid User ID format.' });
     }
-    const validRoles = ['Admin', 'Faculty', 'Student', 'Assistant'];
+    const validRoles = ['Admin', 'Faculty', 'Student', 'Assistant']; // Example
     if (!validRoles.includes(role)) {
         return res.status(400).json({ msg: 'Invalid role specified.' });
     }
@@ -330,6 +441,7 @@ router.put('/users/:userId', [auth, isAdmin], async (req, res) => {
             return res.status(404).json({ msg: 'User not found' });
         }
 
+        // Check if new email is already taken by another user
         if (email !== existingUsers[0].email) {
             const [emailCheck] = await pool.query('SELECT id FROM users WHERE email = ? AND id != ?', [email, userId]);
             if (emailCheck.length > 0) {
@@ -342,6 +454,7 @@ router.put('/users/:userId', [auth, isAdmin], async (req, res) => {
             email,
             role,
             department: department !== undefined ? (department || null) : existingUsers[0].department 
+            // Password and secretWordHash are not updated here by admin
         };
 
         await pool.query('UPDATE users SET ? WHERE id = ?', [updatedUserData, userId]);
@@ -373,17 +486,17 @@ router.delete('/users/:userId', [auth, isAdmin], async (req, res) => {
             return res.status(404).json({ msg: 'User not found' });
         }
 
-        // DB schema has ON DELETE CASCADE for bookings related to userId.
-        // Other tables (like hypothetical faculty_assignments if they existed and weren't ON DELETE CASCADE)
-        // might cause foreign key constraint errors here.
+        // ON DELETE CASCADE in 'bookings' table for userId FK will handle related bookings.
+        // Other related records in other tables might need manual handling or schema adjustments
+        // if they don't have ON DELETE CASCADE or ON DELETE SET NULL.
         await pool.query('DELETE FROM users WHERE id = ?', [userId]);
         res.json({ msg: 'User deleted successfully by admin.' });
 
     } catch (err) {
         console.error('Admin delete user error:', err.message, err.stack);
-        // A more generic check for foreign key constraint errors
+        // Check for foreign key constraint violation error (MySQL specific code ER_ROW_IS_REFERENCED_2)
         if (err.code === 'ER_ROW_IS_REFERENCED_2' || (err.sqlMessage && err.sqlMessage.toLowerCase().includes('foreign key constraint fails'))) {
-            return res.status(400).json({ msg: 'Cannot delete user. They are referenced in other records (e.g., non-cascading assignments). Consider deactivating or reassigning records first.' });
+            return res.status(400).json({ msg: 'Cannot delete user. They are referenced in other records that do not cascade delete (e.g., non-cascading assignments). Consider deactivating the user or reassigning their records first.' });
         }
         res.status(500).json({ msg: 'Server error while deleting user by admin.' });
     }
@@ -391,4 +504,5 @@ router.delete('/users/:userId', [auth, isAdmin], async (req, res) => {
 
 
 module.exports = router;
+
 
