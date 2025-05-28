@@ -2,16 +2,15 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
-const { auth, isAdmin } = require('../middleware/authMiddleware'); // isAdmin is already imported
+const { auth, isAdmin } = require('../middleware/authMiddleware');
 const bcrypt = require('bcryptjs');
-const { spawn } = require('child_process'); 
+const { spawn } = require('child_process'); // For actual C++ integration
 
 // @route   GET api/admin/requests/faculty
 // @desc    Get faculty requests needing admin approval
 // @access  Private (Admin only)
 router.get('/requests/faculty', [auth, isAdmin], async (req, res) => {
     try {
-        // This query looks for bookings made by 'Faculty' with status 'pending-admin-approval'
         const [requests] = await pool.query(`
             SELECT b.*, u.fullName as userName, u.email as userEmail, l.name as labName
             FROM bookings b
@@ -28,48 +27,54 @@ router.get('/requests/faculty', [auth, isAdmin], async (req, res) => {
 });
 
 // @route   POST api/admin/algorithms/:algorithmName
-// @desc    Trigger a specific DAA algorithm (Simulated with one full child_process example)
+// @desc    Trigger a specific DAA algorithm (Simulated, with one full child_process example)
 // @access  Private (Admin only)
 router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
     const { algorithmName } = req.params;
-    // const { inputPayload } = req.body; // Optional input from frontend for specific algorithms
+    // const { inputPayload } = req.body; // Optional input from frontend
 
     console.log(`[Backend] Admin triggered algorithm: ${algorithmName}`);
     
     let actualInputForCpp = {};
-    let simulatedOutputFromCpp = {}; // To store what C++ might output
-    let dbUpdateSummary = "No database changes made by algorithm.";
-    let successMessage = `Algorithm '${algorithmName}' process initiated.`;
+    let simulatedOutputFromCpp = {};
+    let dbUpdateSummary = "No database changes made by algorithm (simulation).";
+    let successMessage = `Algorithm '${algorithmName}' process initiated (simulation).`;
 
     try {
         if (algorithmName === 'run-scheduling') { // Graph Coloring
-            successMessage = `Graph Coloring scheduling process initiated.`;
-            console.log("[Backend] Preparing input for Graph Coloring (Scheduling)...");
+            successMessage = `Graph Coloring scheduling process initiated (simulation).`;
+            console.log("[Backend] Simulating: Preparing input for Graph Coloring (Scheduling)...");
             
             // Simulate fetching data from DB for C++ algorithm
-            const [labsDataFromDB] = await pool.query("SELECT id, name, capacity, location FROM labs");
-            const [pendingRequestsFromDB] = await pool.query(
-                "SELECT b.id, b.userId, u.fullName as userName, b.labId as requestedLabId, l.name as requestedLabName, b.purpose, b.batchIdentifier, b.timeSlotId as preferredTimeSlotId, b.date as preferredDate FROM bookings b JOIN users u ON b.userId = u.id LEFT JOIN labs l ON b.labId = l.id WHERE b.status IN (?, ?)", 
-                ['pending', 'pending-admin-approval'] // Consider which requests to feed
-            );
-            // Assuming MOCK_TIME_SLOTS are still valid for this simulation
-            const timeSlotsData = window.MOCK_TIME_SLOTS || [ 
-                { id: 'ts_0900_1000', startTime: '09:00', endTime: '10:00', displayTime: '09:00 AM - 10:00 AM' },
-                 // ... more time slots
-            ];
+            // In a real scenario, you'd fetch detailed data for labs, requests, faculty availability, student batches, and time slots.
+            // const [labsDataFromDB] = await pool.query("SELECT id, name, capacity, location FROM labs");
+            // const [pendingRequestsFromDB] = await pool.query(
+            //     "SELECT b.id, b.userId, u.fullName as userName, b.labId as requestedLabId, l.name as requestedLabName, b.purpose, b.batchIdentifier, b.timeSlotId as preferredTimeSlotId, b.date as preferredDate, u.id as facultyId FROM bookings b JOIN users u ON b.userId = u.id LEFT JOIN labs l ON b.labId = l.id WHERE b.status IN (?, ?)", 
+            //     ['pending', 'pending-admin-approval']
+            // );
+            // const [timeSlotsDataFromDB] = await pool.query("SELECT * FROM time_slots"); // Assuming a time_slots table
+
+            console.log("[Backend] IMPORTANT: The actual C++ Graph Coloring algorithm must ensure faculty consistency for course sections.");
+            console.log("[Backend] This means a specific course section should ideally be taught by the same faculty member for all its lab sessions.");
+            console.log("[Backend] The algorithm needs faculty availability and course-faculty assignments as input constraints.");
+
 
             actualInputForCpp = {
-                labs: labsDataFromDB,
-                requests: pendingRequestsFromDB,
-                timeSlots: timeSlotsData, // This should come from DB or config if dynamic
-                constraints: ["InstructorA cannot teach CS-A and PHY-B simultaneously"] // Example constraint
+                labs: [{id: 1, name: "CS Lab 101", capacity: 30}, {id: 2, name: "Physics Lab Alpha", capacity: 25}],
+                requests: [
+                    {reqId: 101, course: "CS101_SecA", batch: "A1", facultyId: "F10", duration: 2, preferredLabType: "Computer"},
+                    {reqId: 102, course: "PHY202_SecB", batch: "B2", facultyId: "F12", duration: 1, preferredLabType: "Physics"}
+                ],
+                timeSlots: ["Mon_09_11", "Mon_11_13", "Tue_09_11"], // Simplified
+                constraints: ["Faculty F10 cannot teach CS101_SecA and another course simultaneously"]
             };
-            console.log("[Backend] Actual input for C++ (Graph Coloring):", JSON.stringify(actualInputForCpp, null, 2).substring(0, 1000) + "...");
+            console.log("[Backend] Simulated input for C++ (Graph Coloring):", JSON.stringify(actualInputForCpp, null, 2).substring(0, 500) + "...");
 
 
             const cppExecutablePath = './cpp_algorithms/graph_coloring_scheduler'; // IMPORTANT: Replace with actual path
-            console.log(`[Backend] Attempting to spawn C++ process: ${cppExecutablePath}`);
-
+            console.log(`[Backend] Simulating attempt to spawn C++ process: ${cppExecutablePath}`);
+            // --- Actual C++ Process Spawn (Example, currently commented out for pure simulation) ---
+            /*
             const cppProcess = spawn(cppExecutablePath, []); 
 
             let cppOutput = '';
@@ -78,72 +83,61 @@ router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
             cppProcess.stdin.write(JSON.stringify(actualInputForCpp));
             cppProcess.stdin.end();
 
-            cppProcess.stdout.on('data', (data) => {
-                cppOutput += data.toString();
-            });
-
-            cppProcess.stderr.on('data', (data) => {
-                cppErrorOutput += data.toString();
-                console.error(`[C++ Stderr for ${algorithmName}]: ${data.toString()}`);
-            });
+            cppProcess.stdout.on('data', (data) => { cppOutput += data.toString(); });
+            cppProcess.stderr.on('data', (data) => { cppErrorOutput += data.toString(); console.error(`[C++ Stderr for ${algorithmName}]: ${data.toString()}`); });
             
-            // Using a Promise to handle the asynchronous nature of the child process
             await new Promise((resolve, reject) => {
                 cppProcess.on('close', async (code) => {
                     console.log(`[Backend] C++ process for ${algorithmName} exited with code ${code}`);
-                    if (cppErrorOutput) {
-                        console.error(`[Backend] C++ process for ${algorithmName} emitted errors: ${cppErrorOutput}`);
-                    }
+                    if (cppErrorOutput) { console.error(`[Backend] C++ process for ${algorithmName} emitted errors: ${cppErrorOutput}`); }
 
                     if (code === 0 && cppOutput) {
                         try {
                             simulatedOutputFromCpp = JSON.parse(cppOutput); // Expecting JSON output
                             console.log("[Backend] Parsed output from C++ (Graph Coloring):", JSON.stringify(simulatedOutputFromCpp, null, 2));
-
-                            // Simulate database update with results from C++
-                            console.log(`[Backend] Simulating database update with results from Graph Coloring...`);
-                            if (simulatedOutputFromCpp.newlyScheduledBookings && simulatedOutputFromCpp.newlyScheduledBookings.length > 0) {
-                                // Example of DB update:
-                                // for (const booking of simulatedOutputFromCpp.newlyScheduledBookings) {
-                                //   await pool.query('INSERT INTO bookings (labId, userId, date, timeSlotId, purpose, status, ...) VALUES (?, ?, ?, ?, ?, "booked", ...)', 
-                                //     [booking.labId, booking.userId, booking.date, booking.timeSlotId, booking.purpose]);
-                                //   await pool.query('UPDATE bookings SET status="scheduled_by_algo" WHERE id=?', [booking.originalRequestId]);
-                                // }
-                                dbUpdateSummary = `${simulatedOutputFromCpp.newlyScheduledBookings.length} sessions scheduled based on C++ output.`;
-                            } else {
-                                dbUpdateSummary = "C++ algorithm ran, but no new sessions were scheduled based on its output.";
-                            }
-                            if (simulatedOutputFromCpp.unscheduledRequests && simulatedOutputFromCpp.unscheduledRequests.length > 0) {
-                                dbUpdateSummary += ` ${simulatedOutputFromCpp.unscheduledRequests.length} requests remain unscheduled.`;
-                            }
-                            successMessage = `Graph Coloring algorithm executed: ${dbUpdateSummary}`;
+                            // Simulate database update with results
+                            dbUpdateSummary = `Simulated: ${simulatedOutputFromCpp.newlyScheduledBookings?.length || 0} sessions scheduled based on C++ output.`;
+                            successMessage = `Graph Coloring algorithm executed (simulated): ${dbUpdateSummary}`;
                             resolve();
                         } catch (parseError) {
-                            console.error(`[Backend] Error parsing JSON output from C++ for ${algorithmName}:`, parseError);
-                            console.error(`[Backend] Raw C++ output for ${algorithmName}:`, cppOutput);
-                            dbUpdateSummary = "C++ process ran, but output was not valid JSON.";
-                            successMessage = `Graph Coloring algorithm executed with errors parsing output.`;
+                            console.error(`[Backend] Error parsing JSON output from C++ for ${algorithmName}:`, parseError, "Raw output:", cppOutput);
+                            dbUpdateSummary = "C++ process ran (simulated), but output was not valid JSON.";
+                            successMessage = `Graph Coloring algorithm executed with errors parsing output (simulated).`;
                             reject(new Error(`Error parsing C++ output: ${parseError.message}. Raw output: ${cppOutput.substring(0, 500)}...`));
                         }
                     } else if (code !== 0) {
-                        dbUpdateSummary = `C++ process for ${algorithmName} failed with exit code ${code}. Error: ${cppErrorOutput}`;
-                        successMessage = `Graph Coloring algorithm execution failed.`;
+                        dbUpdateSummary = `C++ process for ${algorithmName} failed (simulated) with exit code ${code}. Error: ${cppErrorOutput}`;
+                        successMessage = `Graph Coloring algorithm execution failed (simulated).`;
                         reject(new Error(`C++ process exited with code ${code}. Error: ${cppErrorOutput.substring(0,500)}...`));
                     } else {
-                         dbUpdateSummary = `C++ process for ${algorithmName} ran but produced no output to parse.`;
-                         successMessage = `Graph Coloring algorithm executed but yielded no parsable results.`;
+                         dbUpdateSummary = `C++ process for ${algorithmName} ran (simulated) but produced no output.`;
+                         successMessage = `Graph Coloring algorithm executed but yielded no results (simulated).`;
                          resolve(); 
                     }
                 });
-
                 cppProcess.on('error', (err) => {
                     console.error(`[Backend] Failed to start C++ process for ${algorithmName}: `, err);
-                    dbUpdateSummary = "Failed to start C++ process.";
-                    successMessage = `Graph Coloring algorithm could not be started. Check executable path and permissions.`;
+                    dbUpdateSummary = "Failed to start C++ process (simulated).";
+                    successMessage = `Graph Coloring algorithm could not be started (simulated). Check path/permissions.`;
                     reject(err); 
                 });
             });
-            // End of Promise for child process
+            */
+            // --- End of Actual C++ Process Spawn ---
+            // --- Pure Simulation (if spawn is commented out) ---
+            simulatedOutputFromCpp = {
+                status: "success",
+                newlyScheduledBookings: [
+                    { reqId: 101, labId: 1, timeSlot: "Mon_09_11", facultyId: "F10"},
+                    { reqId: 102, labId: 2, timeSlot: "Tue_09_11", facultyId: "F12"}
+                ],
+                unscheduledRequests: []
+            };
+            console.log("[Backend] Simulated output from C++ (Graph Coloring):", JSON.stringify(simulatedOutputFromCpp, null, 2));
+            dbUpdateSummary = `Simulated: ${simulatedOutputFromCpp.newlyScheduledBookings?.length || 0} sessions scheduled.`;
+            successMessage = `Graph Coloring algorithm executed (simulated): ${dbUpdateSummary}`;
+            // --- End of Pure Simulation ---
+
 
         } else if (algorithmName === 'run-resource-allocation') { // 0/1 Knapsack - Simulation
             console.log("[Backend] Simulating: Fetching scarce equipment, availability, requesting sessions, priorities for 0/1 Knapsack.");
@@ -166,7 +160,7 @@ router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
                 unallocatedSessions: [202]
             };
             console.log("[Backend] Simulated output from C++ (Knapsack):", JSON.stringify(simulatedOutputFromCpp, null, 2));
-            dbUpdateSummary = `${simulatedOutputFromCpp.allocatedSessions.length} sessions allocated resources. ${simulatedOutputFromCpp.unallocatedSessions.length} sessions could not be fully resourced.`;
+            dbUpdateSummary = `Simulated: ${simulatedOutputFromCpp.allocatedSessions.length} sessions allocated resources. ${simulatedOutputFromCpp.unallocatedSessions.length} sessions could not be fully resourced.`;
             successMessage = `0/1 Knapsack resource allocation simulated: ${dbUpdateSummary}`;
         } else if (algorithmName === 'optimize-lab-usage') { // Greedy Algorithm - Simulation
             console.log("[Backend] Simulating: Fetching current schedule, empty slots, pending high-priority requests for Greedy Algorithm.");
@@ -187,7 +181,7 @@ router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
                 remainingPendingRequests: [302]
             };
             console.log("[Backend] Simulated output from C++ (Greedy):", JSON.stringify(simulatedOutputFromCpp, null, 2));
-            dbUpdateSummary = `${simulatedOutputFromCpp.filledSlots.length} empty slots filled.`;
+            dbUpdateSummary = `Simulated: ${simulatedOutputFromCpp.filledSlots.length} empty slots filled.`;
             successMessage = `Greedy lab usage optimization simulated: ${dbUpdateSummary}`;
         } else if (algorithmName === 'assign-nearest-labs') { // Dijkstra's - Simulation
             console.log("[Backend] Simulating: Fetching lab locations, user department location, available labs for Dijkstra's.");
@@ -204,7 +198,7 @@ router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
                 alternatives: [{labNode: "L2", distance: 10}]
             };
             console.log("[Backend] Simulated output from C++ (Dijkstra):", JSON.stringify(simulatedOutputFromCpp, null, 2));
-            dbUpdateSummary = `Nearest available lab is ${simulatedOutputFromCpp.nearestLab.labNode} (distance ${simulatedOutputFromCpp.nearestLab.distance}).`;
+            dbUpdateSummary = `Simulated: Nearest available lab is ${simulatedOutputFromCpp.nearestLab.labNode} (distance ${simulatedOutputFromCpp.nearestLab.distance}).`;
             successMessage = `Dijkstra's nearest lab assignment simulated: ${dbUpdateSummary}`;
         } else {
             return res.status(400).json({ msg: `Algorithm '${algorithmName}' is not recognized.` });
@@ -229,14 +223,7 @@ router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
 // @desc    Get mock system activity logs
 // @access  Private (Admin only)
 router.get('/system-activity', [auth, isAdmin], async (req, res) => {
-    // In a real system, this would fetch from a database table (e.g., activity_logs) or log files
-    // For now, returning a mock array. Consider creating an activity_logs table.
     try {
-        // Example: Fetching from a hypothetical 'activity_logs' table
-        // const [logs] = await pool.query("SELECT action, userEmail, details, loggedAt FROM activity_logs ORDER BY loggedAt DESC LIMIT 50");
-        // res.json(logs);
-
-        // Using mock data for now
         const mockLogs = [
             { timestamp: new Date(Date.now() - 3600000).toISOString(), user: 'admin@example.com', action: 'Updated Lab "Physics Lab Alpha" details via API.', details: 'Capacity changed to 25' },
             { timestamp: new Date(Date.now() - 7200000).toISOString(), user: 'faculty@example.com', action: 'Booked Computer Lab for "CS101" via API.' },
@@ -278,7 +265,6 @@ router.post('/users', [auth, isAdmin], async (req, res) => {
     if (password.length < 6) {
         return res.status(400).json({ msg: 'Password must be at least 6 characters long' });
     }
-     // Add validation for role
     const validRoles = ['Admin', 'Faculty', 'Student', 'Assistant'];
     if (!validRoles.includes(role)) {
         return res.status(400).json({ msg: 'Invalid role specified.' });
@@ -294,15 +280,15 @@ router.post('/users', [auth, isAdmin], async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
         
-        // For admin creation, secretWordHash can be omitted or set to a default/null
-        // If your schema requires it NOT NULL, you might need to pass a placeholder or adjust schema
+        // For admin creation, secretWordHash can be omitted or set to a default/null if schema allows.
+        // Assuming secretWordHash has a DEFAULT NULL or is nullable in your schema based on previous discussions.
         const newUser = {
             fullName,
             email,
             passwordHash: hashedPassword,
             role,
             department: department || null,
-            // secretWordHash: 'ADMIN_CREATED_USER_NO_SECRET' // Or similar if required, ensure schema allows NULL or has default
+            // secretWordHash: null, // Or remove if your schema has a default
         };
         const [result] = await pool.query('INSERT INTO users SET ?', newUser);
         const [createdUserResult] = await pool.query('SELECT id, fullName, email, role, department, createdAt FROM users WHERE id = ?', [result.insertId]);
@@ -313,8 +299,8 @@ router.post('/users', [auth, isAdmin], async (req, res) => {
         res.status(201).json(createdUserResult[0]);
     } catch (err) {
         console.error('Admin create user error:', err.message, err.stack);
-        if (err.code === 'ER_NO_DEFAULT_FOR_FIELD' && err.sqlMessage.includes('secretWordHash')) {
-            return res.status(500).json({ msg: 'Database schema error: secretWordHash may be missing a default value or not allowing NULLs when admin creates user. Please check schema.'})
+        if (err.sqlMessage && err.sqlMessage.includes("Column 'secretWordHash' cannot be null") && !req.body.secretWord) {
+             return res.status(500).json({ msg: 'Server error: secretWordHash is required by the database schema for new users. Please ensure the schema allows NULL or has a default value if secretWord is not provided during admin creation, or provide a dummy secretWord.' });
         }
         res.status(500).json({ msg: 'Server error during user creation by admin' });
     }
@@ -333,7 +319,6 @@ router.put('/users/:userId', [auth, isAdmin], async (req, res) => {
     if (isNaN(parseInt(userId))) {
         return res.status(400).json({ msg: 'Invalid User ID format.' });
     }
-    // Add validation for role
     const validRoles = ['Admin', 'Faculty', 'Student', 'Assistant'];
     if (!validRoles.includes(role)) {
         return res.status(400).json({ msg: 'Invalid role specified.' });
@@ -389,13 +374,16 @@ router.delete('/users/:userId', [auth, isAdmin], async (req, res) => {
         }
 
         // DB schema has ON DELETE CASCADE for bookings related to userId.
+        // Other tables (like hypothetical faculty_assignments if they existed and weren't ON DELETE CASCADE)
+        // might cause foreign key constraint errors here.
         await pool.query('DELETE FROM users WHERE id = ?', [userId]);
         res.json({ msg: 'User deleted successfully by admin.' });
 
     } catch (err) {
         console.error('Admin delete user error:', err.message, err.stack);
+        // A more generic check for foreign key constraint errors
         if (err.code === 'ER_ROW_IS_REFERENCED_2' || (err.sqlMessage && err.sqlMessage.toLowerCase().includes('foreign key constraint fails'))) {
-            return res.status(400).json({ msg: 'Cannot delete user. They are referenced in other records. Consider deactivating or reassigning records first.' });
+            return res.status(400).json({ msg: 'Cannot delete user. They are referenced in other records (e.g., non-cascading assignments). Consider deactivating or reassigning records first.' });
         }
         res.status(500).json({ msg: 'Server error while deleting user by admin.' });
     }
@@ -403,3 +391,4 @@ router.delete('/users/:userId', [auth, isAdmin], async (req, res) => {
 
 
 module.exports = router;
+
