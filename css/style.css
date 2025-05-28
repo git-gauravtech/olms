@@ -726,7 +726,8 @@ code {
 /* Softer status colors, more pastel */
 .status-available { background-color: #e6fffa; color: #087F5B; border-left: 3px solid #20C997; } /* Light Teal bg, Dark Teal text, Teal border */
 .status-booked { background-color: #ffe3e3; color: #c92a2a; border-left: 3px solid #fa5252; }    /* Light Red bg, Dark Red text, Red border */
-.status-pending { background-color: #fff9db; color: #e67700; border-left: 3px solid #fcc419; }  /* Light Yellow bg, Dark Yellow text, Yellow border */
+.status-pending, .status-pending_admin_approval, .status-approved_by_admin { background-color: #fff9db; color: #e67700; border-left: 3px solid #fcc419; }  /* Light Yellow bg, Dark Yellow text, Yellow border */
+.status-rejected, .status-cancelled, .status-rejected_by_admin { background-color: #ffe8cc; color: #d9480f; border-left: 3px solid #ffa94d; } /* Light Orange/Peach for rejected/cancelled */
 .status-past { background-color: #f1f3f5; color: #868e96; cursor: not-allowed; opacity: 0.8; border-left: 3px solid #adb5bd; } /* Light Grey bg, Grey text, Grey border */
 
 
@@ -855,9 +856,9 @@ code {
 .dialog-lab-layout-container {
     display: flex;
     justify-content: space-around; /* Distributes sections */
-    gap: 0.75rem; /* Gap between main sections */
+    gap: 0.5rem; /* Gap between main sections */
     margin-top: 1rem;
-    padding: 1rem;
+    padding: 0.5rem; /* Reduced padding for a denser look */
     border: 1px solid #e9ecef;
     border-radius: 0.5rem;
     background-color: #f8f9fa;
@@ -866,11 +867,11 @@ code {
     display: flex;
     flex-direction: column; /* Stacks rows vertically */
     align-items: center; /* Centers rows if they don't fill width */
-    gap: 0.25rem; /* Gap between rows within a section */
+    gap: 0.1rem; /* Reduced gap between rows within a section */
 }
 .lab-layout-row {
     display: flex;
-    gap: 0.25rem; /* Gap between desks in a row */
+    gap: 0.1rem; /* Reduced gap between desks in a row */
 }
 
 .lab-layout-desk {
@@ -922,6 +923,24 @@ code {
     font-weight: 500;
     color: #343a40;
 }
+.lab-system-status-summary {
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background-color: #f9fafb; /* Very light grey */
+    border-radius: 0.375rem;
+    border: 1px solid #e5e7eb;
+    font-size: 0.9rem;
+}
+.lab-system-status-summary p {
+    margin: 0.3rem 0;
+    display: flex;
+    align-items: center;
+}
+.lab-system-status-summary .lucide {
+    width: 1.1em;
+    height: 1.1em;
+    margin-right: 0.5em;
+}
 
 
 /* Styles for dynamically rendered lists (e.g., labs, equipment) */
@@ -955,20 +974,28 @@ code {
     border-radius: 0.375rem;
 }
 
-/* Legend icon styling for assistant_update_seat_status.html */
-.legend-icon-working .lucide-armchair {
+/* Legend icon styling for assistant_update_seat_status.html AND lab_grid.js dialog */
+.legend-icon-working .lucide-armchair,
+.lab-system-status-summary .legend-icon-working .lucide { /* For check-circle in summary */
     stroke: #28a745; /* Green */
+    color: #28a745; /* Green for fillable icons like check-circle */
     stroke-width: 2;
-    width: 1em; /* Adjust size as needed, relative to surrounding text */
-    height: 1em;
+    width: 1.2em; /* Adjust size as needed, relative to surrounding text */
+    height: 1.2em;
     vertical-align: middle;
     margin-right: 0.25rem;
 }
-.legend-icon-not-working .lucide-armchair {
+.legend-icon-not-working .lucide-armchair,
+.lab-system-status-summary .legend-icon-not-working .lucide { /* For x-circle in summary */
     stroke: #dc3545; /* Red */
+    color: #dc3545; /* Red for fillable icons like x-circle */
     stroke-width: 2;
-    width: 1em;
-    height: 1em;
+    width: 1.2em;
+    height: 1.2em;
     vertical-align: middle;
     margin-right: 0.25rem;
 }
+
+/* General class for fillable icons if needed */
+.legend-icon-working .lucide-check-circle { color: #28a745; }
+.legend-icon-not-working .lucide-x-circle { color: #dc3545; }
