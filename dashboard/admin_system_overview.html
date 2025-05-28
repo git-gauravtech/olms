@@ -44,7 +44,7 @@
                         </p>
                         
                         <section id="systemLogsSection" class="mb-8">
-                            <h2 class="text-xl font-semibold mb-3">System Activity Logs</h2>
+                            <h2 class="text-xl font-semibold mb-3">System Activity Logs (Mock)</h2>
                             <div class="bg-gray-100 p-4 rounded-md border border-gray-200 min-h-[150px] max-h-[300px] overflow-y-auto">
                                 <ul id="systemLogsList" class="list-disc list-inside space-y-1 text-sm text-gray-600 mt-2">
                                     <li>Loading logs...</li>
@@ -101,9 +101,7 @@
 
             const generateReportBtn = document.getElementById('generateMockReportBtn');
             const reportTypeSelect = document.getElementById('reportType');
-            // const reportOutputArea = document.getElementById('reportOutputAreaPlaceholder'); // For future use if displaying inline
-            // const reportContent = document.getElementById('reportContentPlaceholder'); // For future use
-
+            
             if (generateReportBtn && reportTypeSelect) {
                 generateReportBtn.addEventListener('click', async () => {
                     const reportType = reportTypeSelect.value;
@@ -113,21 +111,23 @@
                     let bookingsForReport = [];
                     const token = localStorage.getItem('token');
                     try {
-                         const response = await fetch(`${window.API_BASE_URL}/bookings/my`, { // Fetch user's bookings for now, or change to admin general booking endpoint if available and desired for report
+                         // Fetch ALL bookings for Admin reports
+                         const response = await fetch(`${window.API_BASE_URL}/bookings`, { 
                             headers: { 'Authorization': `Bearer ${token}` }
                         });
                         if (response.ok) {
                             bookingsForReport = await response.json();
                         } else {
-                            console.warn("Could not fetch bookings for mock report, using empty data or mock static data if preferred.");
+                            console.warn("Could not fetch all bookings for mock report, using empty data or mock static data if preferred.", await response.text());
+                            alert("Failed to fetch all bookings data for the report.");
                         }
                     } catch(e) {
-                        console.warn("Error fetching bookings for mock report:", e);
+                        console.warn("Error fetching all bookings for mock report:", e);
+                         alert("Error fetching bookings data for the report.");
                     }
                     
-                    // If no bookings fetched, use some static mock data for the CSV
-                    if (bookingsForReport.length === 0) {
-                        console.log("No live bookings to report, generating CSV with static mock data.");
+                    if (bookingsForReport.length === 0 && reportType === "lab_usage") { // Only add static mock if actual fetch fails AND it's for lab_usage
+                        console.log("No live bookings to report, generating CSV with static mock data for lab_usage.");
                         bookingsForReport = [
                             { labName: "Mock Lab Alpha", date: "2024-01-15", timeSlotId: "ts_0900_1000", purpose: "Mock CS101 Lecture", userName: "Mock User 1" },
                             { labName: "Mock Lab Beta", date: "2024-01-15", timeSlotId: "ts_1000_1100", purpose: "Mock PHY202 Lab", userName: "Mock User 2" },
@@ -135,12 +135,11 @@
                         ];
                     }
 
-
                     const csvData = generateMockCSV(bookingsForReport, reportType);
                     if (csvData.startsWith("data:text/csv")) {
                         downloadCSV(csvData, filename);
                     } else {
-                        alert(csvData); // Show error message if report type not implemented
+                        alert(csvData); // Show error message if report type not implemented or no data
                     }
                 });
             }
@@ -189,55 +188,73 @@
 
         function generateMockCSV(bookings, reportType) {
             if (!bookings || bookings.length === 0) {
-                return "No data available for this report.";
+                return "No data available for this report type.";
             }
             let csvContent = "data:text/csv;charset=utf-8,";
             let headers = [];
             let rows = [];
 
-            const mockDataSubset = bookings.slice(0, 10); 
+            // Use all fetched bookings for the report, not just a subset
+            const dataToProcess = bookings; 
 
             switch(reportType) {
                 case "lab_usage":
-                    headers = ["LabName", "Date", "TimeSlot", "Purpose", "BookedBy"];
-                    mockDataSubset.forEach(b => {
+                    headers = ["LabName", "Date", "TimeSlot", "Purpose", "BookedByUserName", "BookedByRole"];
+                    dataToProcess.forEach(b => {
                         const timeSlotDisplay = (window.MOCK_TIME_SLOTS && b.timeSlotId) ? (window.MOCK_TIME_SLOTS.find(ts => ts.id === b.timeSlotId)?.displayTime || b.timeSlotId) : (b.timeSlotId || 'N/A');
-                        rows.push([b.labName || "N/A", b.date ? window.formatDate(new Date(b.date)) : "N/A", timeSlotDisplay, b.purpose || "N/A", b.userName || "N/A"].join(","));
+                        rows.push([
+                            b.labName || "N/A", 
+                            b.date ? window.formatDate(new Date(b.date)) : "N/A", 
+                            timeSlotDisplay, 
+                            b.purpose || "N/A", 
+                            b.userName || "N/A", // userName from joined bookings table
+                            b.requestedByRole || "N/A"
+                        ].join(","));
                     });
                     break;
                 case "booking_history": 
-                    headers = ["BookingID", "LabName", "Date", "TimeSlot", "Status", "BookedBy", "Purpose"];
-                     mockDataSubset.forEach(b => {
+                    headers = ["BookingID", "LabName", "Date", "TimeSlot", "Status", "BookedByUserName", "BookedByRole", "Purpose", "BatchIdentifier"];
+                     dataToProcess.forEach(b => {
                         const timeSlotDisplay = (window.MOCK_TIME_SLOTS && b.timeSlotId) ? (window.MOCK_TIME_SLOTS.find(ts => ts.id === b.timeSlotId)?.displayTime || b.timeSlotId) : (b.timeSlotId || 'N/A');
-                        rows.push([b.id || "N/A", b.labName || "N/A", b.date ? window.formatDate(new Date(b.date)) : "N/A", timeSlotDisplay, b.status || "N/A", b.userName || "N/A", b.purpose || "N/A"].join(","));
+                        rows.push([
+                            b.id || "N/A", 
+                            b.labName || "N/A", 
+                            b.date ? window.formatDate(new Date(b.date)) : "N/A", 
+                            timeSlotDisplay, 
+                            b.status || "N/A", 
+                            b.userName || "N/A",
+                            b.requestedByRole || "N/A",
+                            b.purpose || "N/A",
+                            b.batchIdentifier || "N/A"
+                        ].join(","));
                     });
                     break;
+                 case "user_activity": // Using bookings as a proxy for user activity for this mock
+                    headers = ["User", "Action", "Timestamp", "Details"];
+                    dataToProcess.forEach(b => {
+                        rows.push([
+                            b.userName || "System User",
+                            `Interacted with booking for '${b.purpose}' in lab ${b.labName || 'N/A'}`,
+                            b.submittedDate ? window.formatDateForDisplay(new Date(b.submittedDate)) : "N/A",
+                            `Booking Status: ${b.status || 'N/A'}, Batch: ${b.batchIdentifier || 'N/A'}`
+                        ].map(field => `"${String(field || '').replace(/"/g, '""')}"`).join(",")); // Basic CSV escaping for fields
+                    });
+                    if (rows.length === 0) { // Fallback if no bookings to repurpose
+                         rows.push(["admin@example.com", "Logged In", new Date().toLocaleDateString(), "Accessed dashboard"].map(field => `"${String(field || '').replace(/"/g, '""')}"`).join(","));
+                         rows.push(["faculty@example.com", "Booked Lab", new Date().toLocaleDateString(), "Lab CS101 for 2 hours"].map(field => `"${String(field || '').replace(/"/g, '""')}"`).join(","));
+                    }
+                    break;
                 default:
-                     // For user_activity and resource_allocation, which don't directly map from bookings easily
+                    // For other report types like 'resource_allocation', provide a generic mock structure
                     headers = ["MockHeader1", "MockHeader2", "MockData"];
                     rows.push(["Sample1", "Info1", "Value1"].join(","));
                     rows.push(["Sample2", "Info2", "Value2"].join(","));
-                    if(mockDataSubset.length > 0 && (reportType === "user_activity" || reportType === "resource_allocation")){
-                         headers = ["User", "Action", "Timestamp", "Details"];
-                         rows = []; // Clear previous mock for these specific types
-                         mockDataSubset.forEach(b => { // Repurpose booking data for user activity mock
-                             rows.push([
-                                 b.userName || "System User",
-                                 `Performed action related to '${b.purpose}' in lab ${b.labName || 'N/A'}`,
-                                 b.submittedDate ? window.formatDateForDisplay(new Date(b.submittedDate)) : "N/A",
-                                 `Status: ${b.status || 'N/A'}`
-                             ].join(","))
-                         });
-                         if (rows.length === 0) { // Fallback if no bookings to repurpose
-                             rows.push(["admin@example.com", "Logged In", new Date().toLocaleDateString(), "Accessed dashboard"].join(","));
-                             rows.push(["faculty@example.com", "Booked Lab", new Date().toLocaleDateString(), "Lab CS101 for 2 hours"].join(","));
-                         }
-                    } else if (rows.length === 0) {
-                         return `Report type "${reportType}" mock generation needs more specific data. Defaulting to empty.`;
-                    }
-
             }
             
+            if (rows.length === 0) {
+                return `No data available to generate report for "${reportType}".`;
+            }
+
             csvContent += headers.join(",") + "\n";
             rows.forEach(row => csvContent += row + "\n");
             return csvContent;
@@ -255,3 +272,5 @@
     </script>
 </body>
 </html>
+
+    
