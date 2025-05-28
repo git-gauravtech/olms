@@ -5,7 +5,7 @@ const pool = require('../config/db');
 const { auth, isAdmin } = require('../middleware/authMiddleware');
 
 // @route   GET api/bookings
-// @desc    Get all bookings (Admin view)
+// @desc    Get all bookings (Admin view - for general overview or report generation)
 // @access  Private (Admin only)
 router.get('/', [auth, isAdmin], async (req, res) => {
     try {
@@ -55,41 +55,60 @@ router.post('/', auth, async (req, res) => {
     }
 
     let status;
-    if (requestedByRole === 'Faculty' || requestedByRole === 'Admin') {
-        status = 'booked'; // Faculty and Admin bookings are auto-approved
-    } else if (requestedByRole === 'Assistant') {
-        // Assistants can no longer make direct requests via this endpoint.
-        // This was changed based on a previous request to remove Assistant request feature.
-        return res.status(403).json({ msg: 'Assistants cannot create bookings/requests through this endpoint.' });
+    // Assistants cannot directly book via this general endpoint after feature removal
+    if (requestedByRole === 'Assistant') {
+        return res.status(403).json({ msg: 'Assistants cannot create bookings through this general endpoint.' });
+    } else if (requestedByRole === 'Faculty' || requestedByRole === 'Admin') {
+        status = 'booked'; // Faculty and Admin bookings are attempted as auto-approved
     } else {
+        // Other roles (e.g. Student) cannot make bookings via this endpoint currently
         return res.status(403).json({ msg: 'Your role is not authorized to create bookings directly.' });
     }
 
-    // Conflict Check for 'booked' status
-    if (status === 'booked') {
-        try {
+    try {
+        // Conflict Check for 'booked' status (only if faculty/admin are trying to book directly)
+        if (status === 'booked') {
             const [conflictingBookings] = await pool.query(
                 'SELECT * FROM bookings WHERE labId = ? AND date = ? AND timeSlotId = ? AND status = ?',
                 [parseInt(labId), date, timeSlotId, 'booked']
             );
             if (conflictingBookings.length > 0) {
-                // Simulate alternative suggestions for faculty for now
+                // If faculty booking conflicts, save it as 'pending-admin-approval'
                 if (requestedByRole === 'Faculty') {
-                    return res.status(409).json({ 
-                        success: false, 
+                    status = 'pending-admin-approval'; // Change status for admin review
+                    const newBookingPendingAdmin = {
+                        labId: parseInt(labId),
+                        userId,
+                        date,
+                        timeSlotId,
+                        purpose: `${purpose} (Conflict - Needs Review)`, // Append note
+                        equipmentIds: equipmentIds && equipmentIds.length > 0 ? JSON.stringify(equipmentIds) : null,
+                        status,
+                        requestedByRole,
+                        batchIdentifier: batchIdentifier || null,
+                        submittedDate: new Date()
+                    };
+                    const [pendingResult] = await pool.query('INSERT INTO bookings SET ?', newBookingPendingAdmin);
+                    const [createdPendingBooking] = await pool.query(
+                        `SELECT b.*, l.name as labName, u.fullName as userName
+                         FROM bookings b
+                         LEFT JOIN labs l ON b.labId = l.id
+                         LEFT JOIN users u ON b.userId = u.id
+                         WHERE b.id = ?`, [pendingResult.insertId]
+                    );
+                    return res.status(202).json({ 
+                        success: false, // Indicate not immediately booked
                         conflict: true, 
-                        message: "This slot is already booked. Simulated alternatives: Lab B at 3 PM, Lab C at 4 PM (if available based on simple check)." 
+                        message: "This slot is already booked. Your request has been submitted for admin review. Simulated alternatives: Lab B at 3 PM, Lab C at 4 PM.",
+                        booking: createdPendingBooking[0]
                     });
+                } else if (requestedByRole === 'Admin') {
+                    // Admin trying to book a conflicting slot - simple rejection for now
+                    return res.status(409).json({ msg: 'This slot is already booked. Please choose another time or lab, or resolve existing booking.'});
                 }
-                return res.status(409).json({ msg: 'This slot is already booked. Please choose another time or lab.'});
             }
-        } catch (dbErr) {
-            console.error('Error checking for conflicting bookings:', dbErr.message, dbErr.stack);
-            return res.status(500).json({ msg: 'Server Error while checking for booking conflicts' });
         }
-    }
 
-    try {
         const newBooking = {
             labId: parseInt(labId),
             userId,
@@ -97,7 +116,7 @@ router.post('/', auth, async (req, res) => {
             timeSlotId,
             purpose,
             equipmentIds: equipmentIds && equipmentIds.length > 0 ? JSON.stringify(equipmentIds) : null,
-            status,
+            status, // Will be 'booked' if no conflict for Faculty/Admin
             requestedByRole, 
             batchIdentifier: (requestedByRole === 'Faculty' || requestedByRole === 'Admin') && batchIdentifier ? batchIdentifier : null,
             submittedDate: new Date()
@@ -118,7 +137,7 @@ router.post('/', auth, async (req, res) => {
 
     } catch (err) {
         console.error('Error creating booking:', err.message, err.stack);
-        if (err.code === 'ER_NO_REFERENCED_ROW_2' || err.sqlState === '23000') { // Broader check for foreign key violation
+        if (err.code === 'ER_NO_REFERENCED_ROW_2' || err.sqlState === '23000') {
             if (err.sqlMessage && err.sqlMessage.toLowerCase().includes('foreign key constraint fails')) {
                  if (err.sqlMessage.includes('labId')) return res.status(400).json({ msg: 'Invalid Lab ID. The specified lab does not exist.' });
                  if (err.sqlMessage.includes('userId')) return res.status(400).json({ msg: 'Invalid User ID. The specified user does not exist.' });
@@ -153,7 +172,7 @@ router.put('/:bookingId/status', [auth, isAdmin], async (req, res) => {
         const booking = bookingResult[0];
 
         // If Admin is approving a 'pending-admin-approval' to 'booked'
-        if (status === 'booked' && booking.status === 'pending-admin-approval') {
+        if (status === 'booked' && (booking.status === 'pending-admin-approval' || booking.status === 'approved-by-admin' || booking.status === 'pending')) {
              const [conflictingBookings] = await pool.query(
                 'SELECT * FROM bookings WHERE labId = ? AND date = ? AND timeSlotId = ? AND status = ? AND id != ?',
                 [booking.labId, booking.date, booking.timeSlotId, 'booked', bookingId]

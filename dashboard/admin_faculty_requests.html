@@ -64,6 +64,7 @@
                 return;
             }
             requestsListContainer.innerHTML = '<p>Loading Faculty requests...</p>';
+            // console.log("Fetching faculty requests from /api/admin/requests/faculty...");
 
             try {
                 const response = await fetch(`${window.API_BASE_URL}/admin/requests/faculty`, {
@@ -77,7 +78,7 @@
                 }
                 const facultyPendingAdminRequests = await response.json();
                 
-                console.log("Fetched Faculty Pending Admin Requests:", facultyPendingAdminRequests);
+                // console.log("Fetched Faculty Pending Admin Requests:", facultyPendingAdminRequests);
 
                 if (facultyPendingAdminRequests.length > 0) {
                     requestsListContainer.innerHTML = ''; 
@@ -86,10 +87,12 @@
                         card.className = 'custom-card p-4 border rounded-md shadow-sm mb-3';
                         
                         const requestTitle = request.requestType ? request.requestType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : (request.purpose || 'Faculty Booking Request');
+                        const batchInfo = request.batchIdentifier ? `<p class="text-sm text-muted-foreground"><strong>Course Section/Batch:</strong> ${request.batchIdentifier}</p>` : '';
                         
                         card.innerHTML = `
                             <h3 class="text-lg font-semibold mb-1">${requestTitle} ${request.labName ? `(Lab: ${request.labName})` : ''}</h3>
                             <p class="text-sm text-muted-foreground"><strong>Faculty:</strong> ${request.userName || 'N/A'} (${request.userEmail || 'N/A'})</p>
+                            ${batchInfo}
                             <p class="text-sm text-muted-foreground"><strong>Details/Purpose:</strong> ${request.purpose || 'N/A'}</p>
                             <p class="text-sm text-muted-foreground"><strong>Submitted Date:</strong> ${request.submittedDate ? window.formatDateForDisplay(new Date(request.submittedDate)) : 'N/A'}</p>
                             ${request.labId && request.labName ? `<p class="text-sm text-muted-foreground"><strong>Associated Lab:</strong> ${request.labName}</p>` : ''}
@@ -109,7 +112,7 @@
                 }
 
             } catch (error) {
-                console.error("Error in loadAndRenderFacultyRequests:", error);
+                console.error("Error in loadAndRenderFacultyRequests:", error.message, error.stack);
                 if (requestsListContainer) requestsListContainer.innerHTML = `<p class="error-message visible">Error loading requests: ${error.message}</p>`;
             }
             if (window.lucide) window.lucide.createIcons();
@@ -141,13 +144,14 @@
 
                 if (response.ok) {
                     alert(`Request status updated to: ${result.status ? result.status.toUpperCase().replace(/-/g, ' ') : 'Updated'}`);
-                    await loadAndRenderFacultyRequests(); 
+                    await loadAndRenderFacultyRequests(); // Re-fetch and re-render the list dynamically
                 } else {
-                     console.error("Failed to update request status. Backend response:", result);
-                    alert(`Failed to update request status: ${result.msg || 'Server error'}`);
+                    const errorMsg = result.msg || `Server error: ${response.status}`;
+                    console.error("Failed to update request status. Backend response:", result);
+                    alert(`Failed to update request status: ${errorMsg}`);
                 }
             } catch (error) {
-                console.error("Error in handleFacultyRequest:", error);
+                console.error("Error in handleFacultyRequest:", error.message, error.stack);
                 alert(`An error occurred while updating the request status: ${error.message}`);
             }
         }

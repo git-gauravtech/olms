@@ -55,6 +55,7 @@
     <script src="../js/utils.js"></script>
     <script src="js/dashboard.js"></script>
     <script>
+        console.log('DOM fully loaded and parsed for faculty_my_bookings.html');
         const bookingsListContainer = document.getElementById('myBookingsListContainer');
         const token = localStorage.getItem('token');
 
@@ -83,16 +84,15 @@
                         card.className = 'custom-card p-4 border rounded-md shadow-sm mb-3'; 
                         
                         let equipmentNames = 'None';
-                         if (booking.equipmentIds && String(booking.equipmentIds).length > 2) { // Check if it's not "[]" or null
+                         if (booking.equipmentIds && String(booking.equipmentIds).length > 2) { 
                              try {
-                                const eqIds = JSON.parse(booking.equipmentIds); // Backend should store as JSON array
+                                const eqIds = JSON.parse(booking.equipmentIds); 
                                 if (Array.isArray(eqIds) && eqIds.length > 0) {
-                                     // In a real app, you'd fetch equipment names based on IDs
                                      equipmentNames = `IDs: ${eqIds.join(', ')}`; 
                                 }
                             } catch (e) { 
                                 console.warn("Could not parse equipmentIds for booking:", booking.id, booking.equipmentIds, e);
-                                equipmentNames = String(booking.equipmentIds); // Fallback to raw string if not parsable JSON array
+                                equipmentNames = String(booking.equipmentIds); 
                             }
                         }
 
@@ -100,10 +100,12 @@
                         if (booking.status === 'booked') statusColorClass = 'text-green-600';
                         else if (booking.status === 'pending' || booking.status === 'pending-admin-approval') statusColorClass = 'text-yellow-600';
                         else if (['rejected', 'cancelled', 'rejected-by-admin'].includes(booking.status)) statusColorClass = 'text-red-600';
+                        
+                        const batchInfo = booking.batchIdentifier ? `<p class="text-sm text-muted-foreground"><strong>Course Section/Batch:</strong> ${booking.batchIdentifier}</p>` : '';
 
                         card.innerHTML = `
                             <h3 class="text-lg font-semibold mb-1">${booking.labName || 'Unknown Lab'}</h3>
-                            ${booking.batchIdentifier ? `<p class="text-sm text-muted-foreground"><strong>Course Section/Batch:</strong> ${booking.batchIdentifier}</p>` : ''}
+                            ${batchInfo}
                             <p class="text-sm text-muted-foreground"><strong>Date:</strong> ${booking.date ? window.formatDate(new Date(booking.date)) : 'N/A'}</p>
                             <p class="text-sm text-muted-foreground"><strong>Time:</strong> ${ (window.MOCK_TIME_SLOTS && booking.timeSlotId) ? (window.MOCK_TIME_SLOTS.find(ts=>ts.id === booking.timeSlotId)?.displayTime || booking.timeSlotId) : (booking.timeSlotId || 'N/A')}</p>
                             <p class="text-sm text-muted-foreground"><strong>Purpose:</strong> ${booking.purpose || 'N/A'}</p>
@@ -117,8 +119,8 @@
                     bookingsListContainer.innerHTML = '<p class="text-muted-foreground">You have no bookings currently.</p>';
                 }
             } catch (error) {
-                console.error("Error rendering faculty/assistant bookings:", error);
-                bookingsListContainer.innerHTML = `<p class="error-message visible">Error loading your bookings: ${error.message}</p>`;
+                console.error("Error rendering faculty/assistant bookings:", error.message, error.stack);
+                if (bookingsListContainer) bookingsListContainer.innerHTML = `<p class="error-message visible">Error loading your bookings: ${error.message}</p>`;
             }
             if (window.lucide) window.lucide.createIcons();
         }
@@ -126,7 +128,6 @@
         document.addEventListener('DOMContentLoaded', async () => {
             console.log('DOM fully loaded and parsed for faculty_my_bookings.html');
             const currentUserRole = window.getCurrentUserRole();
-            // This page is used by Faculty and Assistant
             if (!window.roleGuard([window.USER_ROLES.FACULTY, window.USER_ROLES.ASSISTANT])) return; 
             
             window.initializeDashboard();
@@ -150,10 +151,11 @@
                         alert(result.msg || 'Booking/Request cancelled successfully.');
                         await loadAndRenderMyBookings(); 
                     } else {
-                        alert(`Failed to cancel booking/request: ${result.msg || 'Server error'}`);
+                        const errorMsg = result.msg || `Server error: ${response.status}`;
+                        alert(`Failed to cancel booking/request: ${errorMsg}`);
                     }
                 } catch (error) {
-                    console.error("Error cancelling booking:", error);
+                    console.error("Error cancelling booking:", error.message, error.stack);
                     alert(`An error occurred while cancelling the booking/request: ${error.message}`);
                 }
             }

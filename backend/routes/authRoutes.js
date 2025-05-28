@@ -31,15 +31,15 @@ router.post('/signup', async (req, res) => {
 
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
-        const hashedSecretWord = await bcrypt.hash(secretWord, salt); // Hash the secret word
+        const hashedSecretWord = await bcrypt.hash(secretWord, salt); 
 
         const newUser = {
             fullName,
             email,
             passwordHash: hashedPassword,
-            secretWordHash: hashedSecretWord, // Store hashed secret word
+            secretWordHash: hashedSecretWord, 
             role,
-            department: department || null
+            department: department || null // Save department
         };
         await pool.query('INSERT INTO users SET ?', newUser);
 
@@ -75,7 +75,7 @@ router.post('/login', async (req, res) => {
         const payload = {
             user: {
                 id: user.id,
-                role: user.role
+                role: user.role // Role from DB is used
             }
         };
 
@@ -173,7 +173,7 @@ router.post('/forgot-password', async (req, res) => {
             [hashedToken, resetTokenExpires, user.id]
         );
 
-        const resetUrl = `http://localhost:9002/reset_password.html?token=${resetToken}`;
+        const resetUrl = `http://localhost:9002/reset_password.html?token=${resetToken}`; // Assuming frontend is on port 9002
         console.log('------------------------------------');
         console.log('PASSWORD RESET REQUESTED & VALIDATED (SECRET WORD MATCH)');
         console.log(`User: ${user.email} (ID: ${user.id})`);
@@ -229,7 +229,7 @@ router.post('/reset-password', async (req, res) => {
 
         res.json({ msg: 'Password has been reset successfully. You can now login.' });
 
-    } catch (err) { // Corrected variable name from err_ to err
+    } catch (err) { 
         console.error('Reset password error:', err.message, err.stack);
         res.status(500).json({ msg: 'Server error while resetting password.' });
     }

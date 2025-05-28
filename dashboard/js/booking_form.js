@@ -16,14 +16,14 @@ async function initializeBookingForm() {
         return;
     }
 
-    if (batchIdentifierGroup) {
+    if (batchIdentifierGroup && batchIdentifierInput) {
         // Show for Faculty and Admin as they might book for specific sections/batches
         if (currentUserRole === window.USER_ROLES.FACULTY || currentUserRole === window.USER_ROLES.ADMIN) {
             batchIdentifierGroup.style.display = 'block'; 
-            if (batchIdentifierInput) batchIdentifierInput.required = false; // Making it optional for faculty/admin
+            batchIdentifierInput.required = false; // Making it optional for faculty/admin
         } else {
             batchIdentifierGroup.style.display = 'none';
-            if (batchIdentifierInput) batchIdentifierInput.required = false;
+            batchIdentifierInput.required = false;
         }
     }
 
@@ -35,12 +35,16 @@ async function initializeBookingForm() {
             if (!labsResponse.ok) throw new Error('Failed to fetch labs');
             const labs = await labsResponse.json();
             labIdSelect.innerHTML = '<option value="">Select Lab</option>';
-            labs.forEach(lab => {
-                const option = document.createElement('option');
-                option.value = lab.id;
-                option.textContent = `${lab.name} (Capacity: ${lab.capacity})`;
-                labIdSelect.appendChild(option);
-            });
+            if (labs && labs.length > 0) {
+                labs.forEach(lab => {
+                    const option = document.createElement('option');
+                    option.value = lab.id;
+                    option.textContent = `${lab.name || 'Unnamed Lab'} (Capacity: ${lab.capacity || 'N/A'})`;
+                    labIdSelect.appendChild(option);
+                });
+            } else {
+                labIdSelect.innerHTML = '<option value="">No labs available</option>';
+            }
         }
 
         // Populate Time Slots
@@ -76,7 +80,7 @@ async function initializeBookingForm() {
 
                     const label = document.createElement('label');
                     label.htmlFor = `equip_${equipment.id}`;
-                    label.textContent = `${equipment.name} (${equipment.type})`;
+                    label.textContent = `${equipment.name || 'Unnamed Equipment'} (${equipment.type || 'N/A'})`;
                     label.className = "text-sm";
                     
                     div.appendChild(checkbox);
@@ -86,7 +90,7 @@ async function initializeBookingForm() {
             }
         }
     } catch (error) {
-        console.error("Error initializing booking form:", error);
+        console.error("Error initializing booking form:", error.message, error.stack);
         if(formSubmissionMessageEl) showFormSubmissionMessage(`Error initializing form: ${error.message}`, true, formSubmissionMessageEl);
     }
 
@@ -140,7 +144,7 @@ async function initializeBookingForm() {
                 equipmentIds: selectedEquipment.length > 0 ? selectedEquipment : null, 
                 batchIdentifier: batchId,
             };
-            console.log("Frontend: New booking data to send:", JSON.parse(JSON.stringify(bookingData)));
+            console.log("Frontend: New booking data to send:", JSON.parse(JSON.stringify(bookingData))); // Log a clone for safety
 
             const submitButton = bookingForm.querySelector('button[type="submit"]');
             const originalButtonHtml = submitButton.innerHTML;
@@ -160,13 +164,18 @@ async function initializeBookingForm() {
 
                 const result = await response.json();
 
-                if (response.ok) {
-                    const labNameFromResult = result.labName || (labIdSelect.options[labIdSelect.selectedIndex]?.textContent.split(' (')[0] || 'Selected Lab');
+                if (response.ok || response.status === 202) { // 201 for created, 202 for accepted (faculty conflict)
+                    const labNameFromResult = result.booking?.labName || result.labName || (labIdSelect.options[labIdSelect.selectedIndex]?.textContent.split(' (')[0] || 'Selected Lab');
+                    let successMessage = `Booking for "${result.booking?.purpose || result.purpose}" (Lab: ${labNameFromResult}, Status: ${result.booking?.status?.toUpperCase() || result.status?.toUpperCase()}) processed.`;
+                    if (response.status === 202 && result.message) { // Specific message for faculty conflict leading to admin review
+                        successMessage = result.message;
+                    } else if (response.ok) {
+                         successMessage = `Booking for "${result.purpose}" (Lab: ${labNameFromResult}, Status: ${result.status?.toUpperCase()}) processed successfully!`;
+                    }
                     
-                    const successMessage = `Booking for "${result.purpose}" (Lab: ${labNameFromResult}, Status: ${result.status?.toUpperCase()}) processed successfully!`;
                     showFormSubmissionMessage(successMessage, false, formSubmissionMessageEl);
                     bookingForm.reset(); 
-                    if (batchIdentifierInput) batchIdentifierInput.value = ''; // Clear batch identifier too
+                    if (batchIdentifierInput) batchIdentifierInput.value = ''; 
                     if (bookingDateInput) bookingDateInput.min = window.formatDate(new Date()); 
                     
                     if (history.pushState) {
@@ -176,14 +185,14 @@ async function initializeBookingForm() {
                 } else {
                     // Handle conflict with alternatives specifically
                     if (response.status === 409 && result.conflict && result.message) {
-                         showFormSubmissionMessage(`${result.message}`, true, formSubmissionMessageEl);
+                         showFormSubmissionMessage(`${result.message}`, true, formSubmissionMessageEl); // Display simulated alternatives
                     } else {
                          showFormSubmissionMessage(`Booking failed: ${result.msg || 'An unknown error occurred.'}`, true, formSubmissionMessageEl);
                     }
                 }
 
             } catch (error) {
-                console.error("Error submitting booking form:", error);
+                console.error("Error submitting booking form:", error.message, error.stack);
                 showFormSubmissionMessage(`Error: Could not submit booking. ${error.message}`, true, formSubmissionMessageEl);
             } finally {
                 submitButton.disabled = false;
@@ -193,7 +202,6 @@ async function initializeBookingForm() {
         });
     }
 
-    // Removed "Check Availability First" button logic
 
     function showError(elementId, message) {
         const errorElement = document.getElementById(elementId);
