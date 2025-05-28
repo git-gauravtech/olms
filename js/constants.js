@@ -1,7 +1,9 @@
+
 // Global constants for the application
 console.log('[constants.js] Script start.');
 
-const API_BASE_URL_CONST = 'http://localhost:5001/api'; // Make sure this matches your backend port
+// API_BASE_URL_CONST is now relative, as frontend and backend are served from the same origin
+const API_BASE_URL_CONST = '/api';
 const USER_ROLES_OBJ = {
   ADMIN: 'Admin',
   FACULTY: 'Faculty',
@@ -37,12 +39,12 @@ const NAV_LINKS_OBJ = {
     { href: 'assistant.html', label: 'Assistant Dashboard', icon: 'layout-dashboard' },
     { href: 'labs.html', label: 'Lab Availability', icon: 'flask-conical' },
     { href: 'assistant_update_seat_status.html', label: 'Update Seat Status', icon: 'edit-3' },
-    { href: 'student_my_bookings.html', label: 'My Assigned Tasks/Bookings', icon: 'calendar-check' },
+    { href: 'student_my_bookings.html', label: 'My Assigned Tasks/Bookings', icon: 'calendar-check' }, // Assistants use the same page as students for their bookings
   ],
 };
 
 const COMMON_NAV_LINKS_CONST = [
-  // Profile is accessed via user dropdown in header, not direct sidebar link for now
+  // Profile is accessed via user dropdown in header
 ];
 
 const MOCK_TIME_SLOTS_CONST = [
@@ -59,37 +61,29 @@ const MOCK_TIME_SLOTS_CONST = [
 ];
 
 function formatDate(dateInput) {
-    if (!dateInput && dateInput !== 0) return ''; // Handle null, undefined, empty string
+    if (!dateInput && dateInput !== 0) return '';
     let d;
 
     if (dateInput instanceof Date) {
-        // If it's already a Date object, ensure it's not an invalid date
         if (isNaN(dateInput.getTime())) {
             console.warn('[constants.js] formatDate: Invalid Date object passed', dateInput);
             return 'Invalid Date Value';
         }
-        // Use UTC methods to get date parts to avoid timezone shifts when formatting YYYY-MM-DD
         const year = dateInput.getUTCFullYear();
         const month = String(dateInput.getUTCMonth() + 1).padStart(2, '0');
         const day = String(dateInput.getUTCDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
     } else if (typeof dateInput === 'string' || typeof dateInput === 'number') {
-        // Attempt to parse string or number (timestamp)
-        // Common case: YYYY-MM-DDTHH:mm:ss.sssZ or YYYY-MM-DD
         const potentialDate = new Date(dateInput);
         if (!isNaN(potentialDate.getTime())) {
-            // If valid, use UTC methods as above
             const year = potentialDate.getUTCFullYear();
             const month = String(potentialDate.getUTCMonth() + 1).padStart(2, '0');
             const day = String(potentialDate.getUTCDate()).padStart(2, '0');
             return `${year}-${month}-${day}`;
         } else {
-            // Handle simple YYYY-MM-DD string that might be parsed as local midnight by new Date()
-            // and then toISOString() converts it to UTC, potentially shifting the date.
-            // This regex check ensures we are dealing with a simple date string.
             const simpleDateRegex = /^\d{4}-\d{2}-\d{2}$/;
             if (simpleDateRegex.test(String(dateInput))) {
-                return String(dateInput); // Assume it's already in YYYY-MM-DD format and return as is
+                return String(dateInput);
             }
             console.warn('[constants.js] formatDate: Invalid Date String/Number', dateInput);
             return 'Invalid Date String/Number';
@@ -119,10 +113,12 @@ const DEPARTMENTS_CONST = [
 const EQUIPMENT_STATUSES_CONST = ['available', 'in-use', 'maintenance', 'broken'];
 const BOOKING_STATUSES_ARRAY_CONST = ['pending', 'booked', 'rejected', 'cancelled', 'pending-admin-approval', 'approved-by-admin', 'rejected-by-admin'];
 
+// No longer storing MOCK data here for labs, equipment, bookings, seat statuses.
+// This data is now managed by the backend.
 
-// No longer storing MOCK_LABS_INITIAL, MOCK_EQUIPMENT_INITIAL, MOCK_BOOKINGS_INITIAL here
-// Frontend should fetch all dynamic data from backend APIs.
-// localStorage helpers for these lists are also removed.
+// localStorage Keys (Versioned up)
+const MOCK_BOOKINGS_STORAGE_KEY = 'mockBookingsV5'; // This key might be fully obsolete now
+const LAB_SEAT_STATUSES_STORAGE_KEY = 'labSeatStatusesV4'; // This key might be fully obsolete now
 
 console.log('[constants.js] Assigning constants to window object...');
 if (typeof window !== 'undefined') {
@@ -139,12 +135,12 @@ if (typeof window !== 'undefined') {
     console.log('[constants.js] window.NAV_LINKS set.');
 
     window.COMMON_NAV_LINKS = COMMON_NAV_LINKS_CONST;
-    window.MOCK_TIME_SLOTS = MOCK_TIME_SLOTS_CONST; // Used for display and form options
+    window.MOCK_TIME_SLOTS = MOCK_TIME_SLOTS_CONST;
     window.DAYS_OF_WEEK = DAYS_OF_WEEK_CONST;
     window.DEPARTMENTS = DEPARTMENTS_CONST;
     window.EQUIPMENT_STATUSES = EQUIPMENT_STATUSES_CONST;
     window.BOOKING_STATUSES_ARRAY = BOOKING_STATUSES_ARRAY_CONST;
-    window.formatDate = formatDate; // Make utility function globally available
+    window.formatDate = formatDate;
 } else {
     console.error('[constants.js] CRITICAL: window object not found. This script is intended for browser environment.');
 }

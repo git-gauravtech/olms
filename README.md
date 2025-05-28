@@ -1,3 +1,4 @@
+
 # Optimized Lab Management System (HTML, CSS, JS Version)
 
 This is a lab management system frontend built with plain HTML, CSS, and JavaScript, along with a Node.js/Express/MySQL backend.
@@ -38,29 +39,35 @@ The core DAA algorithms are intended to be implemented in C++ and integrated wit
         ```bash
         npm install
         ```
-7.  **Run the Backend Server**:
-    *   While in the `backend` directory, run:
-        ```bash
-        npm run dev
-        ```
-    *   This uses `nodemon` for auto-restarts. You should see messages like "MySQL Connected successfully..." and "Backend server running on port 5001" (or your configured port). Keep this terminal open.
 
-**Frontend Setup:**
-1.  **Navigate to the project's root directory** (e.g., `olms-main`, if you're not already there).
-2.  **Install Frontend Dependencies**:
+**Running the Application (Frontend + Backend):**
+1.  **Navigate to the project's root directory** (e.g., `olms-main`).
+2.  **Install Root Dependencies** (mainly for dev tools if any, `live-server` is still listed but not primary):
     ```bash
     npm install
     ```
-    (This mainly installs `live-server` for development).
-3.  **Run the Frontend Server**:
-    ```bash
-    npm start
-    ```
-    *   This will use `npx live-server` to serve the static HTML, CSS, and JS files. It will typically open `index.html` in your browser at `http://localhost:9002`.
+3.  **Start the Server**:
+    *   From the **root directory**, run:
+        ```bash
+        npm start
+        ```
+    *   This command will now navigate into the `backend` directory and run `npm run dev` there.
+    *   The Node.js backend server will start (typically on port 5001, or as configured in `backend/.env`). This server now handles **both** the API requests and serves the static frontend HTML, CSS, and JS files.
+    *   You should see messages like "MySQL Connected successfully..." and "Frontend is now served from http://localhost:5001".
 
 **Accessing the Application:**
-*   Open your browser and go to `http://localhost:9002` (or the port `live-server` uses for the frontend).
-*   The frontend will make API calls to the backend (e.g., `http://localhost:5001/api/...`). Ensure both servers are running.
+*   Open your browser and go to `http://localhost:5001` (or the port your backend server is running on). This will serve `index.html` by default.
+*   The frontend will make API calls to `/api/...` on the same server.
+
+**(Optional) Running Frontend with `live-server` Separately (for isolated frontend development):**
+If you only want to work on frontend HTML/CSS/JS changes without running the full backend or if there are issues with the unified server setup:
+1.  Ensure your backend API server is running separately (`cd backend && npm run dev`).
+2.  From the **root directory**, run:
+    ```bash
+    npm run frontend-only
+    ```
+    This will use `live-server` to serve the frontend (typically on `http://localhost:9002`).
+    **Important:** In this mode, ensure `js/constants.js` has `API_BASE_URL_CONST` set to the full backend URL (e.g., `http://localhost:5001/api`). For unified serving, it should be `/api`.
 
 ## Project Structure
 
@@ -83,11 +90,11 @@ The core DAA algorithms are intended to be implemented in C++ and integrated wit
         *   `assistant_seat_updater.js`: Logic for Assistant updating seat statuses.
         *   `booking_form.js`: Logic for the lab booking/request form.
         *   `lab_grid.js`: Logic for the lab availability grid.
-*   `package.json`: Frontend dependencies and scripts.
+*   `package.json`: Root project dependencies and scripts.
 *   `README.md`: This file.
 
 **Backend (`olms-main/backend/`):**
-*   `server.js`: The main Node.js/Express backend server file.
+*   `server.js`: The main Node.js/Express backend server file. Now also serves static frontend files.
 *   `config/`:
     *   `db.js`: MySQL database connection pool setup.
     *   `schema.sql`: SQL script to create database tables.
@@ -99,6 +106,7 @@ The core DAA algorithms are intended to be implemented in C++ and integrated wit
 ## Notes
 *   The frontend uses plain HTML, CSS, and vanilla JavaScript.
 *   The backend uses Node.js with the Express.js framework and MySQL as the database.
+*   The backend now serves the static frontend files, unifying the application under one server process for easier running.
 *   Authentication is handled using JWT (JSON Web Tokens).
 *   Icons are from the [Lucide Icons](https://lucide.dev/) library, loaded via CDN on the frontend.
 *   The C++ algorithm integration points are simulated in the backend (`POST /api/admin/algorithms/:algorithmName`). The actual execution of C++ code from Node.js (e.g., via `child_process`) is a subsequent implementation step.
