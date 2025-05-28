@@ -59,9 +59,9 @@
                                     <label for="reportType">Report Type:</label>
                                     <select id="reportType" name="reportType" class="custom-card-content select">
                                         <option value="lab_usage">Lab Usage Statistics</option>
-                                        <option value="resource_allocation">Resource Allocation Summary</option>
-                                        <option value="user_activity">User Activity Log</option>
-                                        <option value="booking_history">Booking History by Lab</option>
+                                        <option value="resource_allocation">Resource Allocation Summary (Mock)</option>
+                                        <option value="user_activity">User Activity Log (Mock)</option>
+                                        <option value="booking_history">Booking History by Lab (Mock)</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
@@ -101,40 +101,48 @@
 
             const generateReportBtn = document.getElementById('generateMockReportBtn');
             const reportTypeSelect = document.getElementById('reportType');
+            const token = localStorage.getItem('token'); // Get token for API calls
             
-            if (generateReportBtn && reportTypeSelect) {
+            if (generateReportBtn && reportTypeSelect && token) {
                 generateReportBtn.addEventListener('click', async () => {
                     const reportType = reportTypeSelect.value;
                     const reportTypeName = reportTypeSelect.options[reportTypeSelect.selectedIndex].text.replace(/\s+/g, '_');
                     const filename = `${reportTypeName}_${new Date().toISOString().split('T')[0]}.csv`;
                     
                     let bookingsForReport = [];
-                    const token = localStorage.getItem('token');
-                    try {
-                         // Fetch ALL bookings for Admin reports
-                         const response = await fetch(`${window.API_BASE_URL}/bookings`, { 
-                            headers: { 'Authorization': `Bearer ${token}` }
-                        });
-                        if (response.ok) {
-                            bookingsForReport = await response.json();
-                        } else {
-                            console.warn("Could not fetch all bookings for mock report, using empty data or mock static data if preferred.", await response.text());
-                            alert("Failed to fetch all bookings data for the report.");
-                        }
-                    } catch(e) {
-                        console.warn("Error fetching all bookings for mock report:", e);
-                         alert("Error fetching bookings data for the report.");
-                    }
                     
-                    if (bookingsForReport.length === 0 && reportType === "lab_usage") { // Only add static mock if actual fetch fails AND it's for lab_usage
-                        console.log("No live bookings to report, generating CSV with static mock data for lab_usage.");
-                        bookingsForReport = [
-                            { labName: "Mock Lab Alpha", date: "2024-01-15", timeSlotId: "ts_0900_1000", purpose: "Mock CS101 Lecture", userName: "Mock User 1" },
-                            { labName: "Mock Lab Beta", date: "2024-01-15", timeSlotId: "ts_1000_1100", purpose: "Mock PHY202 Lab", userName: "Mock User 2" },
-                            { labName: "Mock Lab Alpha", date: "2024-01-16", timeSlotId: "ts_1400_1500", purpose: "Mock Project Work", userName: "Mock User 3" },
+                    if (reportType === "lab_usage") { // Only lab_usage report uses real data for now
+                        try {
+                            const response = await fetch(`${window.API_BASE_URL}/bookings`, { // Fetch ALL bookings
+                                headers: { 'Authorization': `Bearer ${token}` }
+                            });
+                            if (response.ok) {
+                                bookingsForReport = await response.json();
+                            } else {
+                                const errorData = await response.json().catch(() => ({ msg: `Server error: ${response.status}` }));
+                                console.warn("Could not fetch all bookings for mock report.", errorData.msg);
+                                alert(`Failed to fetch bookings data for the report: ${errorData.msg || response.statusText}`);
+                                // Fallback to static mock data if API fails
+                                bookingsForReport = [
+                                    { labName: "Static Mock Lab Alpha", date: "2024-01-15", timeSlotId: "ts_0900_1000", purpose: "Static Mock CS101", userName: "Static User 1", requestedByRole: "Faculty" },
+                                    { labName: "Static Mock Lab Beta", date: "2024-01-15", timeSlotId: "ts_1000_1100", purpose: "Static Mock PHY202", userName: "Static User 2", requestedByRole: "Faculty" },
+                                ];
+                            }
+                        } catch(e) {
+                            console.warn("Error fetching all bookings for mock report:", e);
+                            alert(`Error fetching bookings data for the report: ${e.message}`);
+                             bookingsForReport = [ // Fallback to static mock data
+                                { labName: "Error Fallback Lab A", date: "2024-01-01", timeSlotId: "ts_0800_0900", purpose: "Error Data", userName: "System", requestedByRole: "System" }
+                            ];
+                        }
+                    } else {
+                        // For other report types, generate purely static mock data
+                        console.log(`Generating static mock data for report type: ${reportType}`);
+                         bookingsForReport = [ 
+                            { labName: `Mock ${reportType} Lab`, date: "2024-01-10", timeSlotId: "ts_1200_1300", purpose: `Mock data for ${reportTypeName}`, userName: "Mock User", requestedByRole: "Mock Role" }
                         ];
                     }
-
+                    
                     const csvData = generateMockCSV(bookingsForReport, reportType);
                     if (csvData.startsWith("data:text/csv")) {
                         downloadCSV(csvData, filename);
@@ -142,6 +150,8 @@
                         alert(csvData); // Show error message if report type not implemented or no data
                     }
                 });
+            } else {
+                if(!token) console.warn("Token not found, report generation disabled.");
             }
 
             if (window.lucide) window.lucide.createIcons();
@@ -162,7 +172,7 @@
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({ msg: 'Failed to fetch logs' }));
+                    const errorData = await response.json().catch(() => ({ msg: `Failed to fetch logs: ${response.status}` }));
                     throw new Error(errorData.msg);
                 }
                 const logs = await response.json();
@@ -187,18 +197,18 @@
         }
 
         function generateMockCSV(bookings, reportType) {
-            if (!bookings || bookings.length === 0) {
-                return "No data available for this report type.";
+            if (!bookings) { // Allow empty bookings array for non lab_usage types
+                return `No data available for this report type: ${reportType}.`;
             }
             let csvContent = "data:text/csv;charset=utf-8,";
             let headers = [];
             let rows = [];
 
-            // Use all fetched bookings for the report, not just a subset
             const dataToProcess = bookings; 
 
             switch(reportType) {
                 case "lab_usage":
+                    if (dataToProcess.length === 0) return "No lab usage data available to generate report.";
                     headers = ["LabName", "Date", "TimeSlot", "Purpose", "BookedByUserName", "BookedByRole"];
                     dataToProcess.forEach(b => {
                         const timeSlotDisplay = (window.MOCK_TIME_SLOTS && b.timeSlotId) ? (window.MOCK_TIME_SLOTS.find(ts => ts.id === b.timeSlotId)?.displayTime || b.timeSlotId) : (b.timeSlotId || 'N/A');
@@ -206,13 +216,14 @@
                             b.labName || "N/A", 
                             b.date ? window.formatDate(new Date(b.date)) : "N/A", 
                             timeSlotDisplay, 
-                            b.purpose || "N/A", 
-                            b.userName || "N/A", // userName from joined bookings table
+                            (b.purpose || "N/A").replace(/,/g, ';'), // Basic CSV escape for comma in purpose
+                            b.userName || "N/A", 
                             b.requestedByRole || "N/A"
-                        ].join(","));
+                        ].map(field => `"${String(field || '').replace(/"/g, '""')}"`).join(","));
                     });
                     break;
                 case "booking_history": 
+                    if (dataToProcess.length === 0) return "No booking history data available to generate report.";
                     headers = ["BookingID", "LabName", "Date", "TimeSlot", "Status", "BookedByUserName", "BookedByRole", "Purpose", "BatchIdentifier"];
                      dataToProcess.forEach(b => {
                         const timeSlotDisplay = (window.MOCK_TIME_SLOTS && b.timeSlotId) ? (window.MOCK_TIME_SLOTS.find(ts => ts.id === b.timeSlotId)?.displayTime || b.timeSlotId) : (b.timeSlotId || 'N/A');
@@ -224,31 +235,31 @@
                             b.status || "N/A", 
                             b.userName || "N/A",
                             b.requestedByRole || "N/A",
-                            b.purpose || "N/A",
+                            (b.purpose || "N/A").replace(/,/g, ';'),
                             b.batchIdentifier || "N/A"
-                        ].join(","));
+                        ].map(field => `"${String(field || '').replace(/"/g, '""')}"`).join(","));
                     });
                     break;
-                 case "user_activity": // Using bookings as a proxy for user activity for this mock
-                    headers = ["User", "Action", "Timestamp", "Details"];
-                    dataToProcess.forEach(b => {
-                        rows.push([
-                            b.userName || "System User",
-                            `Interacted with booking for '${b.purpose}' in lab ${b.labName || 'N/A'}`,
-                            b.submittedDate ? window.formatDateForDisplay(new Date(b.submittedDate)) : "N/A",
-                            `Booking Status: ${b.status || 'N/A'}, Batch: ${b.batchIdentifier || 'N/A'}`
-                        ].map(field => `"${String(field || '').replace(/"/g, '""')}"`).join(",")); // Basic CSV escaping for fields
-                    });
-                    if (rows.length === 0) { // Fallback if no bookings to repurpose
-                         rows.push(["admin@example.com", "Logged In", new Date().toLocaleDateString(), "Accessed dashboard"].map(field => `"${String(field || '').replace(/"/g, '""')}"`).join(","));
-                         rows.push(["faculty@example.com", "Booked Lab", new Date().toLocaleDateString(), "Lab CS101 for 2 hours"].map(field => `"${String(field || '').replace(/"/g, '""')}"`).join(","));
+                 case "user_activity": 
+                    headers = ["User", "Action", "Timestamp", "Details (Mock)"];
+                    if (dataToProcess.length > 0 && dataToProcess[0].userName ) { // Repurpose bookings if available
+                         dataToProcess.forEach(b => {
+                            rows.push([
+                                b.userName || "System User",
+                                `Interacted with booking for '${(b.purpose || "N/A").replace(/,/g, ';')}' in lab ${b.labName || 'N/A'}`,
+                                b.submittedDate ? window.formatDateForDisplay(new Date(b.submittedDate)) : "N/A",
+                                `Booking Status: ${b.status || 'N/A'}, Batch: ${b.batchIdentifier || 'N/A'}`
+                            ].map(field => `"${String(field || '').replace(/"/g, '""')}"`).join(","));
+                        });
+                    } else { // Fallback static mock data if no bookings passed or bookings don't have userName
+                         rows.push(["admin@example.com", "Logged In", new Date(Date.now() - 100000).toLocaleString(), "Accessed dashboard"].map(field => `"${String(field || '').replace(/"/g, '""')}"`).join(","));
+                         rows.push(["faculty@example.com", "Booked Lab", new Date(Date.now() - 200000).toLocaleString(), "Lab CS101 for 2 hours"].map(field => `"${String(field || '').replace(/"/g, '""')}"`).join(","));
                     }
                     break;
-                default:
-                    // For other report types like 'resource_allocation', provide a generic mock structure
-                    headers = ["MockHeader1", "MockHeader2", "MockData"];
-                    rows.push(["Sample1", "Info1", "Value1"].join(","));
-                    rows.push(["Sample2", "Info2", "Value2"].join(","));
+                default: // For 'resource_allocation' or any other type
+                    headers = ["MockHeader1", "MockHeader2", `MockDataFor_${reportTypeName}`];
+                    rows.push(["Sample1", "Info1", "Value1"].map(field => `"${String(field || '').replace(/"/g, '""')}"`).join(","));
+                    rows.push(["Sample2", "Info2", "Value2"].map(field => `"${String(field || '').replace(/"/g, '""')}"`).join(","));
             }
             
             if (rows.length === 0) {
@@ -272,5 +283,3 @@
     </script>
 </body>
 </html>
-
-    
