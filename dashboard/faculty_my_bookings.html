@@ -59,8 +59,9 @@
         const token = localStorage.getItem('token');
 
         async function loadAndRenderMyBookings() {
-            if (!bookingsListContainer || !window.API_BASE_URL) {
-                if (bookingsListContainer) bookingsListContainer.innerHTML = '<p class="error-message visible">Page setup error.</p>';
+            if (!bookingsListContainer || !window.API_BASE_URL || !token) {
+                if (bookingsListContainer) bookingsListContainer.innerHTML = '<p class="error-message visible">Page setup error or not authenticated.</p>';
+                console.error("loadAndRenderMyBookings: Missing critical elements or token.");
                 return;
             }
             bookingsListContainer.innerHTML = '<p>Loading your bookings...</p>';
@@ -82,13 +83,17 @@
                         card.className = 'custom-card p-4 border rounded-md shadow-sm mb-3'; 
                         
                         let equipmentNames = 'None';
-                         if (booking.equipmentIds && String(booking.equipmentIds).length > 2) {
+                         if (booking.equipmentIds && String(booking.equipmentIds).length > 2) { // Check if it's not "[]" or null
                              try {
-                                const eqIds = JSON.parse(booking.equipmentIds);
+                                const eqIds = JSON.parse(booking.equipmentIds); // Backend should store as JSON array
                                 if (Array.isArray(eqIds) && eqIds.length > 0) {
-                                     equipmentNames = eqIds.join(', ');
+                                     // In a real app, you'd fetch equipment names based on IDs
+                                     equipmentNames = `IDs: ${eqIds.join(', ')}`; 
                                 }
-                            } catch (e) { equipmentNames = String(booking.equipmentIds); }
+                            } catch (e) { 
+                                console.warn("Could not parse equipmentIds for booking:", booking.id, booking.equipmentIds, e);
+                                equipmentNames = String(booking.equipmentIds); // Fallback to raw string if not parsable JSON array
+                            }
                         }
 
                         let statusColorClass = 'text-gray-600';
@@ -98,12 +103,13 @@
 
                         card.innerHTML = `
                             <h3 class="text-lg font-semibold mb-1">${booking.labName || 'Unknown Lab'}</h3>
+                            ${booking.batchIdentifier ? `<p class="text-sm text-muted-foreground"><strong>Course Section/Batch:</strong> ${booking.batchIdentifier}</p>` : ''}
                             <p class="text-sm text-muted-foreground"><strong>Date:</strong> ${booking.date ? window.formatDate(new Date(booking.date)) : 'N/A'}</p>
                             <p class="text-sm text-muted-foreground"><strong>Time:</strong> ${ (window.MOCK_TIME_SLOTS && booking.timeSlotId) ? (window.MOCK_TIME_SLOTS.find(ts=>ts.id === booking.timeSlotId)?.displayTime || booking.timeSlotId) : (booking.timeSlotId || 'N/A')}</p>
                             <p class="text-sm text-muted-foreground"><strong>Purpose:</strong> ${booking.purpose || 'N/A'}</p>
                             <p class="text-sm text-muted-foreground"><strong>Status:</strong> <span class="font-medium ${statusColorClass}">${booking.status ? booking.status.toUpperCase().replace(/-/g,' ') : 'N/A'}</span></p>
                             <p class="text-sm text-muted-foreground"><strong>Equipment:</strong> ${equipmentNames}</p>
-                            ${ (booking.status === 'booked' || booking.status === 'pending') ? `<button type="button" class="button button-outline button-sm mt-2" onclick="cancelMyBooking('${booking.id}')">Cancel Booking/Request</button>` : ''}
+                            ${ (booking.status === 'booked' || booking.status === 'pending' || booking.status === 'pending-admin-approval') ? `<button type="button" class="button button-outline button-sm mt-2" onclick="cancelMyBooking('${booking.id}')">Cancel Booking/Request</button>` : ''}
                         `;
                         bookingsListContainer.appendChild(card);
                     });
@@ -111,13 +117,16 @@
                     bookingsListContainer.innerHTML = '<p class="text-muted-foreground">You have no bookings currently.</p>';
                 }
             } catch (error) {
+                console.error("Error rendering faculty/assistant bookings:", error);
                 bookingsListContainer.innerHTML = `<p class="error-message visible">Error loading your bookings: ${error.message}</p>`;
             }
             if (window.lucide) window.lucide.createIcons();
         }
         
         document.addEventListener('DOMContentLoaded', async () => {
+            console.log('DOM fully loaded and parsed for faculty_my_bookings.html');
             const currentUserRole = window.getCurrentUserRole();
+            // This page is used by Faculty and Assistant
             if (!window.roleGuard([window.USER_ROLES.FACULTY, window.USER_ROLES.ASSISTANT])) return; 
             
             window.initializeDashboard();
@@ -126,6 +135,10 @@
         });
 
         async function cancelMyBooking(bookingId) {
+            if (!token) {
+                alert("Authentication error. Please log in again.");
+                return;
+            }
             if (confirm('Are you sure you want to cancel this booking/request?')) {
                 try {
                     const response = await fetch(`${window.API_BASE_URL}/bookings/${bookingId}`, {
@@ -140,6 +153,7 @@
                         alert(`Failed to cancel booking/request: ${result.msg || 'Server error'}`);
                     }
                 } catch (error) {
+                    console.error("Error cancelling booking:", error);
                     alert(`An error occurred while cancelling the booking/request: ${error.message}`);
                 }
             }
@@ -147,5 +161,3 @@
     </script>
 </body>
 </html>
-
-    

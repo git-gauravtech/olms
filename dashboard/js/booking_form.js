@@ -17,9 +17,10 @@ async function initializeBookingForm() {
     }
 
     if (batchIdentifierGroup) {
-        if (currentUserRole === window.USER_ROLES.ASSISTANT) {
+        // Show for Faculty and Admin as they might book for specific sections/batches
+        if (currentUserRole === window.USER_ROLES.FACULTY || currentUserRole === window.USER_ROLES.ADMIN) {
             batchIdentifierGroup.style.display = 'block'; 
-            if (batchIdentifierInput) batchIdentifierInput.required = true;
+            if (batchIdentifierInput) batchIdentifierInput.required = false; // Making it optional for faculty/admin
         } else {
             batchIdentifierGroup.style.display = 'none';
             if (batchIdentifierInput) batchIdentifierInput.required = false;
@@ -85,6 +86,7 @@ async function initializeBookingForm() {
             }
         }
     } catch (error) {
+        console.error("Error initializing booking form:", error);
         if(formSubmissionMessageEl) showFormSubmissionMessage(`Error initializing form: ${error.message}`, true, formSubmissionMessageEl);
     }
 
@@ -103,7 +105,10 @@ async function initializeBookingForm() {
             clearFormErrors(bookingForm);
             if(formSubmissionMessageEl) showFormSubmissionMessage('', false, formSubmissionMessageEl); 
 
-            if (!labIdSelect || !bookingDateInput || !timeSlotIdSelect || !formSubmissionMessageEl) return;
+            if (!labIdSelect || !bookingDateInput || !timeSlotIdSelect || !formSubmissionMessageEl || !token) {
+                showFormSubmissionMessage('Form or authentication error. Please refresh.', true, formSubmissionMessageEl);
+                return;
+            }
 
             const labId = labIdSelect.value;
             const bookingDate = bookingDateInput.value;
@@ -119,11 +124,9 @@ async function initializeBookingForm() {
             if (!timeSlotId) { showError('timeSlotIdError', 'Time slot is required.'); isValid = false; }
             if (!purpose) { showError('purposeError', 'Purpose is required.'); isValid = false; }
 
-            const batchId = batchIdentifierInput ? batchIdentifierInput.value.trim() : '';
-            if (currentUserRole === window.USER_ROLES.ASSISTANT && !batchId) { 
-                if(document.getElementById('batchIdentifierError')) showError('batchIdentifierError', 'Batch/Class Name is required for Assistant bookings.');
-                isValid = false;
-            }
+            const batchId = (batchIdentifierInput && (currentUserRole === window.USER_ROLES.FACULTY || currentUserRole === window.USER_ROLES.ADMIN)) 
+                            ? batchIdentifierInput.value.trim() 
+                            : null;
             
             if (!isValid) {
                 return;
@@ -135,9 +138,9 @@ async function initializeBookingForm() {
                 timeSlotId: timeSlotId,
                 purpose: purpose,
                 equipmentIds: selectedEquipment.length > 0 ? selectedEquipment : null, 
-                batchIdentifier: currentUserRole === window.USER_ROLES.ASSISTANT ? batchId : null,
+                batchIdentifier: batchId,
             };
-            // console.log("Frontend: New booking data to send:", JSON.parse(JSON.stringify(bookingData)));
+            console.log("Frontend: New booking data to send:", JSON.parse(JSON.stringify(bookingData)));
 
             const submitButton = bookingForm.querySelector('button[type="submit"]');
             const originalButtonHtml = submitButton.innerHTML;
@@ -160,16 +163,10 @@ async function initializeBookingForm() {
                 if (response.ok) {
                     const labNameFromResult = result.labName || (labIdSelect.options[labIdSelect.selectedIndex]?.textContent.split(' (')[0] || 'Selected Lab');
                     
-                    const successMessage = currentUserRole === window.USER_ROLES.FACULTY 
-                        ? `Booking for "${result.purpose}" (Lab: ${labNameFromResult}, Status: ${result.status?.toUpperCase()}) confirmed successfully!`
-                        : (currentUserRole === window.USER_ROLES.ASSISTANT 
-                            ? `Booking request for "${result.purpose}" (Lab: ${labNameFromResult}, Status: ${result.status?.toUpperCase()}) submitted successfully!`
-                            : `Booking for "${result.purpose}" (Lab: ${labNameFromResult}, Status: ${result.status?.toUpperCase()}) confirmed successfully!`);
+                    const successMessage = `Booking for "${result.purpose}" (Lab: ${labNameFromResult}, Status: ${result.status?.toUpperCase()}) processed successfully!`;
                     showFormSubmissionMessage(successMessage, false, formSubmissionMessageEl);
                     bookingForm.reset(); 
-                    if (currentUserRole === window.USER_ROLES.ASSISTANT && batchIdentifierInput) {
-                        batchIdentifierInput.value = ''; 
-                    }
+                    if (batchIdentifierInput) batchIdentifierInput.value = ''; // Clear batch identifier too
                     if (bookingDateInput) bookingDateInput.min = window.formatDate(new Date()); 
                     
                     if (history.pushState) {
@@ -177,10 +174,16 @@ async function initializeBookingForm() {
                         history.pushState({path:newURL}, '', newURL);
                     }
                 } else {
-                     showFormSubmissionMessage(`Booking failed: ${result.msg || 'An unknown error occurred.'}`, true, formSubmissionMessageEl);
+                    // Handle conflict with alternatives specifically
+                    if (response.status === 409 && result.conflict && result.message) {
+                         showFormSubmissionMessage(`${result.message}`, true, formSubmissionMessageEl);
+                    } else {
+                         showFormSubmissionMessage(`Booking failed: ${result.msg || 'An unknown error occurred.'}`, true, formSubmissionMessageEl);
+                    }
                 }
 
             } catch (error) {
+                console.error("Error submitting booking form:", error);
                 showFormSubmissionMessage(`Error: Could not submit booking. ${error.message}`, true, formSubmissionMessageEl);
             } finally {
                 submitButton.disabled = false;
@@ -190,21 +193,7 @@ async function initializeBookingForm() {
         });
     }
 
-    const checkAvailabilityBtn = document.getElementById('checkAvailabilityBtn');
-    if (checkAvailabilityBtn) {
-        checkAvailabilityBtn.addEventListener('click', () => {
-            const labId = labIdSelect ? labIdSelect.value : '';
-            const date = bookingDateInput ? bookingDateInput.value : '';
-            const timeSlot = timeSlotIdSelect ? timeSlotIdSelect.value : '';
-            
-            let params = new URLSearchParams();
-            if (labId) params.append('labId', labId);
-            if (date) params.append('date', date);
-            if (timeSlot) params.append('timeSlotId', timeSlot);
-            
-            window.location.href = `labs.html${params.toString() ? '?' + params.toString() : ''}`;
-        });
-    }
+    // Removed "Check Availability First" button logic
 
     function showError(elementId, message) {
         const errorElement = document.getElementById(elementId);
@@ -241,5 +230,3 @@ async function initializeBookingForm() {
         }
     }
 }
-
-    

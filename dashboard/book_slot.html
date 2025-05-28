@@ -67,8 +67,8 @@
                             <p class="error-message" id="purposeError"></p>
                         </div>
                         <div class="form-group" id="batchIdentifierGroup" style="display:none;">
-                            <label for="batchIdentifier">Batch/Class Name (for CR bookings)</label>
-                            <input type="text" id="batchIdentifier" name="batchIdentifier" placeholder="e.g., CSE Year 2 - Section A">
+                            <label for="batchIdentifier">Course Section / Batch Identifier</label>
+                            <input type="text" id="batchIdentifier" name="batchIdentifier" placeholder="e.g., CS101_SecA, PHY202_Batch1">
                             <p class="error-message" id="batchIdentifierError"></p>
                         </div>
 
@@ -82,7 +82,7 @@
 
                     </form>
                     <div class="custom-card-footer">
-                        <button type="button" id="checkAvailabilityBtn" class="button button-outline">Check Availability First</button>
+                        <!-- "Check Availability First" button removed to rely on backend conflict resolution -->
                         <button type="submit" form="bookingForm" class="button button-primary">
                             <i data-lucide="send" class="mr-2"></i>Submit Booking Request
                         </button>
@@ -98,8 +98,9 @@
     <script src="js/booking_form.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Booking slots is for Faculty and CRs
-            if (!roleGuard([USER_ROLES.FACULTY, USER_ROLES.CR])) return;
+            console.log('DOM fully loaded and parsed for book_slot.html');
+            // Booking slots is for Faculty 
+            if (!roleGuard([USER_ROLES.FACULTY, USER_ROLES.ADMIN])) return; // Admins can also book
             
             initializeDashboard();
             setDashboardHomeLink();
