@@ -14,15 +14,15 @@ async function initializeLabGrid() {
     const dialogAdminActionsContainer = document.getElementById('dialogAdminActions');
     const dialogLabLayoutVisualization = document.getElementById('dialogLabLayoutVisualization');
     const dialogBookButton = document.getElementById('dialogBookButton');
-    const dialogCloseButton = document.getElementById('dialogCloseButton'); 
-    const dialogCloseButtonSecondary = document.getElementById('dialogCloseButtonSecondary'); 
+    const dialogCloseButton = document.getElementById('dialogCloseButton');
+    const dialogCloseButtonSecondary = document.getElementById('dialogCloseButtonSecondary');
     const token = localStorage.getItem('token');
 
     let currentSelectedLabId = '';
     let currentDate = new Date();
     let ALL_BOOKINGS_CACHE = [];
     let ALL_LABS_CACHE = [];
-    let ALL_LAB_SEAT_STATUSES_CACHE = {}; 
+    // No longer using global ALL_LAB_SEAT_STATUSES_CACHE here for seat statuses in dialog; fetch fresh.
 
     async function fetchLabsForSelector() {
         if (!labSelector) {
@@ -51,13 +51,12 @@ async function initializeLabGrid() {
                     option.textContent = `${lab.name} (Capacity: ${lab.capacity})`;
                     labSelector.appendChild(option);
                 });
-                // Check URL params for pre-selected lab after labs are loaded
                 const urlParams = new URLSearchParams(window.location.search);
                 if (urlParams.has('labId') && ALL_LABS_CACHE.some(l => String(l.id) === urlParams.get('labId'))) {
                     labSelector.value = urlParams.get('labId');
                 }
                 currentSelectedLabId = labSelector.value || ALL_LABS_CACHE[0].id;
-                labSelector.value = currentSelectedLabId; // Ensure it's set if default or from param
+                labSelector.value = currentSelectedLabId;
 
             } else {
                 labSelector.innerHTML = '<option value="">No labs available</option>';
@@ -76,9 +75,15 @@ async function initializeLabGrid() {
             await renderGrid();
             return;
         }
-        if(gridContainer) gridContainer.innerHTML = '<p>Loading bookings for grid...</p>';
+        if(gridContainer && !gridContainer.querySelector('.error-message.visible')) { // Don't overwrite existing errors
+            gridContainer.innerHTML = '<p>Loading bookings for grid...</p>';
+        }
         try {
-            const response = await fetch(`${window.API_BASE_URL}/bookings`, {
+            // Admin and Faculty might see all bookings, others might see specific views.
+            // For simplicity in this grid, we'll fetch all for Admin/Faculty and let client filter.
+            // Students/Assistants view their own schedule on a different page.
+            // This general availability grid is useful for all roles.
+            const response = await fetch(`${window.API_BASE_URL}/bookings`, { // This is Admin only, to get all bookings
                 method: 'GET',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -89,17 +94,17 @@ async function initializeLabGrid() {
             ALL_BOOKINGS_CACHE = await response.json();
             await renderGrid();
         } catch (error) {
-            console.error("Error fetching bookings:", error);
-            ALL_BOOKINGS_CACHE = [];
+            console.error("Error fetching bookings for grid:", error);
+            ALL_BOOKINGS_CACHE = []; // Ensure it's an empty array on error
             if(gridContainer) gridContainer.innerHTML = `<p class="error-message visible">Error loading bookings: ${error.message}. Displaying empty grid.</p>`;
-            await renderGrid(); // Render empty grid or error message
+            await renderGrid();
         }
     }
 
     if (labSelector) {
         labSelector.addEventListener('change', async (e) => {
             currentSelectedLabId = e.target.value;
-            await fetchBookingsForGrid(); 
+            await renderGrid(); // Re-render with existing ALL_BOOKINGS_CACHE, filtered for new lab
         });
     }
 
@@ -127,13 +132,13 @@ async function initializeLabGrid() {
 
     function getWeekDateRange(date) {
         const startOfWeek = new Date(date);
-        const dayOfWeek = startOfWeek.getDay();
-        const diff = startOfWeek.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); 
+        const dayOfWeek = startOfWeek.getDay(); // 0 for Sunday, 1 for Monday, etc.
+        const diff = startOfWeek.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // Adjust to make Monday the first day
         startOfWeek.setDate(diff);
         startOfWeek.setHours(0, 0, 0, 0);
 
         const endOfWeek = new Date(startOfWeek);
-        endOfWeek.setDate(startOfWeek.getDate() + 6);
+        endOfWeek.setDate(startOfWeek.getDate() + 6); // Monday + 6 days = Sunday
         endOfWeek.setHours(23, 59, 59, 999);
 
         return { start: startOfWeek, end: endOfWeek };
@@ -142,20 +147,24 @@ async function initializeLabGrid() {
     function getBookingsForGridData(labId, startDate, endDate) {
         if (!labId || !ALL_BOOKINGS_CACHE || !Array.isArray(ALL_BOOKINGS_CACHE)) return [];
 
+        // Ensure dates are compared correctly by normalizing them
+        // The date from API 'YYYY-MM-DD' string needs careful comparison.
+        // For simplicity, convert startDate and endDate to 'YYYY-MM-DD' strings once.
         const startDateString = window.formatDate(startDate);
         const endDateString = window.formatDate(endDate);
-        
+
         return ALL_BOOKINGS_CACHE.filter(b => {
-            if (!b || !b.date || !b.labId) return false; // Basic check for valid booking object
-            const bookingDate = window.formatDate(new Date(b.date)); // Ensure date is comparable
-            return String(b.labId) === String(labId) &&
-                   bookingDate && 
-                   bookingDate >= startDateString && bookingDate <= endDateString;
+            if (!b || !b.date || String(b.labId) !== String(labId)) return false;
+            // b.date from API is already 'YYYY-MM-DD'
+            return b.date >= startDateString && b.date <= endDateString;
         });
     }
 
     async function renderGrid() {
-        if (!gridContainer) return;
+        if (!gridContainer) {
+            console.error("Grid container not found in renderGrid.");
+            return;
+        }
         if (!currentSelectedLabId && ALL_LABS_CACHE.length > 0) {
              currentSelectedLabId = ALL_LABS_CACHE[0].id;
              if (labSelector) labSelector.value = currentSelectedLabId;
@@ -164,7 +173,11 @@ async function initializeLabGrid() {
              if (currentWeekDisplay) currentWeekDisplay.textContent = 'N/A';
              return;
         }
-        gridContainer.innerHTML = '<p>Loading grid...</p>';
+        // Don't clear if an error message is already displayed
+        if (!gridContainer.querySelector('.error-message.visible')) {
+            gridContainer.innerHTML = '<p>Loading grid...</p>';
+        }
+
 
         const { start, end } = getWeekDateRange(currentDate);
         if (currentWeekDisplay) {
@@ -173,23 +186,27 @@ async function initializeLabGrid() {
 
         const currentBookingsForSelectedLabAndWeek = getBookingsForGridData(currentSelectedLabId, start, end);
 
-        gridContainer.innerHTML = '';
+        gridContainer.innerHTML = ''; // Clear previous grid content
         gridContainer.style.gridTemplateColumns = `minmax(80px, auto) repeat(${window.DAYS_OF_WEEK.length}, 1fr)`;
 
+        // Empty top-left header cell for time column
         const emptyHeaderCell = document.createElement('div');
         emptyHeaderCell.className = 'lab-grid-header-cell';
         gridContainer.appendChild(emptyHeaderCell);
 
+        // Day headers
         const weekDates = [];
         for (let i = 0; i < window.DAYS_OF_WEEK.length; i++) {
             const dayCell = document.createElement('div');
             dayCell.className = 'lab-grid-header-cell';
             const currentDayDate = new Date(start);
             currentDayDate.setDate(start.getDate() + i);
-            weekDates.push(currentDayDate);
-            dayCell.textContent = `${window.DAYS_OF_WEEK[currentDayDate.getDay() === 0 ? 6 : currentDayDate.getDay() - 1]} (${currentDayDate.getDate()})`;
+            weekDates.push(currentDayDate); // Store the full Date object
+            dayCell.textContent = `${window.DAYS_OF_WEEK[i]} (${currentDayDate.getDate()})`; // Use i for DAYS_OF_WEEK index as it's 0-6
             gridContainer.appendChild(dayCell);
         }
+
+        const now = new Date(); // Get current time once for all comparisons in this render
 
         window.MOCK_TIME_SLOTS.forEach(slot => {
             const timeCell = document.createElement('div');
@@ -197,15 +214,15 @@ async function initializeLabGrid() {
             timeCell.textContent = slot.displayTime.replace(' - ', '\n');
             gridContainer.appendChild(timeCell);
 
-            weekDates.forEach(date => {
+            weekDates.forEach(dateInWeek => { // dateInWeek is a Date object for the current day header
                 const cell = document.createElement('div');
                 cell.className = 'lab-grid-cell interactive';
-                const dateString = window.formatDate(date);
+                const dateString = window.formatDate(dateInWeek); // 'YYYY-MM-DD' string for comparisons
 
                 const booking = currentBookingsForSelectedLabAndWeek.find(b =>
-                    b.date === dateString && 
+                    b.date === dateString &&
                     String(b.timeSlotId) === String(slot.id) &&
-                    (b.status === 'booked' || b.status === 'pending' || b.status === 'pending-admin-approval' || b.status === 'approved-by-admin') // Consider various 'taken' statuses
+                    (b.status === 'booked' || b.status === 'pending' || b.status === 'pending-admin-approval' || b.status === 'approved-by-admin')
                 );
 
                 const cellStatusSpan = document.createElement('span');
@@ -214,12 +231,12 @@ async function initializeLabGrid() {
                 const cellPurposeSpan = document.createElement('span');
                 cellPurposeSpan.className = 'lab-grid-cell-purpose';
 
-                const slotDateOnly = new Date(date); 
-                slotDateOnly.setHours(0,0,0,0);
-                const nowDateOnly = new Date();
-                nowDateOnly.setHours(0,0,0,0);
+                // Construct slot end datetime for "Past" check
+                const [endTimeHours, endTimeMinutes] = slot.endTime.split(':').map(Number);
+                const slotEndDateTime = new Date(dateInWeek); // Start with the date of the current column
+                slotEndDateTime.setHours(endTimeHours, endTimeMinutes, 0, 0);
 
-                if (slotDateOnly < nowDateOnly && !booking) { 
+                if (slotEndDateTime < now && !booking) { // Check if slot's end time is before current time
                      cell.classList.add('status-past');
                      cellStatusSpan.textContent = 'Past';
                      cell.classList.remove('interactive');
@@ -249,7 +266,6 @@ async function initializeLabGrid() {
             console.warn("loadSeatStatusesForDialog: No labId provided.");
             return {};
         }
-        // No longer caching ALL_LAB_SEAT_STATUSES_CACHE globally here, fetch fresh
         if (!token) {
             console.warn("No token, cannot fetch seat statuses for dialog.");
             return {};
@@ -259,28 +275,28 @@ async function initializeLabGrid() {
                  headers: { 'Authorization': `Bearer ${token}` }
             });
             if (!response.ok) {
-                 if (response.status === 404) { 
+                 if (response.status === 404) {
                     return {}; // No statuses set, treat as all working
                  }
-                 const errorData = await response.json().catch(() => ({ msg: `Server error: ${response.status}`}));
-                 console.error(`Failed to fetch seat statuses for lab ${labId}: ${errorData.msg}`);
-                 return {}; 
+                 const errorData = await response.json().catch(() => ({msg: `Server error: ${response.status}`}));
+                 console.error(`Failed to fetch seat statuses for lab ${labId} in dialog: ${errorData.msg}`);
+                 return {};
             }
-            return await response.json(); // Returns the map of seatIndex: status
+            return await response.json();
         } catch (error) {
-            console.error(`Error fetching seat statuses for lab ${labId}:`, error);
+            console.error(`Error fetching seat statuses for lab ${labId} in dialog:`, error);
             return {};
         }
     }
-
     function renderDeskWithPersistedStatus(labId, seatIndex, seatStatuses) {
         const deskDiv = document.createElement('div');
         deskDiv.className = 'lab-layout-desk';
 
         const icon = document.createElement('i');
         icon.setAttribute('data-lucide', 'armchair');
-        
-        const seatStatus = seatStatuses && seatStatuses[String(seatIndex)] ? seatStatuses[String(seatIndex)] : 'working'; 
+
+        // Seat statuses are { "0": "working", "1": "not-working" }
+        const seatStatus = seatStatuses && seatStatuses[String(seatIndex)] ? seatStatuses[String(seatIndex)] : 'working';
         icon.classList.add(seatStatus === 'not-working' ? 'system-not-working' : 'system-working');
 
         deskDiv.appendChild(icon);
@@ -298,7 +314,7 @@ async function initializeLabGrid() {
             row.className = 'lab-layout-row';
             const desksInThisRow = Math.min(desksPerRow, totalDesksInSec - desksRenderedInSec);
             for (let i = 0; i < desksInThisRow; i++) {
-                if (currentSeatIndexRef.index >= labCapacity) break; 
+                if (currentSeatIndexRef.index >= labCapacity) break;
 
                 row.appendChild(renderDeskWithPersistedStatus(labId, currentSeatIndexRef.index, seatStatuses));
                 currentSeatIndexRef.index++;
@@ -310,20 +326,21 @@ async function initializeLabGrid() {
         return section;
     }
 
+
     async function renderLabLayoutVisualization(labId) {
         if (!dialogLabLayoutVisualization || !token) {
             if(dialogLabLayoutVisualization) dialogLabLayoutVisualization.innerHTML = '<p class="error-message visible">Error preparing layout viewer.</p>';
             return;
         }
         dialogLabLayoutVisualization.innerHTML = '<p>Loading layout...</p>';
-        
+
         let lab;
         try {
             const labResponse = await fetch(`${window.API_BASE_URL}/labs/${labId}`, {
                  headers: { 'Authorization': `Bearer ${token}` }
             });
             if (!labResponse.ok) {
-                const errorData = await labResponse.json().catch(() => ({msg: 'Failed to fetch lab details.'}));
+                const errorData = await labResponse.json().catch(() => ({msg: 'Failed to fetch lab details for layout.'}));
                 throw new Error(errorData.msg);
             }
             lab = await labResponse.json();
@@ -338,23 +355,22 @@ async function initializeLabGrid() {
             return;
         }
 
-        const seatStatuses = await loadSeatStatusesForDialog(labId);
-        dialogLabLayoutVisualization.innerHTML = ''; 
-        const capacity = lab ? lab.capacity : 0;
+        const seatStatuses = await loadSeatStatusesForDialog(labId); // Fetch fresh seat statuses for this lab
+        dialogLabLayoutVisualization.innerHTML = ''; // Clear loading message
+        const capacity = lab.capacity || 0;
 
         let workingSystems = 0;
         let notWorkingSystems = 0;
-        if (capacity > 0 && seatStatuses) {
-            for (let i = 0; i < capacity; i++) {
-                const status = seatStatuses[String(i)] || 'working'; 
-                if (status === 'working') {
-                    workingSystems++;
-                } else {
-                    notWorkingSystems++;
-                }
+
+        // Calculate working/not-working based on fetched seatStatuses and lab capacity
+        for (let i = 0; i < capacity; i++) {
+            const status = seatStatuses[String(i)] || 'working'; // Default to 'working' if not explicitly set
+            if (status === 'working') {
+                workingSystems++;
+            } else {
+                notWorkingSystems++;
             }
         }
-
 
         const summaryContainer = document.createElement('div');
         summaryContainer.className = 'lab-system-status-summary';
@@ -364,7 +380,6 @@ async function initializeLabGrid() {
             <p><span class="legend-icon-not-working"><i data-lucide="x-circle"></i></span> <strong>Non-Working Systems:</strong> ${notWorkingSystems}</p>
         `;
         dialogLabLayoutVisualization.appendChild(summaryContainer);
-
 
         const title = document.createElement('h4');
         title.className = 'text-sm font-medium mb-3 text-center text-muted-foreground';
@@ -402,14 +417,14 @@ async function initializeLabGrid() {
         if (numRightDesks < 0) { numMiddleDesks += numRightDesks; numRightDesks = 0; }
         if (numMiddleDesks < 0) { numLeftDesks += numMiddleDesks; numMiddleDesks = 0; }
         if (numLeftDesks < 0) { numLeftDesks = 0; }
-        
+
         let currentTotalDesks = numLeftDesks + numMiddleDesks + numRightDesks;
         if (currentTotalDesks !== capacity && capacity > 0) {
             let diff = capacity - currentTotalDesks;
             if (diff > 0) {
                 numLeftDesks += Math.ceil(diff / 2);
                 numRightDesks += Math.floor(diff / 2);
-            } else { 
+            } else {
                  let reduceAmount = Math.abs(diff);
                  while(reduceAmount > 0) {
                     if(numLeftDesks > numMiddleDesks && numLeftDesks > numRightDesks && numLeftDesks > 0) { numLeftDesks--; reduceAmount--; }
@@ -417,11 +432,11 @@ async function initializeLabGrid() {
                     else if (numMiddleDesks > 0) { numMiddleDesks--; reduceAmount--;}
                     else if (numLeftDesks > 0) { numLeftDesks--; reduceAmount--;}
                     else if (numRightDesks > 0) { numRightDesks--; reduceAmount--;}
-                    else { break; } 
+                    else { break; }
                  }
             }
             currentTotalDesks = numLeftDesks + numMiddleDesks + numRightDesks;
-            if(currentTotalDesks !== capacity && capacity > 0) { 
+            if(currentTotalDesks !== capacity && capacity > 0) {
                 let finalDiff = capacity - currentTotalDesks;
                 if (numLeftDesks + finalDiff >= 0) numLeftDesks += finalDiff;
                 else if (numMiddleDesks + finalDiff >=0) numMiddleDesks += finalDiff;
@@ -432,7 +447,7 @@ async function initializeLabGrid() {
         numMiddleDesks = Math.max(0, numMiddleDesks);
         numRightDesks = Math.max(0, numRightDesks);
 
-        let seatIndexRef = { index: 0 };
+        let seatIndexRef = { index: 0 }; // Use an object to pass by reference
 
         mainLayoutContainer.appendChild(createDeskSection(labId, numLeftDesks, 3, seatIndexRef, seatStatuses, capacity));
         mainLayoutContainer.appendChild(createDeskSection(labId, numMiddleDesks, 2, seatIndexRef, seatStatuses, capacity));
@@ -459,7 +474,7 @@ async function initializeLabGrid() {
             if (response.ok) {
                 alert(result.msg || "Booking cancelled successfully.");
                 closeDialog();
-                await fetchBookingsForGrid(); 
+                await fetchBookingsForGrid(); // Refresh grid data
             } else {
                 alert(`Failed to cancel booking: ${result.msg || 'Server error'}`);
             }
@@ -472,30 +487,31 @@ async function initializeLabGrid() {
     async function handleAdminModifyBookingPurpose(bookingId, currentPurpose) {
         if (!dialogAdminActionsContainer) return;
 
-        // Remove any existing modification UI
         const existingModUI = dialogAdminActionsContainer.querySelector('.modify-purpose-ui');
         if (existingModUI) existingModUI.remove();
 
         const modifyUI = document.createElement('div');
-        modifyUI.className = 'modify-purpose-ui mt-3 p-3 border border-gray-300 rounded-md bg-gray-50';
-        
+        modifyUI.className = 'modify-purpose-ui'; // Defined in CSS
+
         const purposeLabel = document.createElement('label');
         purposeLabel.htmlFor = 'editBookingPurpose';
         purposeLabel.textContent = 'New Purpose:';
-        purposeLabel.className = 'block text-sm font-medium text-gray-700 mb-1';
 
         const purposeInput = document.createElement('input');
         purposeInput.type = 'text';
         purposeInput.id = 'editBookingPurpose';
         purposeInput.value = currentPurpose || '';
-        purposeInput.className = 'dialog-body input'; // Reusing dialog input style
-        purposeInput.style.width = '100%';
-        purposeInput.style.marginBottom = '0.5rem';
+        purposeInput.className = 'custom-card-content input'; // Reuse general input styling
+
+        const buttonContainer = document.createElement('div');
+        buttonContainer.style.marginTop = '0.5rem';
+        buttonContainer.style.display = 'flex';
+        buttonContainer.style.gap = '0.5rem';
 
         const saveButton = document.createElement('button');
         saveButton.type = 'button';
         saveButton.textContent = 'Save Purpose';
-        saveButton.className = 'button button-primary button-sm mr-2';
+        saveButton.className = 'button button-primary button-sm';
         saveButton.onclick = async () => {
             const newPurpose = purposeInput.value.trim();
             if (!newPurpose) {
@@ -520,6 +536,7 @@ async function initializeLabGrid() {
                     alert(`Failed to update purpose: ${result.msg || 'Server error'}`);
                 }
             } catch (error) {
+                console.error("Error updating booking purpose by admin:", error);
                 alert(`Error updating purpose: ${error.message}`);
             }
         };
@@ -530,14 +547,15 @@ async function initializeLabGrid() {
         cancelButton.className = 'button button-outline button-sm';
         cancelButton.onclick = () => modifyUI.remove();
 
+        buttonContainer.appendChild(saveButton);
+        buttonContainer.appendChild(cancelButton);
+
         modifyUI.appendChild(purposeLabel);
         modifyUI.appendChild(purposeInput);
-        modifyUI.appendChild(saveButton);
-        modifyUI.appendChild(cancelButton);
-        
-        // Insert before other admin buttons or at the end
+        modifyUI.appendChild(buttonContainer);
+
         dialogAdminActionsContainer.appendChild(modifyUI);
-        if(window.lucide) window.lucide.createIcons(); // If any icons in new UI
+        if(window.lucide) window.lucide.createIcons();
     }
 
 
@@ -557,18 +575,22 @@ async function initializeLabGrid() {
 
         if (dialogSlotInfoContainer) dialogSlotInfoContainer.innerHTML = '';
         if (dialogAdminActionsContainer) {
-            dialogAdminActionsContainer.innerHTML = ''; 
+            dialogAdminActionsContainer.innerHTML = '';
             dialogAdminActionsContainer.style.display = 'none';
         }
         if (dialogBookButton) dialogBookButton.style.display = 'none';
 
-        const slotDateOnly = new Date(date); 
-        slotDateOnly.setHours(0,0,0,0);
-        const nowDateOnly = new Date();
-        nowDateOnly.setHours(0,0,0,0);
+
         const currentUserRole = window.getCurrentUserRole();
 
-        if (slotDateOnly < nowDateOnly && !booking) { 
+        // Logic for displaying slot status and actions
+        // Check if slot is in the past
+        const [endTimeHours, endTimeMinutes] = slot.endTime.split(':').map(Number);
+        const slotEndDateTime = new Date(date); // date is YYYY-MM-DD string
+        slotEndDateTime.setHours(endTimeHours, endTimeMinutes, 0, 0);
+        const now = new Date();
+
+        if (slotEndDateTime < now && !booking) {
             const pStatus = document.createElement('p');
             pStatus.innerHTML = `<strong>Status:</strong> Past (Unavailable for booking)`;
             if (dialogSlotInfoContainer) dialogSlotInfoContainer.appendChild(pStatus);
@@ -587,16 +609,17 @@ async function initializeLabGrid() {
 
             if (booking.batchIdentifier) {
                 const pBatch = document.createElement('p');
-                pBatch.innerHTML = `<strong>Batch/Class:</strong> ${booking.batchIdentifier}`;
+                pBatch.innerHTML = `<strong>Course Section/Batch:</strong> ${booking.batchIdentifier}`;
                 if (dialogSlotInfoContainer) dialogSlotInfoContainer.appendChild(pBatch);
             }
 
+            // Admin actions for a booked/pending slot
             if (currentUserRole === window.USER_ROLES.ADMIN && dialogAdminActionsContainer) {
-                dialogAdminActionsContainer.style.display = 'flex'; // Use flex for button alignment
-                dialogAdminActionsContainer.style.gap = '0.5rem'; // Add gap between buttons
-                
+                dialogAdminActionsContainer.style.display = 'block'; // Use block or flex depending on desired layout
+                dialogAdminActionsContainer.innerHTML = ''; // Clear previous admin actions
+
                 const cancelButton = document.createElement('button');
-                cancelButton.className = 'button button-secondary button-sm';
+                cancelButton.className = 'button button-secondary button-sm mr-2';
                 cancelButton.innerHTML = '<i data-lucide="trash-2" class="mr-1 h-4 w-4"></i>Cancel Booking';
                 cancelButton.onclick = () => handleAdminCancelBooking(booking.id);
                 dialogAdminActionsContainer.appendChild(cancelButton);
@@ -608,29 +631,28 @@ async function initializeLabGrid() {
                 dialogAdminActionsContainer.appendChild(modifyButton);
             }
 
-        } else { // Slot is available
+        } else { // Slot is available and not in the past
             const pStatus = document.createElement('p');
             pStatus.innerHTML = `<strong>Status:</strong> <span class="font-bold text-lg text-green-600">Available</span>`;
             if (dialogSlotInfoContainer) dialogSlotInfoContainer.appendChild(pStatus);
 
+            // Show "Book This Slot" or "Admin: Create Booking" button
             if (currentUserRole === window.USER_ROLES.FACULTY && dialogBookButton) {
                  dialogBookButton.style.display = 'inline-flex';
+                 dialogBookButton.textContent = 'Book This Slot'; // Reset text
                  dialogBookButton.onclick = () => {
                     window.location.href = `book_slot.html?labId=${labId}&date=${date}&timeSlotId=${timeSlot.id}`;
                  };
-            } else if (currentUserRole === window.USER_ROLES.ADMIN && dialogAdminActionsContainer) {
-                dialogAdminActionsContainer.style.display = 'flex';
-                const adminBookButton = document.createElement('button');
-                adminBookButton.className = 'button button-primary button-sm';
-                adminBookButton.innerHTML = '<i data-lucide="plus-circle" class="mr-1 h-4 w-4"></i>Create Booking';
-                adminBookButton.onclick = () => {
+            } else if (currentUserRole === window.USER_ROLES.ADMIN && dialogBookButton) {
+                 dialogBookButton.style.display = 'inline-flex';
+                 dialogBookButton.textContent = 'Admin: Create Booking'; // Change text for Admin
+                 dialogBookButton.onclick = () => {
                     window.location.href = `book_slot.html?labId=${labId}&date=${date}&timeSlotId=${timeSlot.id}`;
                 };
-                dialogAdminActionsContainer.appendChild(adminBookButton);
             }
         }
 
-        await renderLabLayoutVisualization(labId);
+        await renderLabLayoutVisualization(labId); // This remains the same
         if (slotDetailDialog) slotDetailDialog.classList.add('open');
         if (window.lucide) window.lucide.createIcons();
     }
@@ -638,7 +660,6 @@ async function initializeLabGrid() {
     // Initial setup
     await fetchLabsForSelector(); // This will set currentSelectedLabId if labs are found
 
-    // Handle URL parameters for date, then fetch bookings
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has('date')) {
         const dateFromParam = new Date(urlParams.get('date'));
@@ -651,10 +672,17 @@ async function initializeLabGrid() {
 
 window.formatDateForDisplay = function(date) {
     if (!date) return '';
-    const d = date instanceof Date ? date : new Date(date); 
+    const d = date instanceof Date ? date : new Date(date);
      if (isNaN(d.getTime())) return 'Invalid Date';
-    const adjustedDate = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-    return adjustedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+    // To ensure we use the "local" date from the Date object without timezone shifting for display.
+    // Create a UTC date from the parts, then format it as if it were local.
+    // This avoids toLocaleDateString issues with some browsers/timezones when just showing date.
+    const year = d.getFullYear();
+    const month = d.getMonth(); // 0-indexed
+    const day = d.getDate();
+    const tempDate = new Date(Date.UTC(year, month, day));
+
+    return tempDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 };
 
 
