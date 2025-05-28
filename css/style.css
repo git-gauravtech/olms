@@ -6,7 +6,17 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #EFF3F5; /* Cooler light grey */
+  /* New sophisticated gradient background */
+  background-color: #E0E7FF; /* Fallback */
+  background-image:
+    radial-gradient(at 27% 37%, hsla(215, 98%, 61%, 1) 0px, transparent 50%),
+    radial-gradient(at 97% 21%, hsla(189, 98%, 48%, 1) 0px, transparent 50%),
+    radial-gradient(at 52% 99%, hsla(355, 98%, 61%, 1) 0px, transparent 50%),
+    radial-gradient(at 10% 29%, hsla(256, 96%, 63%, 1) 0px, transparent 50%),
+    radial-gradient(at 97% 96%, hsla(38, 60%, 74%, 1) 0px, transparent 50%),
+    radial-gradient(at 33% 50%, hsla(222, 67%, 73%, 1) 0px, transparent 50%),
+    radial-gradient(at 79% 53%, hsla(343, 68%, 79%, 1) 0px, transparent 50%);
+  background-attachment: fixed; /* Keeps gradient fixed during scroll */
   color: #343F4B; /* Dark Slate Blue/Gray */
   line-height: 1.6;
 }
@@ -23,57 +33,61 @@ code {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, rgba(20, 153, 122, 0.1) 0%, rgba(239, 243, 245, 0.4) 60%, rgba(52, 63, 75, 0.05) 100%);
+    /* Removed old gradient, will rely on body background */
     padding: 1.5rem;
 }
 
 .auth-card { /* Card for login, signup or other simple auth forms */
-    background-color: white;
-    border: 1px solid #dee2e6; /* Softer border */
-    border-radius: 0.75rem; /* Increased border radius */
-    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.06), 0 5px 10px -5px rgba(0,0,0,0.03); /* Softer shadow */
+    /* Frosted Glass Effect */
+    background-color: rgba(255, 255, 255, 0.65); /* Semi-transparent white */
+    -webkit-backdrop-filter: blur(12px); /* Safari */
+    backdrop-filter: blur(12px); /* Standard */
+    border: 1px solid rgba(255, 255, 255, 0.2); /* Subtle border */
+
+    border-radius: 1rem; /* More rounded */
+    box-shadow: 0 15px 35px rgba(0,0,0,0.1), 0 5px 15px rgba(0,0,0,0.07); /* Softer, more modern shadow */
     margin-bottom: 1.5rem;
-    padding: 2.5rem; /* Increased padding */
+    padding: 2.5rem;
     width: 100%;
-    max-width: 480px; /* Slightly wider for better spacing */
+    max-width: 480px;
 }
 
 .auth-header {
     text-align: center;
-    margin-bottom: 2rem; /* Increased margin */
+    margin-bottom: 2rem;
 }
 
 .auth-icon {
-    height: 3.5rem; /* Slightly larger icon */
+    height: 3.5rem;
     width: 3.5rem;
-    color: #14997A; /* Teal */
-    margin: 0 auto 1.25rem auto; /* Adjusted margin */
+    color: #14997A; /* Teal - kept for branding element */
+    margin: 0 auto 1.25rem auto;
     display: block;
 }
 
 .auth-header h1 {
-    font-size: 2rem; /* Larger heading */
-    font-weight: 600; /* Slightly bolder */
+    font-size: 2rem;
+    font-weight: 600;
     margin-bottom: 0.75rem;
     color: #212529;
 }
 
 .auth-header p {
-    color: #6c757d; /* Softer Grey */
+    color: #5a6268; /* Slightly darker grey for better contrast */
     margin-bottom: 0;
     font-size: 1rem;
 }
 
 .auth-form .form-group {
-    margin-bottom: 1.75rem; /* Increased margin */
+    margin-bottom: 1.75rem;
 }
 
 .auth-form label {
     display: block;
-    margin-bottom: 0.625rem; /* Adjusted margin */
+    margin-bottom: 0.625rem;
     font-weight: 500;
-    font-size: 0.9rem; /* Slightly smaller label */
-    color: #495057;
+    font-size: 0.9rem;
+    color: #343a40; /* Darker label */
 }
 
 .auth-form input[type="text"],
@@ -83,21 +97,21 @@ code {
     display: block;
     width: 100%;
     box-sizing: border-box;
-    padding: 0.875rem 1rem; /* Adjusted padding */
+    padding: 0.875rem 1rem;
     font-size: 1rem;
     line-height: 1.5;
     color: #495057;
-    background-color: #f8f9fa; /* very light grey input bg */
+    background-color: rgba(248, 249, 250, 0.8); /* Slightly transparent light input bg */
     background-clip: padding-box;
     border: 1px solid #ced4da;
-    border-radius: 0.5rem; /* Increased border radius */
+    border-radius: 0.5rem;
     transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
 }
 .auth-form input:focus, .auth-form select:focus {
-  border-color: #14997A; /* Teal for focus */
+  border-color: #14997A;
   outline: 0;
-  box-shadow: 0 0 0 0.2rem rgba(20, 153, 122, .25); /* Softer teal focus ring */
-  background-color: white; /* White background on focus */
+  box-shadow: 0 0 0 0.2rem rgba(20, 153, 122, .25);
+  background-color: rgba(255, 255, 255, 0.9); /* More opaque on focus */
 }
 
 .password-wrapper {
@@ -108,14 +122,14 @@ code {
 .password-wrapper input[type="password"],
 .password-wrapper input[type="text"] {
     flex-grow: 1;
-    padding-right: 3.5rem; /* Ensure space for the button */
+    padding-right: 3.5rem;
 }
 .password-toggle {
     position: absolute;
-    right: 1px; /* Align to the very right edge of the wrapper */
-    top: 1px; /* Align top */
-    bottom: 1px; /* Align bottom */
-    width: 3.25rem; /* Adjusted width for click area */
+    right: 1px;
+    top: 1px;
+    bottom: 1px;
+    width: 3.25rem;
     background: transparent;
     border: none;
     padding: 0 0.75rem;
@@ -123,13 +137,13 @@ code {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #6c757d; /* Muted color */
+    color: #6c757d;
 }
 .password-toggle:hover {
-    color: #14997A; /* Teal on hover */
+    color: #14997A;
 }
-.password-toggle .lucide { /* Target Lucide icons specifically */
-    width: 1.25rem; /* Control icon size */
+.password-toggle .lucide {
+    width: 1.25rem;
     height: 1.25rem;
 }
 
@@ -137,6 +151,7 @@ code {
     font-size: 0.85rem;
     color: #14997A;
     text-decoration: none;
+    font-weight: 500;
 }
 .forgot-password-link:hover {
     text-decoration: underline;
@@ -144,14 +159,14 @@ code {
 
 
 .auth-switch-link {
-    margin-top: 2rem; /* Increased margin */
+    margin-top: 2rem;
     text-align: center;
     font-size: 0.9rem;
-    color: #6c757d;
+    color: #5a6268;
 }
 .auth-switch-link a {
     font-weight: 600;
-    color: #14997A; /* Teal */
+    color: #14997A;
     text-decoration: none;
 }
 .auth-switch-link a:hover {
@@ -172,15 +187,15 @@ code {
   cursor: pointer;
   transition: background-color 0.2s, border-color 0.2s, color 0.2s, transform 0.1s, box-shadow 0.2s;
   text-decoration: none;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* Subtle shadow for buttons */
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08); /* Slightly more pronounced shadow */
 }
 .button:hover {
-    transform: translateY(-1px); /* Slight lift on hover */
-    box-shadow: 0 4px 8px rgba(0,0,0,0.07), 0 2px 6px rgba(0,0,0,0.05); /* Enhanced shadow on hover */
+    transform: translateY(-2px); /* More lift on hover */
+    box-shadow: 0 6px 15px rgba(0,0,0,0.1), 0 3px 8px rgba(0,0,0,0.06); /* Enhanced shadow */
 }
 .button:active {
     transform: translateY(0px);
-    box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
 
@@ -196,51 +211,51 @@ code {
   background-color: #107C63; /* Darker Teal */
 }
 .button-primary:disabled {
-  background-color: #a0d8cb; /* Lighter, desaturated teal */
+  background-color: #a0d8cb;
   cursor: not-allowed;
   transform: none;
   box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);
 }
 .button-primary .lucide-loader-2,
-.button-primary i.button-primary-loader { /* Target loader icon specifically */
-    width: 1.125em; /* Relative to button font size */
+.button-primary i.button-primary-loader {
+    width: 1.125em;
     height: 1.125em;
     margin-right: 0.5rem;
     animation: spin 1s linear infinite;
 }
 
 .button-secondary {
-  background-color: #6c757d; /* Medium Grey */
+  background-color: #6c757d;
   color: white;
 }
 .button-secondary:hover {
-  background-color: #5a6268; /* Darker Grey */
+  background-color: #5a6268;
 }
 
 .button-outline {
   background-color: transparent;
-  border-color: #14997A; /* Teal */
+  border-color: #14997A;
   color: #14997A;
   box-shadow: none;
 }
 .button-outline:hover {
-  background-color: rgba(20, 153, 122, 0.08); /* Lighter teal background on hover */
+  background-color: rgba(20, 153, 122, 0.08);
   transform: none;
   box-shadow: none;
 }
 
 /* General error messages for forms */
 .error-message {
-  color: #dc3545; /* Bootstrap Red */
+  color: #dc3545;
   font-size: 0.875em;
   margin-top: 0.5rem;
-  display: none; /* Hidden by default */
+  display: none;
 }
 .error-message.visible {
     display: block;
 }
 .success-message.visible {
-    color: #28a745; /* Bootstrap Green */
+    color: #28a745;
     font-size: 0.9em;
     margin-top: 0.5rem;
     display: block;
@@ -256,18 +271,22 @@ code {
 
 .sidebar {
     width: 260px;
-    border-right: 1px solid #e9ecef; /* Softer border */
-    background-color: #ffffff;
+    border-right: 1px solid rgba(0, 0, 0, 0.07); /* Subtle border */
+    /* Frosted Glass Effect */
+    background-color: rgba(255, 255, 255, 0.75); /* Semi-transparent white */
+    -webkit-backdrop-filter: blur(10px); /* Safari */
+    backdrop-filter: blur(10px); /* Standard */
+
     padding: 1rem;
     display: flex;
     flex-direction: column;
     position: fixed;
-    left: -100%; /* Hidden by default on mobile */
+    left: -100%;
     top: 0;
     height: 100%;
     z-index: 1000;
-    transition: left 0.3s ease-in-out;
-    box-shadow: 3px 0 15px rgba(0,0,0,0.04); /* Softer shadow */
+    transition: left 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+    box-shadow: 5px 0 25px rgba(0,0,0,0.05); /* Softer shadow for open sidebar */
 }
 .sidebar.open {
     left: 0;
@@ -275,7 +294,7 @@ code {
 
 .sidebar-header {
     padding: 1.25rem 1rem;
-    border-bottom: 1px solid #e9ecef;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.07);
     margin-bottom: 1.25rem;
 }
 .sidebar-header-link {
@@ -288,7 +307,7 @@ code {
 .sidebar-header-link .lucide-atom {
     height: 2.25rem;
     width: 2.25rem;
-    color: #14997A; /* Teal */
+    color: #14997A;
 }
 .sidebar-title {
     font-size: 1.2rem;
@@ -323,17 +342,17 @@ code {
     font-weight: 500;
 }
 .sidebar-nav-link:hover {
-    background-color: #f8f9fa; /* very light hover */
-    color: #14997A; /* Teal text on hover */
+    background-color: rgba(20, 153, 122, 0.1); /* Lighter teal hover */
+    color: #107C63; /* Darker Teal text on hover */
 }
 .sidebar-nav-link.active {
-    background-color: #14997A; /* Teal */
+    background-color: #14997A;
     color: white;
     font-weight: 600;
-    box-shadow: 0 4px 10px -2px rgba(20, 153, 122, 0.25), 0 2px 6px -1px rgba(20, 153, 122, 0.15); /* Shadow for active link */
+    box-shadow: 0 4px 10px -2px rgba(20, 153, 122, 0.25), 0 2px 6px -1px rgba(20, 153, 122, 0.15);
 }
 .sidebar-nav-link.active:hover {
-    background-color: #107C63; /* Darker teal on hover for active link */
+    background-color: #107C63;
 }
 .sidebar-nav-link .lucide {
     margin-right: 0.875rem;
@@ -345,7 +364,7 @@ code {
     flex: 1;
     display: flex;
     flex-direction: column;
-    margin-left: 0; /* Adjust in JS for desktop */
+    margin-left: 0;
 }
 
 .dashboard-header {
@@ -353,10 +372,14 @@ code {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    border-bottom: 1px solid #e9ecef;
-    background-color: white;
+    border-bottom: 1px solid rgba(0,0,0,0.07);
+    /* Frosted Glass Effect for Header */
+    background-color: rgba(255, 255, 255, 0.7); /* Semi-transparent */
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+
     padding: 0 2rem;
-    box-shadow: 0 1px 5px rgba(0,0,0,0.04); /* Very subtle shadow */
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05); /* Subtle shadow */
     position: sticky;
     top: 0;
     z-index: 900;
@@ -366,11 +389,11 @@ code {
     border: none;
     cursor: pointer;
     padding: 0.5rem;
-    display: none; /* Shown via JS/CSS media query */
+    display: none;
     color: #495057;
 }
 .mobile-menu-button:hover {
-    color: #14997A; /* Teal */
+    color: #14997A;
 }
 .mobile-menu-button .lucide-menu {
     width: 28px;
@@ -383,7 +406,7 @@ code {
 }
 .user-avatar-button {
     cursor: pointer;
-    background: #14997A; /* Teal */
+    background: #14997A;
     border: 2px solid #14997A;
     padding: 0;
     border-radius: 50%;
@@ -399,19 +422,23 @@ code {
     transition: box-shadow 0.2s;
 }
 .user-avatar-button:hover {
-    box-shadow: 0 0 0 3px rgba(20, 153, 122, 0.3); /* Teal ring on hover */
+    box-shadow: 0 0 0 3px rgba(20, 153, 122, 0.3);
 }
 .user-nav-dropdown {
     display: none;
     position: absolute;
     right: 0;
     top: calc(100% + 0.75rem);
-    background-color: white;
+    /* Frosted glass for dropdown */
+    background-color: rgba(255, 255, 255, 0.85);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(0,0,0,0.08);
+
     min-width: 240px;
-    box-shadow: 0 10px 20px rgba(0,0,0,0.08), 0 4px 8px rgba(0,0,0,0.04); /* Standard shadow */
+    box-shadow: 0 10px 20px rgba(0,0,0,0.08), 0 4px 8px rgba(0,0,0,0.04);
     z-index: 1000;
     border-radius: 0.5rem;
-    border: 1px solid #e9ecef;
     padding: 0.5rem 0;
 }
 .user-nav-dropdown.open {
@@ -419,7 +446,7 @@ code {
 }
 .user-nav-label {
     padding: 0.75rem 1.25rem;
-    border-bottom: 1px solid #e9ecef;
+    border-bottom: 1px solid rgba(0,0,0,0.07);
     margin-bottom: 0.5rem;
 }
 .user-nav-label p:first-child {
@@ -441,15 +468,15 @@ code {
     margin: 0 0.25rem;
 }
 .user-nav-item:hover {
-    background-color: #f8f9fa;
-    color: #14997A; /* Teal text on hover */
+    background-color: rgba(20, 153, 122, 0.1); /* Lighter teal hover */
+    color: #107C63;
 }
 .user-nav-item .lucide {
     width: 18px; height: 18px;
 }
 .user-nav-separator {
     margin: 0.5rem 0;
-    border-color: #e9ecef;
+    border-color: rgba(0,0,0,0.07);
     border-top-width: 1px;
 }
 
@@ -457,7 +484,7 @@ code {
     flex: 1;
     padding: 2rem;
     overflow-y: auto;
-    background-color: #f4f7f9; /* Lighter, slightly blue-tinted content background */
+    /* Removed background color, will rely on body background */
 }
 
 /* Overlay for mobile sidebar */
@@ -467,7 +494,9 @@ code {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0,0,0,0.45); /* Slightly darker overlay */
+    background: rgba(0,0,0,0.55); /* Slightly darker overlay */
+    -webkit-backdrop-filter: blur(3px); /* Blur effect for overlay */
+    backdrop-filter: blur(3px);
     z-index: 999;
     display: none;
 }
@@ -478,51 +507,55 @@ code {
 
 /* Custom Card Styles */
 .custom-card {
-  background-color: white;
-  border: 1px solid #e0e0e0; /* Softer border */
-  border-radius: 0.75rem; /* Increased radius */
-  box-shadow: 0 5px 15px rgba(0,0,0,0.05); /* Softer, more spread shadow */
-  margin-bottom: 2rem; /* Increased margin */
+  /* Frosted Glass Effect */
+  background-color: rgba(255, 255, 255, 0.7); /* Semi-transparent white */
+  -webkit-backdrop-filter: blur(10px); /* Safari */
+  backdrop-filter: blur(10px); /* Standard */
+  border: 1px solid rgba(255, 255, 255, 0.18); /* Subtle border */
+
+  border-radius: 1rem; /* More rounded */
+  box-shadow: 0 8px 25px rgba(0,0,0,0.07), 0 4px 12px rgba(0,0,0,0.04); /* Modern shadow */
+  margin-bottom: 2rem;
 }
 
 .custom-card-header {
-  padding: 1.5rem 2rem; /* Increased padding */
-  border-bottom: 1px solid #e0e0e0; /* Softer border */
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid rgba(0,0,0,0.07); /* Lighter border */
   display: flex;
   align-items: center;
-  gap: 1rem; /* Increased gap */
+  gap: 1rem;
 }
 .custom-card-header .lucide {
-    height: 1.75rem; /* Larger icon */
+    height: 1.75rem;
     width: 1.75rem;
-    color: #14997A; /* Teal */
+    color: #14997A;
 }
 
 .custom-card-title {
-  font-size: 1.375rem; /* Larger title */
+  font-size: 1.375rem;
   font-weight: 600;
   margin:0;
-  color: #2c3e50; /* Darker, neutral title color */
+  color: #2c3e50;
 }
 
 .custom-card-description {
   font-size: 0.9rem;
-  color: #7f8c8d; /* Muted grey */
+  color: #7f8c8d;
   margin-top: 0.375rem;
 }
 
 .custom-card-content {
-  padding: 2rem; /* Increased padding */
+  padding: 2rem;
 }
 .custom-card-content .form-group {
-    margin-bottom: 1.5rem; /* Consistent form group margin */
+    margin-bottom: 1.5rem;
 }
 .custom-card-content label {
     display: block;
     margin-bottom: 0.5rem;
     font-weight: 500;
     font-size: 0.9rem;
-    color: #495057;
+    color: #343a40; /* Darker label */
 }
 .custom-card-content input[type="text"],
 .custom-card-content input[type="email"],
@@ -534,36 +567,36 @@ code {
     display: block;
     width: 100%;
     box-sizing: border-box;
-    padding: 0.75rem 1rem; /* Adjusted padding */
+    padding: 0.75rem 1rem;
     font-size: 0.95rem;
     border: 1px solid #ced4da;
-    border-radius: 0.375rem; /* Consistent radius */
-    background-color: #f8f9fa; /* Light grey for inputs */
+    border-radius: 0.375rem;
+    background-color: rgba(248, 249, 250, 0.85); /* Slightly transparent */
     transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
 }
 .custom-card-content input:focus,
 .custom-card-content select:focus,
 .custom-card-content textarea:focus {
-    border-color: #14997A; /* Teal */
+    border-color: #14997A;
     outline: 0;
-    box-shadow: 0 0 0 0.15rem rgba(20, 153, 122, .2); /* Softer focus ring */
-    background-color: white;
+    box-shadow: 0 0 0 0.15rem rgba(20, 153, 122, .2);
+    background-color: rgba(255, 255, 255, 0.95); /* More opaque on focus */
 }
 .custom-card-content textarea {
-    min-height: 100px; /* Increased min-height */
+    min-height: 100px;
     resize: vertical;
 }
 
 
 .custom-card-footer {
-  padding: 1.5rem 2rem; /* Increased padding */
-  border-top: 1px solid #e0e0e0; /* Softer border */
+  padding: 1.5rem 2rem;
+  border-top: 1px solid rgba(0,0,0,0.07); /* Lighter border */
   display: flex;
   justify-content: flex-end;
-  gap: 0.75rem; /* Increased gap */
-  background-color: #f9f9f9; /* Slightly off-white footer */
-  border-bottom-left-radius: 0.75rem; /* Match card radius */
-  border-bottom-right-radius: 0.75rem;
+  gap: 0.75rem;
+  background-color: rgba(249, 249, 249, 0.7); /* Slightly off-white, semi-transparent footer */
+  border-bottom-left-radius: 1rem; /* Match card radius */
+  border-bottom-right-radius: 1rem;
 }
 
 /* Responsive adjustments */
@@ -571,10 +604,10 @@ code {
     .sidebar {
         position: sticky;
         left: 0;
-        box-shadow: none;
+        box-shadow: 3px 0 15px rgba(0,0,0,0.04); /* Keep a subtle shadow for depth on desktop */
     }
     .main-content-wrapper {
-        margin-left: 260px; /* Match sidebar width */
+        margin-left: 260px;
     }
     .mobile-menu-button {
         display: none;
@@ -651,50 +684,52 @@ code {
 /* Lab Availability Grid Styles */
 .lab-availability-grid-container {
     overflow-x: auto;
-    border: 1px solid #e0e0e0; /* Softer border */
-    border-radius: 0.5rem; /* Consistent radius */
-    background-color: white;
-    padding: 0.75rem; /* Increased padding */
+    border: 1px solid rgba(0,0,0,0.07);
+    border-radius: 0.75rem; /* Match card radius */
+    background-color: rgba(255, 255, 255, 0.5); /* Semi-transparent */
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    padding: 0.75rem;
     margin-top: 1.5rem;
     box-shadow: 0 2px 6px rgba(0,0,0,0.04);
 }
 .lab-availability-grid {
     display: grid;
-    gap: 2px; /* Slightly larger gap for definition */
-    background-color: #e9ecef; /* Softer grid line color */
+    gap: 2px;
+    background-color: #e9ecef;
     min-width: 800px;
 }
 .lab-grid-cell {
-    padding: 0.625rem; /* Adjusted padding */
+    padding: 0.625rem;
     text-align: center;
-    min-height: 70px; /* Taller cells */
+    min-height: 70px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    font-size: 0.8rem; /* Slightly smaller base font */
-    background-color: white;
+    font-size: 0.8rem;
+    background-color: rgba(255, 255, 255, 0.8); /* Cell background */
     transition: filter 0.2s, background-color 0.2s;
     cursor: default;
-    border-radius: 2px; /* Tiny rounding for cells */
+    border-radius: 2px;
 }
 .lab-grid-cell.interactive {
     cursor: pointer;
 }
 .lab-grid-cell.interactive:hover {
-    background-color: #f8f9fa; /* Very light hover for available cells */
+    background-color: rgba(248, 249, 250, 0.9); /* Light hover */
     filter: brightness(0.97);
 }
 .lab-grid-header-cell {
-    font-weight: 600; /* Bolder header */
-    background-color: #f8f9fa;
+    font-weight: 600;
+    background-color: rgba(248, 249, 250, 0.85); /* Header background */
     color: #495057;
-    padding: 0.75rem 0.5rem; /* Adjusted padding */
+    padding: 0.75rem 0.5rem;
     font-size: 0.85rem;
 }
 .lab-grid-time-cell {
     font-weight: 600;
-    background-color: #f8f9fa;
+    background-color: rgba(248, 249, 250, 0.85);
     color: #495057;
     writing-mode: vertical-rl;
     text-orientation: mixed;
@@ -708,12 +743,12 @@ code {
     border-radius: 2px;
 }
 .lab-grid-cell-status {
-    font-weight: 600; /* Bolder status */
+    font-weight: 600;
     text-transform: capitalize;
-    font-size: 0.9em; /* Relative to cell font size */
+    font-size: 0.9em;
 }
 .lab-grid-cell-purpose {
-    font-size: 0.8em; /* Relative to cell font size */
+    font-size: 0.8em;
     margin-top: 0.375rem;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -724,11 +759,11 @@ code {
 }
 
 /* Softer status colors, more pastel */
-.status-available { background-color: #e6fffa; color: #087F5B; border-left: 3px solid #20C997; } /* Light Teal bg, Dark Teal text, Teal border */
-.status-booked { background-color: #ffe3e3; color: #c92a2a; border-left: 3px solid #fa5252; }    /* Light Red bg, Dark Red text, Red border */
-.status-pending, .status-pending_admin_approval, .status-approved_by_admin { background-color: #fff9db; color: #e67700; border-left: 3px solid #fcc419; }  /* Light Yellow bg, Dark Yellow text, Yellow border */
-.status-rejected, .status-cancelled, .status-rejected_by_admin { background-color: #ffe8cc; color: #d9480f; border-left: 3px solid #ffa94d; } /* Light Orange/Peach for rejected/cancelled */
-.status-past { background-color: #f1f3f5; color: #868e96; cursor: not-allowed; opacity: 0.8; border-left: 3px solid #adb5bd; } /* Light Grey bg, Grey text, Grey border */
+.status-available { background-color: rgba(230, 255, 250, 0.8); color: #087F5B; border-left: 3px solid #20C997; }
+.status-booked { background-color: rgba(255, 227, 227, 0.8); color: #c92a2a; border-left: 3px solid #fa5252; }
+.status-pending, .status-pending_admin_approval, .status-approved_by_admin { background-color: rgba(255, 249, 219, 0.8); color: #e67700; border-left: 3px solid #fcc419; }
+.status-rejected, .status-cancelled, .status-rejected_by_admin { background-color: rgba(255, 232, 204, 0.8); color: #d9480f; border-left: 3px solid #ffa94d; }
+.status-past { background-color: rgba(241, 243, 245, 0.8); color: #868e96; cursor: not-allowed; opacity: 0.8; border-left: 3px solid #adb5bd; }
 
 
 /* Dialog Styles (General & Admin Management Modal) */
@@ -738,25 +773,31 @@ code {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(30, 41, 59, 0.65); /* Darker overlay (Tailwind slate-800 with opacity) */
+  background-color: rgba(30, 41, 59, 0.4); /* Darker overlay for more contrast */
   display: none;
   align-items: center;
   justify-content: center;
   z-index: 2000;
   padding: 1.5rem;
-  backdrop-filter: blur(5px); /* Frosted glass effect */
+  -webkit-backdrop-filter: blur(8px); /* Stronger blur for overlay */
+  backdrop-filter: blur(8px);
 }
 .dialog-overlay.open {
     display: flex;
 }
 .dialog-content {
-  background-color: white;
+  /* Frosted glass for dialog content */
+  background-color: rgba(255, 255, 255, 0.8);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+
   padding: 0;
-  border-radius: 0.75rem;
+  border-radius: 1rem; /* More rounded dialogs */
   min-width: 320px;
   max-width: 95%;
   width: auto;
-  box-shadow: 0 20px 30px -10px rgba(0,0,0,0.1), 0 10px 15px -5px rgba(0,0,0,0.05); /* Significant shadow */
+  box-shadow: 0 20px 40px -10px rgba(0,0,0,0.15), 0 10px 20px -5px rgba(0,0,0,0.1); /* Enhanced shadow */
   position: relative;
   overflow: hidden;
 }
@@ -765,7 +806,7 @@ code {
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem 2rem;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid rgba(0,0,0,0.07);
 }
 .dialog-title {
   font-size: 1.375rem;
@@ -790,7 +831,7 @@ code {
 }
 .dialog-close-button:hover {
     background-color: #f1f3f5;
-    color: #14997A; /* Teal */
+    color: #14997A;
 }
 .dialog-close-button .lucide {
     width: 1.5rem;
@@ -816,11 +857,11 @@ code {
     margin-bottom: 0.5rem;
     font-weight: 500;
     font-size: 0.9rem;
-    color: #495057;
+    color: #343a40; /* Darker labels in dialogs */
 }
 .dialog-body input[type="text"],
 .dialog-body input[type="number"],
-.dialog-body input[type="password"], /* Added for change password modal */
+.dialog-body input[type="password"],
 .dialog-body select,
 .dialog-body textarea {
     display: block;
@@ -830,15 +871,15 @@ code {
     font-size: 0.95rem;
     border: 1px solid #ced4da;
     border-radius: 0.375rem;
-    background-color: #f8f9fa;
+    background-color: rgba(248, 249, 250, 0.9); /* Input background in dialog */
 }
 .dialog-body input:focus,
 .dialog-body select:focus,
 .dialog-body textarea:focus {
-  border-color: #14997A; /* Teal */
+  border-color: #14997A;
   outline: 0;
   box-shadow: 0 0 0 0.15rem rgba(20, 153, 122, .2);
-  background-color: white;
+  background-color: rgba(255, 255, 255, 0.95);
 }
 
 
@@ -848,51 +889,51 @@ code {
   gap: 0.75rem;
   flex-wrap: wrap;
   padding: 1.5rem 2rem;
-  border-top: 1px solid #e9ecef;
-  background-color: #f8f9fa;
+  border-top: 1px solid rgba(0,0,0,0.07);
+  background-color: rgba(248, 249, 250, 0.75); /* Dialog footer background */
 }
 
 /* Lab Slot Detail Dialog Enhancements & Interactive Seat Updater Layout */
 .dialog-lab-layout-container {
     display: flex;
-    justify-content: space-around; /* Distributes sections */
-    gap: 0.5rem; /* Gap between main sections */
+    justify-content: space-around;
+    gap: 0.5rem;
     margin-top: 1rem;
-    padding: 0.5rem; /* Reduced padding for a denser look */
-    border: 1px solid #e9ecef;
+    padding: 0.5rem;
+    border: 1px solid rgba(0,0,0,0.07);
     border-radius: 0.5rem;
-    background-color: #f8f9fa;
+    background-color: rgba(248, 249, 250, 0.7); /* Layout container background */
 }
 .dialog-lab-layout-section {
     display: flex;
-    flex-direction: column; /* Stacks rows vertically */
-    align-items: center; /* Centers rows if they don't fill width */
-    gap: 0.1rem; /* Reduced gap between rows within a section */
+    flex-direction: column;
+    align-items: center;
+    gap: 0.1rem;
 }
 .lab-layout-row {
     display: flex;
-    gap: 0.1rem; /* Reduced gap between desks in a row */
+    gap: 0.1rem;
 }
 
 .lab-layout-desk {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0.1rem; /* Minimal padding around the icon */
+    padding: 0.1rem;
 }
-.lab-layout-desk.interactive-seat { /* For Assistant Seat Updater page */
+.lab-layout-desk.interactive-seat {
     cursor: pointer;
     border-radius: 4px;
     transition: background-color 0.2s, transform 0.1s;
 }
 .lab-layout-desk.interactive-seat:hover {
-    background-color: rgba(20, 153, 122, 0.1); /* Light teal hover */
+    background-color: rgba(20, 153, 122, 0.1);
     transform: scale(1.1);
 }
 
 .lab-layout-desk .lucide-armchair {
-    width: 24px; /* Increased size */
-    height: 24px; /* Increased size */
+    width: 24px; /* Increased size for beauty */
+    height: 24px; /* Increased size for beauty */
     stroke-width: 2; /* Thicker stroke */
 }
 .lab-layout-desk .lucide-armchair.system-working {
@@ -914,7 +955,7 @@ code {
 .lab-layout-teacher-desk .lucide-user-cog {
     width: 32px; /* Slightly larger teacher icon */
     height: 32px;
-    color: #14997A; /* Teal for teacher icon */
+    color: #14997A;
     margin-bottom: 0.25rem;
     stroke-width: 1.75;
 }
@@ -926,9 +967,9 @@ code {
 .lab-system-status-summary {
     margin-bottom: 1rem;
     padding: 0.75rem;
-    background-color: #f9fafb; /* Very light grey */
+    background-color: rgba(249, 250, 251, 0.8); /* Light grey */
     border-radius: 0.375rem;
-    border: 1px solid #e5e7eb;
+    border: 1px solid rgba(229, 231, 235, 0.8);
     font-size: 0.9rem;
 }
 .lab-system-status-summary p {
@@ -976,19 +1017,19 @@ code {
 
 /* Legend icon styling for assistant_update_seat_status.html AND lab_grid.js dialog */
 .legend-icon-working .lucide-armchair,
-.lab-system-status-summary .legend-icon-working .lucide { /* For check-circle in summary */
-    stroke: #28a745; /* Green */
-    color: #28a745; /* Green for fillable icons like check-circle */
+.lab-system-status-summary .legend-icon-working .lucide {
+    stroke: #28a745;
+    color: #28a745;
     stroke-width: 2;
-    width: 1.2em; /* Adjust size as needed, relative to surrounding text */
+    width: 1.2em;
     height: 1.2em;
     vertical-align: middle;
     margin-right: 0.25rem;
 }
 .legend-icon-not-working .lucide-armchair,
-.lab-system-status-summary .legend-icon-not-working .lucide { /* For x-circle in summary */
-    stroke: #dc3545; /* Red */
-    color: #dc3545; /* Red for fillable icons like x-circle */
+.lab-system-status-summary .legend-icon-not-working .lucide {
+    stroke: #dc3545;
+    color: #dc3545;
     stroke-width: 2;
     width: 1.2em;
     height: 1.2em;
@@ -1004,16 +1045,16 @@ code {
 .modify-purpose-ui {
     margin-top: 1rem;
     padding: 1rem;
-    border: 1px solid #e0e0e0;
+    border: 1px solid rgba(0,0,0,0.07);
     border-radius: 0.5rem;
-    background-color: #f9f9f9;
+    background-color: rgba(249, 249, 249, 0.75);
 }
 .modify-purpose-ui label {
     display: block;
     margin-bottom: 0.5rem;
     font-weight: 500;
     font-size: 0.9rem;
-    color: #495057;
+    color: #343a40;
 }
 .modify-purpose-ui input[type="text"] {
     width: 100%;
@@ -1022,11 +1063,12 @@ code {
     font-size: 0.95rem;
     border: 1px solid #ced4da;
     border-radius: 0.375rem;
-    background-color: white; /* White background for active input */
+    background-color: rgba(255, 255, 255, 0.9);
     margin-bottom: 0.75rem;
 }
 .modify-purpose-ui input[type="text"]:focus {
-    border-color: #14997A; /* Teal */
+    border-color: #14997A;
     outline: 0;
     box-shadow: 0 0 0 0.15rem rgba(20, 153, 122, .2);
 }
+
