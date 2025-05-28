@@ -74,7 +74,7 @@
                                 </div>
                             </div>
                             <button type="button" id="generateMockReportBtn" class="button button-primary mt-4">
-                                <i data-lucide="download-cloud" class="mr-2 h-4 w-4"></i>Download Mock Report (CSV)
+                                <i data-lucide="download-cloud" class="mr-2 h-4 w-4"></i>Download Mock Lab Usage Report (CSV)
                             </button>
                             <div id="reportOutputAreaPlaceholder" class="mt-6 p-4 border rounded-md bg-gray-50" style="display: none;">
                                 <h3 class="font-semibold text-lg mb-2">Report Results:</h3>
@@ -91,11 +91,68 @@
     <script src="../js/utils.js"></script>
     <script src="js/dashboard.js"></script>
     <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM fully loaded and parsed for admin_system_overview.html');
+            if (!window.roleGuard(window.USER_ROLES.ADMIN)) return;
+            
+            window.initializeDashboard();
+            window.setDashboardHomeLink();
+            loadSystemLogs();
+
+            const generateReportBtn = document.getElementById('generateMockReportBtn');
+            const reportTypeSelect = document.getElementById('reportType');
+            // const reportOutputArea = document.getElementById('reportOutputAreaPlaceholder'); // For future use if displaying inline
+            // const reportContent = document.getElementById('reportContentPlaceholder'); // For future use
+
+            if (generateReportBtn && reportTypeSelect) {
+                generateReportBtn.addEventListener('click', async () => {
+                    const reportType = reportTypeSelect.value;
+                    const reportTypeName = reportTypeSelect.options[reportTypeSelect.selectedIndex].text.replace(/\s+/g, '_');
+                    const filename = `${reportTypeName}_${new Date().toISOString().split('T')[0]}.csv`;
+                    
+                    let bookingsForReport = [];
+                    const token = localStorage.getItem('token');
+                    try {
+                         const response = await fetch(`${window.API_BASE_URL}/bookings/my`, { // Fetch user's bookings for now, or change to admin general booking endpoint if available and desired for report
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        if (response.ok) {
+                            bookingsForReport = await response.json();
+                        } else {
+                            console.warn("Could not fetch bookings for mock report, using empty data or mock static data if preferred.");
+                        }
+                    } catch(e) {
+                        console.warn("Error fetching bookings for mock report:", e);
+                    }
+                    
+                    // If no bookings fetched, use some static mock data for the CSV
+                    if (bookingsForReport.length === 0) {
+                        console.log("No live bookings to report, generating CSV with static mock data.");
+                        bookingsForReport = [
+                            { labName: "Mock Lab Alpha", date: "2024-01-15", timeSlotId: "ts_0900_1000", purpose: "Mock CS101 Lecture", userName: "Mock User 1" },
+                            { labName: "Mock Lab Beta", date: "2024-01-15", timeSlotId: "ts_1000_1100", purpose: "Mock PHY202 Lab", userName: "Mock User 2" },
+                            { labName: "Mock Lab Alpha", date: "2024-01-16", timeSlotId: "ts_1400_1500", purpose: "Mock Project Work", userName: "Mock User 3" },
+                        ];
+                    }
+
+
+                    const csvData = generateMockCSV(bookingsForReport, reportType);
+                    if (csvData.startsWith("data:text/csv")) {
+                        downloadCSV(csvData, filename);
+                    } else {
+                        alert(csvData); // Show error message if report type not implemented
+                    }
+                });
+            }
+
+            if (window.lucide) window.lucide.createIcons();
+        });
+
         async function loadSystemLogs() {
             const logsList = document.getElementById('systemLogsList');
             const token = localStorage.getItem('token');
             if (!logsList || !window.API_BASE_URL || !token) {
-                if (logsList) logsList.innerHTML = '<li>Error: Could not initialize log viewer.</li>';
+                if (logsList) logsList.innerHTML = '<li>Error: Could not initialize log viewer. Missing token or API URL.</li>';
                 return;
             }
 
@@ -111,7 +168,7 @@
                 }
                 const logs = await response.json();
 
-                if (logs && logs.length > 0) {
+                if (logs && Array.isArray(logs) && logs.length > 0) {
                     logsList.innerHTML = '';
                     logs.forEach(log => {
                         const li = document.createElement('li');
@@ -138,27 +195,47 @@
             let headers = [];
             let rows = [];
 
-            // For simplicity, we'll use a subset of bookings for mock reports
-            // In a real system, specific queries would fetch tailored data.
-            const mockDataSubset = bookings.slice(0, 10); // Use up to 10 bookings for mock report
+            const mockDataSubset = bookings.slice(0, 10); 
 
             switch(reportType) {
                 case "lab_usage":
                     headers = ["LabName", "Date", "TimeSlot", "Purpose", "BookedBy"];
                     mockDataSubset.forEach(b => {
-                        const timeSlotDisplay = window.MOCK_TIME_SLOTS.find(ts => ts.id === b.timeSlotId)?.displayTime || b.timeSlotId;
-                        rows.push([b.labName || "N/A", window.formatDate(new Date(b.date)), timeSlotDisplay, b.purpose, b.userName || "N/A"].join(","));
+                        const timeSlotDisplay = (window.MOCK_TIME_SLOTS && b.timeSlotId) ? (window.MOCK_TIME_SLOTS.find(ts => ts.id === b.timeSlotId)?.displayTime || b.timeSlotId) : (b.timeSlotId || 'N/A');
+                        rows.push([b.labName || "N/A", b.date ? window.formatDate(new Date(b.date)) : "N/A", timeSlotDisplay, b.purpose || "N/A", b.userName || "N/A"].join(","));
                     });
                     break;
-                case "booking_history": // Example
+                case "booking_history": 
                     headers = ["BookingID", "LabName", "Date", "TimeSlot", "Status", "BookedBy", "Purpose"];
                      mockDataSubset.forEach(b => {
-                        const timeSlotDisplay = window.MOCK_TIME_SLOTS.find(ts => ts.id === b.timeSlotId)?.displayTime || b.timeSlotId;
-                        rows.push([b.id, b.labName || "N/A", window.formatDate(new Date(b.date)), timeSlotDisplay, b.status, b.userName || "N/A", b.purpose].join(","));
+                        const timeSlotDisplay = (window.MOCK_TIME_SLOTS && b.timeSlotId) ? (window.MOCK_TIME_SLOTS.find(ts => ts.id === b.timeSlotId)?.displayTime || b.timeSlotId) : (b.timeSlotId || 'N/A');
+                        rows.push([b.id || "N/A", b.labName || "N/A", b.date ? window.formatDate(new Date(b.date)) : "N/A", timeSlotDisplay, b.status || "N/A", b.userName || "N/A", b.purpose || "N/A"].join(","));
                     });
                     break;
                 default:
-                    return `Report type "${reportType}" not yet implemented for mock generation.`;
+                     // For user_activity and resource_allocation, which don't directly map from bookings easily
+                    headers = ["MockHeader1", "MockHeader2", "MockData"];
+                    rows.push(["Sample1", "Info1", "Value1"].join(","));
+                    rows.push(["Sample2", "Info2", "Value2"].join(","));
+                    if(mockDataSubset.length > 0 && (reportType === "user_activity" || reportType === "resource_allocation")){
+                         headers = ["User", "Action", "Timestamp", "Details"];
+                         rows = []; // Clear previous mock for these specific types
+                         mockDataSubset.forEach(b => { // Repurpose booking data for user activity mock
+                             rows.push([
+                                 b.userName || "System User",
+                                 `Performed action related to '${b.purpose}' in lab ${b.labName || 'N/A'}`,
+                                 b.submittedDate ? window.formatDateForDisplay(new Date(b.submittedDate)) : "N/A",
+                                 `Status: ${b.status || 'N/A'}`
+                             ].join(","))
+                         });
+                         if (rows.length === 0) { // Fallback if no bookings to repurpose
+                             rows.push(["admin@example.com", "Logged In", new Date().toLocaleDateString(), "Accessed dashboard"].join(","));
+                             rows.push(["faculty@example.com", "Booked Lab", new Date().toLocaleDateString(), "Lab CS101 for 2 hours"].join(","));
+                         }
+                    } else if (rows.length === 0) {
+                         return `Report type "${reportType}" mock generation needs more specific data. Defaulting to empty.`;
+                    }
+
             }
             
             csvContent += headers.join(",") + "\n";
@@ -175,55 +252,6 @@
             link.click();
             document.body.removeChild(link);
         }
-
-
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('DOM fully loaded and parsed for admin_system_overview.html');
-            if (!window.roleGuard(window.USER_ROLES.ADMIN)) return;
-            
-            window.initializeDashboard();
-            window.setDashboardHomeLink();
-            loadSystemLogs();
-
-            const generateReportBtn = document.getElementById('generateMockReportBtn');
-            const reportTypeSelect = document.getElementById('reportType');
-            const reportOutputArea = document.getElementById('reportOutputAreaPlaceholder'); // For future use if displaying inline
-            const reportContent = document.getElementById('reportContentPlaceholder'); // For future use
-
-            if (generateReportBtn && reportTypeSelect) {
-                generateReportBtn.addEventListener('click', async () => {
-                    const reportType = reportTypeSelect.value;
-                    const reportTypeName = reportTypeSelect.options[reportTypeSelect.selectedIndex].text.replace(/\s+/g, '_');
-                    const filename = `${reportTypeName}_${new Date().toISOString().split('T')[0]}.csv`;
-                    
-                    // For mock CSV, we might use existing bookings data if available, or generate purely static mock
-                    // Let's try to fetch some bookings as a base for the mock data
-                    let bookingsForReport = [];
-                    const token = localStorage.getItem('token');
-                    try {
-                         const response = await fetch(`${window.API_BASE_URL}/bookings`, { // Fetch all bookings (admin view)
-                            headers: { 'Authorization': `Bearer ${token}` }
-                        });
-                        if (response.ok) {
-                            bookingsForReport = await response.json();
-                        } else {
-                            console.warn("Could not fetch bookings for mock report, using empty data.");
-                        }
-                    } catch(e) {
-                        console.warn("Error fetching bookings for mock report:", e);
-                    }
-
-                    const csvData = generateMockCSV(bookingsForReport, reportType);
-                    if (csvData.startsWith("data:text/csv")) {
-                        downloadCSV(csvData, filename);
-                    } else {
-                        alert(csvData); // Show error message if report type not implemented
-                    }
-                });
-            }
-
-            if (window.lucide) window.lucide.createIcons();
-        });
     </script>
 </body>
 </html>
