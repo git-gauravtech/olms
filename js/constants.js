@@ -21,13 +21,11 @@ const NAV_LINKS_OBJ = {
     { href: 'admin.html', label: 'Admin Dashboard', icon: 'layout-dashboard' },
     { href: 'admin_manage_labs.html', label: 'Manage Labs', icon: 'settings-2' },
     { href: 'admin_manage_equipment.html', label: 'Manage Equipment', icon: 'wrench' },
-    { href: 'admin_faculty_requests.html', label: 'Faculty Requests', icon: 'user-check' },
+    { href: 'admin_faculty_requests.html', label: 'Faculty Requests', icon: 'user-check' }, // Corrected
     { href: 'admin_manage_users.html', label: 'User Management', icon: 'users' },
     { href: 'labs.html', label: 'Lab Availability', icon: 'flask-conical' },
     { href: 'admin_run_algorithms.html', label: 'Run Optimization Algorithms', icon: 'cpu' },
-    // Removed "System Overview & Reports"
-    // Removed "View All Bookings" as standalone - Admins use labs.html
-    // Removed "Assistant Requests" as this feature was removed
+    // { href: 'admin_system_overview.html', label: 'System Overview & Reports', icon: 'activity' }, // Feature removed
   ],
   [USER_ROLES_OBJ.FACULTY]: [
     { href: 'faculty.html', label: 'Faculty Dashboard', icon: 'layout-dashboard' },
@@ -44,14 +42,13 @@ const NAV_LINKS_OBJ = {
     { href: 'assistant.html', label: 'Assistant Dashboard', icon: 'layout-dashboard' },
     { href: 'labs.html', label: 'Lab Availability', icon: 'flask-conical' },
     { href: 'assistant_update_seat_status.html', label: 'Update Seat Status', icon: 'edit-3' },
-    // "Request Lab Slot" was removed
-    // "View My Schedule" is covered by student_my_bookings.html
+    // "Request Lab Slot" was removed for Assistant
   ],
 };
 
-const COMMON_NAV_LINKS_CONST = [
-  // Profile is accessed via user dropdown in header, not a direct sidebar link.
-];
+// Profile is accessed via user dropdown in header, not a direct sidebar link.
+const COMMON_NAV_LINKS_CONST = [];
+
 
 const MOCK_TIME_SLOTS_CONST = [
   { id: 'ts_0800_0900', startTime: '08:00', endTime: '09:00', displayTime: '08:00 AM - 09:00 AM' },
@@ -80,39 +77,34 @@ function formatDate(dateInput) {
         }
         d = dateInput;
     } else if (typeof dateInput === 'string' || typeof dateInput === 'number') {
-        // For YYYY-MM-DD strings, creating new Date(dateString) can lead to timezone issues.
-        // Safter to parse manually or use UTC. For YYYY-MM-DD, we can split.
         let dateString = String(dateInput);
-        if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) { // Matches YYYY-MM-DD
-             const [year, month, day] = dateString.split('-').map(Number);
-             d = new Date(Date.UTC(year, month - 1, day)); // Use UTC to avoid timezone shifts
-        } else { // Attempt to parse other string formats, or if it includes time
+        if (/^\d{4}-\d{2}-\d{2}/.test(dateString)) { // Matches YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss...
+             const [year, month, day] = dateString.substring(0,10).split('-').map(Number);
+             d = new Date(Date.UTC(year, month - 1, day));
+        } else {
              d = new Date(dateString);
              if (isNaN(d.getTime())) {
-                d = new Date(dateString.replace(/-/g, '/') + 'T00:00:00Z'); // Fallback for broader compatibility
+                d = new Date(dateString.replace(/-/g, '/') + 'T00:00:00Z');
                 if (isNaN(d.getTime())) {
-                    // console.warn('[constants.js] formatDate: Invalid Date String/Number after attempts', dateInput);
                     return 'Invalid Date String/Number';
                 }
             }
         }
     } else {
-        // console.warn('[constants.js] formatDate: Invalid Date Type', typeof dateInput, dateInput);
         return 'Invalid Date Type';
     }
 
     const year = d.getUTCFullYear();
-    const month = String(d.getUTCMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+    const month = String(d.getUTCMonth() + 1).padStart(2, '0');
     const day = String(d.getUTCDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
 }
 
 function formatDateForDisplay(dateInput) {
     if (!dateInput) return '';
-    const d = dateInput instanceof Date ? dateInput : new Date(String(dateInput).replace(/-/g, '/')); // Replace for wider compatibility
+    const d = dateInput instanceof Date ? dateInput : new Date(String(dateInput).replace(/-/g, '/').substring(0,10));
     if (isNaN(d.getTime())) return 'Invalid Date';
     
-    // Use UTC methods to avoid timezone shifts during formatting for display
     const year = d.getUTCFullYear();
     const monthIndex = d.getUTCMonth();
     const day = d.getUTCDate();
@@ -145,17 +137,10 @@ const BOOKING_STATUSES_ARRAY_CONST = ['pending', 'booked', 'rejected', 'cancelle
 console.log('[constants.js] Assigning constants to window object...');
 if (typeof window !== 'undefined') {
     window.API_BASE_URL = API_BASE_URL_CONST;
-    // console.log('[constants.js] window.API_BASE_URL set to:', window.API_BASE_URL);
-
     window.USER_ROLES = USER_ROLES_OBJ;
-    // console.log('[constants.js] window.USER_ROLES set to:', window.USER_ROLES);
-
     window.ROLES_ARRAY = ROLES_ARRAY_CONST;
-    window.USER_ROLE_VALUES = USER_ROLE_VALUES_CONST; // For role dropdowns
-
+    window.USER_ROLE_VALUES = USER_ROLE_VALUES_CONST;
     window.NAV_LINKS = NAV_LINKS_OBJ;
-    // console.log('[constants.js] window.NAV_LINKS set.');
-
     window.COMMON_NAV_LINKS = COMMON_NAV_LINKS_CONST;
     window.MOCK_TIME_SLOTS = MOCK_TIME_SLOTS_CONST;
     window.DAYS_OF_WEEK = DAYS_OF_WEEK_CONST;
