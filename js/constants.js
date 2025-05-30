@@ -2,8 +2,11 @@
 // Global constants for the application
 console.log('[constants.js] Script start.');
 
-// API_BASE_URL_CONST is now relative, as frontend and backend are served from the same origin
-const API_BASE_URL_CONST = '/api';
+// API_BASE_URL_CONST should be absolute for separate frontend/backend servers
+// If served from same origin, can be relative like '/api'
+const API_BASE_URL_CONST = '/api'; // Changed because backend now serves frontend
+console.log(`[constants.js] API_BASE_URL_CONST set to: ${API_BASE_URL_CONST}`);
+
 const USER_ROLES_OBJ = {
   ADMIN: 'Admin',
   FACULTY: 'Faculty',
@@ -19,10 +22,11 @@ const NAV_LINKS_OBJ = {
     { href: 'admin_manage_labs.html', label: 'Manage Labs', icon: 'settings-2' },
     { href: 'admin_manage_equipment.html', label: 'Manage Equipment', icon: 'wrench' },
     { href: 'admin_faculty_requests.html', label: 'Faculty Requests', icon: 'user-check' },
+    // { href: 'admin_assistant_requests.html', label: 'Assistant Requests', icon: 'user-cog' }, // Removed
     { href: 'admin_manage_users.html', label: 'User Management', icon: 'users' },
     { href: 'labs.html', label: 'Lab Availability', icon: 'flask-conical' },
     { href: 'admin_run_algorithms.html', label: 'Run Optimization Algorithms', icon: 'cpu' },
-    { href: 'admin_system_overview.html', label: 'System Overview & Reports', icon: 'activity' },
+    // { href: 'admin_system_overview.html', label: 'System Overview & Reports', icon: 'activity' }, // Removed
   ],
   [USER_ROLES_OBJ.FACULTY]: [
     { href: 'faculty.html', label: 'Faculty Dashboard', icon: 'layout-dashboard' },
@@ -39,12 +43,14 @@ const NAV_LINKS_OBJ = {
     { href: 'assistant.html', label: 'Assistant Dashboard', icon: 'layout-dashboard' },
     { href: 'labs.html', label: 'Lab Availability', icon: 'flask-conical' },
     { href: 'assistant_update_seat_status.html', label: 'Update Seat Status', icon: 'edit-3' },
-    { href: 'student_my_bookings.html', label: 'My Assigned Tasks/Bookings', icon: 'calendar-check' }, // Assistants use the same page as students for their bookings
+    // { href: 'assistant_request_lab.html', label: 'Request Lab Slot', icon: 'send' }, // Removed
+    // { href: 'student_my_bookings.html', label: 'My Schedule', icon: 'calendar-check' }, // Assistant specific schedule might be different
   ],
 };
 
 const COMMON_NAV_LINKS_CONST = [
-  // Profile is accessed via user dropdown in header
+  // Profile is accessed via user dropdown in header, not a direct sidebar link.
+  // { href: 'profile.html', label: 'My Profile', icon: 'user' }
 ];
 
 const MOCK_TIME_SLOTS_CONST = [
@@ -61,38 +67,43 @@ const MOCK_TIME_SLOTS_CONST = [
 ];
 
 function formatDate(dateInput) {
-    if (!dateInput && dateInput !== 0) return '';
+    if (!dateInput &amp;&amp; dateInput !== 0) {
+        console.warn('[constants.js] formatDate: Received null or undefined dateInput.');
+        return 'N/A';
+    }
     let d;
 
+    // Check if dateInput is already a Date object
     if (dateInput instanceof Date) {
         if (isNaN(dateInput.getTime())) {
             console.warn('[constants.js] formatDate: Invalid Date object passed', dateInput);
-            return 'Invalid Date Value';
+            return 'Invalid Date Object';
         }
-        const year = dateInput.getUTCFullYear();
-        const month = String(dateInput.getUTCMonth() + 1).padStart(2, '0');
-        const day = String(dateInput.getUTCDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
+        d = dateInput;
     } else if (typeof dateInput === 'string' || typeof dateInput === 'number') {
-        const potentialDate = new Date(dateInput);
-        if (!isNaN(potentialDate.getTime())) {
-            const year = potentialDate.getUTCFullYear();
-            const month = String(potentialDate.getUTCMonth() + 1).padStart(2, '0');
-            const day = String(potentialDate.getUTCDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        } else {
-            const simpleDateRegex = /^\d{4}-\d{2}-\d{2}$/;
-            if (simpleDateRegex.test(String(dateInput))) {
-                return String(dateInput);
+        // Attempt to parse string/number. Add 'T00:00:00' for date-only strings to ensure UTC parsing
+        const dateString = String(dateInput).includes('T') ? String(dateInput) : String(dateInput) + 'T00:00:00Z';
+        d = new Date(dateString);
+        if (isNaN(d.getTime())) {
+            // Try replacing hyphens with slashes for broader compatibility if initial parse fails
+            d = new Date(String(dateInput).replace(/-/g, '/') + 'T00:00:00Z');
+            if (isNaN(d.getTime())) {
+                console.warn('[constants.js] formatDate: Invalid Date String/Number after attempts', dateInput);
+                return 'Invalid Date String/Number';
             }
-            console.warn('[constants.js] formatDate: Invalid Date String/Number', dateInput);
-            return 'Invalid Date String/Number';
         }
     } else {
         console.warn('[constants.js] formatDate: Invalid Date Type', typeof dateInput, dateInput);
         return 'Invalid Date Type';
     }
+
+    // Format to YYYY-MM-DD using UTC methods to avoid timezone shifts
+    const year = d.getUTCFullYear();
+    const month = String(d.getUTCMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 }
+
 
 const DAYS_OF_WEEK_CONST = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -102,23 +113,17 @@ const DEPARTMENTS_CONST = [
   'ECE (Electronics & Communication Engineering)',
   'MECH (Mechanical Engineering)',
   'CIVIL (Civil Engineering)',
-  'EEE (Electrical & Electronics Engineering)',
-  'BIO (Biological Sciences & Bioengineering)',
+  'EEE (Electrical &amp; Electronics Engineering)',
+  'BIO (Biological Sciences &amp; Bioengineering)',
   'CHEM (Chemistry)',
   'PHYS (Physics)',
-  'MATH (Mathematics & Statistics)',
+  'MATH (Mathematics &amp; Statistics)',
   'Other',
 ];
 
 const EQUIPMENT_STATUSES_CONST = ['available', 'in-use', 'maintenance', 'broken'];
 const BOOKING_STATUSES_ARRAY_CONST = ['pending', 'booked', 'rejected', 'cancelled', 'pending-admin-approval', 'approved-by-admin', 'rejected-by-admin'];
 
-// No longer storing MOCK data here for labs, equipment, bookings, seat statuses.
-// This data is now managed by the backend.
-
-// localStorage Keys (Versioned up)
-const MOCK_BOOKINGS_STORAGE_KEY = 'mockBookingsV5'; // This key might be fully obsolete now
-const LAB_SEAT_STATUSES_STORAGE_KEY = 'labSeatStatusesV4'; // This key might be fully obsolete now
 
 console.log('[constants.js] Assigning constants to window object...');
 if (typeof window !== 'undefined') {
@@ -129,7 +134,7 @@ if (typeof window !== 'undefined') {
     console.log('[constants.js] window.USER_ROLES set to:', window.USER_ROLES);
 
     window.ROLES_ARRAY = ROLES_ARRAY_CONST;
-    window.USER_ROLE_VALUES = USER_ROLE_VALUES_CONST;
+    window.USER_ROLE_VALUES = USER_ROLE_VALUES_CONST; // For role dropdowns
 
     window.NAV_LINKS = NAV_LINKS_OBJ;
     console.log('[constants.js] window.NAV_LINKS set.');
@@ -141,7 +146,8 @@ if (typeof window !== 'undefined') {
     window.EQUIPMENT_STATUSES = EQUIPMENT_STATUSES_CONST;
     window.BOOKING_STATUSES_ARRAY = BOOKING_STATUSES_ARRAY_CONST;
     window.formatDate = formatDate;
+    console.log('[constants.js] All constants assigned to window.');
 } else {
     console.error('[constants.js] CRITICAL: window object not found. This script is intended for browser environment.');
 }
-console.log('[constants.js] Script end. All constants and functions should be available on window.');
+console.log('[constants.js] Script end.');
