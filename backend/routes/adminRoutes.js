@@ -37,7 +37,6 @@ router.post('/users', [auth, isAdmin], async (req, res) => {
         return res.status(400).json({ msg: 'Secret word must be at least 4 characters long.' });
     }
     
-    // USER_ROLES should be available from authMiddleware if imported correctly
     const validRoles = Object.values(USER_ROLES || {}); 
     if (!validRoles.includes(role)) {
         return res.status(400).json({ msg: 'Invalid role specified.' });
@@ -174,8 +173,6 @@ router.get('/requests/faculty', [auth, isAdmin], async (req, res) => {
     }
 });
 
-// System Activity Logs and Assistant Requests routes were removed.
-
 
 // --- DAA Algorithm Triggers (Simulation & Integration Point) ---
 // MOCK_TIME_SLOTS for backend reference if needed by C++ input simulation
@@ -197,15 +194,14 @@ const MOCK_TIME_SLOTS_BACKEND_REF = [
 // @access  Private (Admin only)
 router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
     const { algorithmName } = req.params;
-    // const { inputPayload } = req.body; // If frontend needs to send specific parameters for an algorithm run
-
+    
     console.log(`[Backend] Admin ${req.user.email} triggered algorithm: ${algorithmName}`);
     
-    let actualInputForCpp = {}; // To be populated based on algorithm
-    let simulatedOutputFromCpp = {}; // To be populated by C++ simulation
+    let actualInputForCpp = {}; 
+    let simulatedOutputFromCpp = {}; 
     let dbUpdateSummary = "No database changes simulated by algorithm.";
     let successMessage = `Algorithm '${algorithmName}' process initiated.`;
-    let cppExecutablePath = ''; // To be set for each algorithm
+    let cppExecutablePath = ''; 
 
     try {
         if (algorithmName === 'run-scheduling') { // Graph Coloring
@@ -213,8 +209,7 @@ router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
             successMessage = `Graph Coloring scheduling process initiated.`;
             console.log("[Backend] Preparing input for C++ Graph Coloring (Scheduling)...");
             
-            // Simulate fetching data from MySQL
-            console.log("[Backend] SIMULATING: Fetching labs (id, name, capacity, type), all pending booking requests (courseSection, facultyId, studentBatch, durationSlots, preferredLabId, requiredLabType, requestedEquipment list), faculty availability (facultyId, list of available timeSlotIds), and predefined time slots.");
+            console.log("[Backend] SIMULATING: Fetching labs (id, name, capacity, type), all pending booking requests (courseSection, facultyId, studentBatch, durationSlots, preferredLabId, requiredLabType, requestedEquipment list), faculty availability (facultyId, list of available timeSlotIds), and predefined time slots from MySQL.");
             // CRITICAL CONSTRAINTS FOR C++ GRAPH COLORING (to be enforced by C++):
             // 1. Faculty Consistency: All lab sessions for a specific course section (e.g., "CS101_SecA") must be assigned to the same faculty member.
             // 2. Distinct Section Schedules: Different sections of the same course (e.g., "CS101_SecA" vs "CS101_SecB") are separate scheduling entities and must have their own timetables. They can only overlap if using different resources (labs, faculty).
@@ -223,24 +218,19 @@ router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
             // 5. Resource Availability: Lab must have the type/equipment required by the session.
             // 6. Faculty Availability: Session must align with the assigned faculty's available time slots.
 
-            // const [labsData] = await pool.query("SELECT id, name, capacity, location, roomNumber FROM labs"); 
-            // const [bookingRequestsData] = await pool.query( ... ); // Fetch pending requests
-            // const [facultyAvailabilityData] = await pool.query( ... ); // Fetch faculty availability
-            // const timeSlots = MOCK_TIME_SLOTS_BACKEND_REF; // Or fetch from DB if dynamic
-
             actualInputForCpp = {
-                labs: [ // Example data, replace with actual DB query results
+                labs: [ 
                     { id: 1, name: "CS Lab 101", capacity: 30, type: "Computer" },
                     { id: 2, name: "Electronics Lab", capacity: 25, type: "Electronics" }
                 ],
-                labSessionRequests: [ // Example, replace with actual DB query
+                labSessionRequests: [ 
                     { requestId: 101, courseSection: "CS101_SecA", facultyId: "F10", studentBatch: "Batch_A1", durationSlots: 1, preferredLabId: 1, requiredLabType: "Computer", requiredEquipment: ["EQ_PC", "EQ_PROJ"] },
-                    { requestId: 102, courseSection: "CS101_SecA", facultyId: "F10", studentBatch: "Batch_A1", durationSlots: 1, preferredLabId: 1, requiredLabType: "Computer", requiredEquipment: ["EQ_PC", "EQ_PROJ"] },
+                    { requestId: 102, courseSection: "CS101_SecA", facultyId: "F10", studentBatch: "Batch_A1", durationSlots: 1, preferredLabId: 1, requiredLabType: "Computer", requiredEquipment: ["EQ_PC", "EQ_PROJ"] }, // Second lab for CS101_SecA
                     { requestId: 103, courseSection: "CS101_SecB", facultyId: "F11", studentBatch: "Batch_A2", durationSlots: 1, preferredLabId: 1, requiredLabType: "Computer", requiredEquipment: ["EQ_PC"] },
                     { requestId: 104, courseSection: "EE201_SecA", facultyId: "F12", studentBatch: "Batch_B1", durationSlots: 2, preferredLabId: 2, requiredLabType: "Electronics", requiredEquipment: ["EQ_OSC", "EQ_PSU"] }
                 ],
                 timeSlots: MOCK_TIME_SLOTS_BACKEND_REF.map(ts => ({id: ts.id, display: ts.displayTime, startTime: ts.startTime, endTime: ts.endTime})),
-                facultyAvailability: { // Example: This would be fetched from DB (e.g., a faculty_availability table)
+                facultyAvailability: { 
                     "F10": ["ts_0900_1000", "ts_1000_1100", "ts_1100_1200", "ts_1400_1500"],
                     "F11": ["ts_1300_1400", "ts_1400_1500"],
                     "F12": ["ts_0900_1000", "ts_1000_1100", "ts_1600_1700", "ts_1700_1800"],
@@ -248,37 +238,32 @@ router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
             };
             console.log("[Backend] Data fetched and prepared for C++ (Graph Coloring Scheduling). First 500 chars of input:", JSON.stringify(actualInputForCpp, null, 2).substring(0, 500) + "...");
 
-            simulatedOutputFromCpp = { // Example output from C++
+            simulatedOutputFromCpp = { 
                 status: "success",
                 summary: "Generated schedule for 3 sections.",
                 newlyScheduledBookings: [
                     { requestId: 101, courseSection: "CS101_SecA", assignedLabId: 1, assignedDate: "2024-09-02", assignedTimeSlotId: "ts_0900_1000", facultyId: "F10", studentBatch: "Batch_A1", purpose: "Scheduled: CS101_SecA (Lab 1)"},
-                    { requestId: 102, courseSection: "CS101_SecA", assignedLabId: 1, assignedDate: "2024-09-03", assignedTimeSlotId: "ts_0900_1000", facultyId: "F10", studentBatch: "Batch_A1", purpose: "Scheduled: CS101_SecA (Lab 2)"},
+                    { requestId: 102, courseSection: "CS101_SecA", assignedLabId: 1, assignedDate: "2024-09-03", assignedTimeSlotId: "ts_0900_1000", facultyId: "F10", studentBatch: "Batch_A1", purpose: "Scheduled: CS101_SecA (Lab 2)"}, // Ensures F10 for both CS101_SecA labs
                     { requestId: 103, courseSection: "CS101_SecB", assignedLabId: 1, assignedDate: "2024-09-02", assignedTimeSlotId: "ts_1300_1400", facultyId: "F11", studentBatch: "Batch_A2", purpose: "Scheduled: CS101_SecB"},
                 ],
                 unscheduledRequests: [ { requestId: 104, reason: "No suitable 2-slot block found for faculty F12 with required lab type." } ]
             };
-            // Simulate DB Update:
-            // For each session in `newlyScheduledBookings`:
-            //  - UPDATE bookings SET labId = ?, date = ?, timeSlotId = ?, status = 'booked', purpose = ? WHERE original_request_id = ? (or INSERT new booking)
-            // For each session in `unscheduledRequests`:
-            //  - UPDATE original_request_id SET status = 'scheduling_failed', notes = ?
-            dbUpdateSummary = `DB Update SIMULATED: ${simulatedOutputFromCpp.newlyScheduledBookings?.length || 0} sessions booked/updated. ${simulatedOutputFromCpp.unscheduledRequests?.length || 0} requests marked as unscheduled/failed.`;
+            dbUpdateSummary = `DB Update SIMULATED: ${simulatedOutputFromCpp.newlyScheduledBookings?.length || 0} sessions booked/updated. ${simulatedOutputFromCpp.unscheduledRequests?.length || 0} requests marked as unscheduled/failed. All labs for a given course section (e.g., CS101_SecA) are assigned to the same faculty.`;
             
         } else if (algorithmName === 'run-resource-allocation') { // 0/1 Knapsack
             cppExecutablePath = './cpp_algorithms/knapsack_allocator'; // <-- YOU MUST PROVIDE THIS PATH
             successMessage = `0/1 Knapsack resource allocation process initiated.`;
             console.log("[Backend] Preparing input for C++ 0/1 Knapsack (Resource Allocation)...");
             
-            console.log("[Backend] SIMULATING: Fetching scarce equipment types and their available units (e.g., SELECT type, COUNT(*) as availableUnits FROM equipment WHERE status='available' AND type IN ('AdvancedOscilloscopeType', 'SpectrometerXYZType') GROUP BY type).");
-            console.log("[Backend] SIMULATING: Fetching booked/pending lab sessions that need these scarce resources, including their priority/value and quantity of each type needed.");
+            console.log("[Backend] SIMULATING: Fetching scarce equipment types (e.g., 'AdvancedOscilloscopeType') and their available units (e.g., SELECT COUNT(*) as availableUnits FROM equipment WHERE type = 'AdvancedOscilloscopeType' AND status='available').");
+            console.log("[Backend] SIMULATING: Fetching booked/pending lab sessions that need these scarce resources, including their priority/value and quantity of each type needed (e.g., a session needs 2 units of 'AdvancedOscilloscopeType').");
             
             actualInputForCpp = {
                 scarceResources: [ 
-                    { resourceType: "AdvancedOscilloscopeType", availableUnits: 3 }, // Derived from DB COUNT query
-                    { resourceType: "SpectrometerXYZType", availableUnits: 1 }  // Derived from DB COUNT query
+                    { resourceType: "AdvancedOscilloscopeType", availableUnits: 3 }, 
+                    { resourceType: "SpectrometerXYZType", availableUnits: 1 }  
                 ],
-                sessionRequests: [ // These would be existing bookings needing these scarce resources
+                sessionRequests: [ 
                     { sessionId: 201, courseSection: "EE301_LabA", priorityValue: 10, needs: [{ resourceType: "AdvancedOscilloscopeType", units: 2 }] },
                     { sessionId: 202, courseSection: "PHY400_Research", priorityValue: 12, needs: [{ resourceType: "SpectrometerXYZType", units: 1 }, { resourceType: "AdvancedOscilloscopeType", units: 1 }] },
                     { sessionId: 203, courseSection: "EE301_LabB", priorityValue: 8, needs: [{ resourceType: "AdvancedOscilloscopeType", units: 2 }] }
@@ -297,25 +282,19 @@ router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
                     { sessionId: 203, reason: "Insufficient AdvancedOscilloscopeType units after higher priority allocations." }
                 ]
             };
-             // Simulate DB Update:
-            // For each session in `allocatedSessions`:
-            //  - Find actual equipment IDs from `equipment` table based on type and availability.
-            //  - UPDATE bookings SET equipmentIds = JSON_ARRAY(...) WHERE id = sessionId
-            // For `unallocatedSessions`:
-            //  - UPDATE bookings SET status = 'resource_allocation_failed' (or similar) WHERE id = sessionId
-            dbUpdateSummary = `DB Update SIMULATED: ${simulatedOutputFromCpp.allocatedSessions?.length || 0} sessions allocated scarce resources. ${simulatedOutputFromCpp.unallocatedSessions?.length || 0} sessions could not be fully resourced.`;
+            dbUpdateSummary = `DB Update SIMULATED: ${simulatedOutputFromCpp.allocatedSessions?.length || 0} sessions allocated scarce resources (specific equipment instance IDs would be found and assigned). ${simulatedOutputFromCpp.unallocatedSessions?.length || 0} sessions could not be fully resourced.`;
 
         } else if (algorithmName === 'optimize-lab-usage') { // Greedy Algorithm
              cppExecutablePath = './cpp_algorithms/greedy_filler'; // <-- YOU MUST PROVIDE THIS PATH
              successMessage = `Greedy lab usage optimization process initiated.`;
             console.log("[Backend] Preparing input for C++ Greedy Algorithm (Optimize Lab Usage/Fill Gaps)...");
-            console.log("[Backend] SIMULATING: Fetching current lab schedule from `bookings` to identify empty slots. Fetching high-priority pending requests from `bookings`. Fetching lab details from `labs`.");
+            console.log("[Backend] SIMULATING: Fetching current lab schedule from \`bookings\` to identify empty slots. Fetching high-priority pending requests from \`bookings\`. Fetching lab details from \`labs\`.");
             actualInputForCpp = {
-                emptyTimeSlots: [ // Derived from existing schedule by finding gaps
+                emptyTimeSlots: [ 
                     { labId: 1, labName: "CS Lab 101", date: "2024-09-05", timeSlotId: "ts_0900_1000", capacity: 30, type: "Computer" }, 
                     { labId: 3, labName: "Physics Lab Alpha", date: "2024-09-05", timeSlotId: "ts_1100_1200", capacity: 25, type: "Physics" }
                 ],
-                pendingRequests: [ // Unscheduled requests with priorities
+                pendingRequests: [ 
                     { reqId: 301, courseSection: "BIO101_Makeup", priority: 100, durationSlots: 1, requiredLabType: "Any", requiredCapacity: 15, facultyId: "F15", studentBatch: "Batch_G1" },
                     { reqId: 302, courseSection: "CS_Club_Practice", priority: 90, durationSlots: 1, requiredLabType: "Computer", requiredCapacity: 20, facultyId: "F16", studentBatch: "Batch_G2" }
                 ],
@@ -334,19 +313,15 @@ router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
                 ],
                 remainingPendingRequests: [302] 
             };
-            // Simulate DB Update:
-            // For each entry in `filledSlots`:
-            //  - INSERT new booking record into `bookings` table with status 'booked'.
-            //  - UPDATE original request status if applicable.
-            dbUpdateSummary = `DB Update SIMULATED: ${simulatedOutputFromCpp.filledSlots?.length || 0} empty slots filled.`;
+            dbUpdateSummary = `DB Update SIMULATED: ${simulatedOutputFromCpp.filledSlots?.length || 0} empty slots filled by creating new booking records.`;
 
         } else if (algorithmName === 'assign-nearest-labs') { // Dijkstra's
             cppExecutablePath = './cpp_algorithms/dijkstra_planner'; // <-- YOU MUST PROVIDE THIS PATH
             successMessage = `Dijkstra's nearest lab assignment process initiated.`;
             console.log("[Backend] Preparing input for C++ Dijkstra's Algorithm (Assign Nearest Labs)...");
-            console.log("[Backend] SIMULATING: Fetching campus graph (nodes=locations, edges=paths with distances/times) from DB or config. Fetching user's department location (source node). Fetching list of currently available labs that meet basic criteria (type, capacity) from `labs` and `bookings`.");
+            console.log("[Backend] SIMULATING: Fetching campus graph (nodes=locations, edges=paths with distances/times) from DB or config. Fetching user's department location (source node from user profile or form). Fetching list of currently available labs from \`labs\` and \`bookings\` that meet basic criteria (type, capacity).");
             actualInputForCpp = {
-                campusGraph: { // This data would likely come from a config file or dedicated DB tables
+                campusGraph: { 
                     nodes: [ {id: "CS_Dept_Loc"}, {id: "Junction1"}, {id: "Lab101_Loc"}, {id: "Lab102_Loc"}, {id: "Physics_Dept_Loc"}, {id: "Lab205_Loc"} ], 
                     edges: [ 
                         {from: "CS_Dept_Loc", to: "Junction1", weight: 50}, {from: "Junction1", to: "Lab101_Loc", weight: 30}, 
@@ -354,8 +329,8 @@ router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
                         {from: "Physics_Dept_Loc", to: "Lab205_Loc", weight: 20}
                     ]
                 },
-                sourceLocationNodeId: "CS_Dept_Loc", // Could come from user's department or a form input
-                targetLabLocations: [ // Labs currently available that meet criteria
+                sourceLocationNodeId: "CS_Dept_Loc", 
+                targetLabLocations: [ 
                     {labDbId: 1, name: "CS Lab 101", locationNodeId: "Lab101_Loc"},
                     {labDbId: 2, name: "CS Lab 102", locationNodeId: "Lab102_Loc"},
                     {labDbId: 5, name: "Physics Lab Beta (overflow)", locationNodeId: "Lab205_Loc"}
@@ -373,17 +348,14 @@ router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
                 ],
                 recommendation: { labDbId: 1, name: "CS Lab 101" } 
             };
-            // Simulate Usage: This algorithm's output would be used by the booking system to SUGGEST the nearest lab or by an admin for manual assignment.
-            // No direct DB update to `bookings` typically, but might influence choice.
-            dbUpdateSummary = `Result SIMULATED: Nearest suitable lab is ${simulatedOutputFromCpp.recommendation?.name} (Distance: ${simulatedOutputFromCpp.shortestPaths?.find(p => p.labDbId === simulatedOutputFromCpp.recommendation?.labDbId)?.distance}). This info can be used to guide booking decisions.`;
+            dbUpdateSummary = `Result SIMULATED: Nearest suitable lab is ${simulatedOutputFromCpp.recommendation?.name} (Distance: ${simulatedOutputFromCpp.shortestPaths?.find(p => p.labDbId === simulatedOutputFromCpp.recommendation?.labDbId)?.distance}). This info can be used by the booking system to suggest or prioritize labs. No direct DB update to \`bookings\` typically.`;
         } else {
             return res.status(400).json({ success: false, msg: `Algorithm '${algorithmName}' is not recognized.` });
         }
 
-        // --- Common C++ Process Execution Logic ---
+        // --- Common C++ Process Execution Logic (Fully Scaffolded for each algorithm) ---
         console.log(`[Backend] Attempting to spawn C++ process: ${cppExecutablePath}. Ensure this executable exists and has execution permissions.`);
         
-        // Wrapped in a Promise to handle asynchronous nature of spawn
         await new Promise((resolve, reject) => {
             const cppProcess = spawn(cppExecutablePath, []); 
             let cppOutput = '';
@@ -392,19 +364,43 @@ router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
             cppProcess.on('error', (err) => {
                 console.error(`[Backend] Failed to start C++ process for ${algorithmName}. Error: ${err.message}. Path: '${cppExecutablePath}'`);
                 dbUpdateSummary = `Failed to start C++ process (path: '${cppExecutablePath}' not found or not executable). Check backend console.`;
-                reject(new Error(dbUpdateSummary)); // Reject the promise
+                // For algorithm triggers, we might still want to return the simulated data even if spawn fails,
+                // so the frontend can see what *would* have happened. Let's resolve with this info.
+                simulatedOutputFromCpp.status = "error_spawning_cpp";
+                simulatedOutputFromCpp.summary = dbUpdateSummary;
+                resolve(); // Resolve so the frontend gets the simulation data with the error
             });
 
-            if (!cppProcess.pid) { // If 'error' event was emitted, pid might not be set.
-                // Error already handled by cppProcess.on('error')
-                return; // Do not proceed if process didn't start
+            if (!cppProcess.pid && !cppProcess.killed) { // Check if spawn truly failed immediately
+                // Error handled by 'error' event usually, but this is a fallback.
+                // If cppProcess.on('error') was called, we already resolved.
+                // This condition might be redundant if 'error' event reliably fires and resolves.
+                return;
+            }
+            
+            // Only proceed if process actually started or error event didn't immediately fire and resolve
+            if (cppProcess.stdin) {
+                 cppProcess.stdin.write(JSON.stringify(actualInputForCpp));
+                 cppProcess.stdin.end();
+            } else {
+                // This case might occur if the 'error' event has already fired and the process object is in a strange state.
+                // We have already resolved in the 'error' handler.
+                 console.warn(`[Backend] C++ process stdin not available for ${algorithmName}. Process might have failed to start.`);
+                 if (!res.headersSent) { // Check if 'error' handler already resolved
+                    simulatedOutputFromCpp.status = "error_spawning_cpp_stdin";
+                    simulatedOutputFromCpp.summary = "Failed to get stdin for C++ process.";
+                    resolve();
+                 }
+                 return;
             }
 
-            cppProcess.stdin.write(JSON.stringify(actualInputForCpp));
-            cppProcess.stdin.end();
 
-            cppProcess.stdout.on('data', (data) => { cppOutput += data.toString(); });
-            cppProcess.stderr.on('data', (data) => { cppErrorOutput += data.toString(); console.error(`[C++ Stderr for ${algorithmName}]: ${data}`); });
+            if(cppProcess.stdout) {
+                cppProcess.stdout.on('data', (data) => { cppOutput += data.toString(); });
+            }
+            if(cppProcess.stderr) {
+                cppProcess.stderr.on('data', (data) => { cppErrorOutput += data.toString(); console.error(`[C++ Stderr for ${algorithmName}]: ${data}`); });
+            }
             
             cppProcess.on('close', async (code) => {
                 console.log(`[Backend] C++ process for ${algorithmName} exited with code ${code}`);
@@ -412,61 +408,53 @@ router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
 
                 if (code === 0 && cppOutput.trim() !== '') {
                     try {
-                        // The `simulatedOutputFromCpp` is already prepared above for this fully simulated version.
-                        // In a real integration, you would parse `cppOutput` here:
+                        // IMPORTANT: For this comprehensive simulation, we will use the `simulatedOutputFromCpp`
+                        // that was defined earlier based on the algorithm type.
+                        // In a REAL integration, you would parse `cppOutput` here:
                         // const actualOutputFromCpp = JSON.parse(cppOutput);
                         // console.log("[Backend] Parsed output from C++:", JSON.stringify(actualOutputFromCpp, null, 2));
                         // And then use actualOutputFromCpp to inform dbUpdateSummary or actual DB updates.
+                        // For now, we continue with the predefined simulation.
                         
-                        console.log("[Backend] SIMULATING: Database updates based on C++ output...");
-                        // For this completed simulation, dbUpdateSummary is already set based on algorithm type.
-                        // If this were real, here you'd:
-                        // const connection = await pool.getConnection();
-                        // try {
-                        //   await connection.beginTransaction();
-                        //   // ... perform actual database INSERT/UPDATE/DELETE based on actualOutputFromCpp ...
-                        //   await connection.commit();
-                        //   dbUpdateSummary = `DB Update: Real changes based on C++ output for ${algorithmName}.`;
-                        // } catch (dbErr) {
-                        //   await connection.rollback();
-                        //   console.error("[Backend] DB transaction error:", dbErr);
-                        //   dbUpdateSummary = `DB Update FAILED: ${dbErr.message}`;
-                        //   reject(dbErr); return; // Propagate error
-                        // } finally {
-                        //   connection.release();
-                        // }
+                        console.log(`[Backend] Using predefined simulatedOutputFromCpp for ${algorithmName}.`);
+                        // dbUpdateSummary is already set based on algorithm type using simulatedOutputFromCpp.
+                        
                         successMessage = `${algorithmName} algorithm simulation completed. ${dbUpdateSummary}`;
-                        resolve(); // Resolve the promise
-                    } catch (parseOrDbError) {
-                        console.error(`[Backend] Error processing output or updating DB for ${algorithmName}:`, parseOrDbError, "Raw C++ output:", cppOutput);
-                        dbUpdateSummary = `C++ process ran, but output was not valid JSON or DB update simulation failed. Details: ${parseOrDbError.message}. Raw C++ output (first 500 chars): ${cppOutput.substring(0,500)}...`;
-                        reject(new Error(dbUpdateSummary)); // Reject the promise
+                        resolve(); 
+                    } catch (parseError) { // This catch block would be for parsing actual cppOutput
+                        console.error(`[Backend] Error parsing output for ${algorithmName}:`, parseError, "Raw C++ output:", cppOutput);
+                        dbUpdateSummary = `C++ process ran, but output was not valid JSON. Details: ${parseError.message}. Raw C++ output (first 500 chars): ${cppOutput.substring(0,500)}...`;
+                        simulatedOutputFromCpp.status = "error_parsing_cpp_output";
+                        simulatedOutputFromCpp.summary = dbUpdateSummary;
+                        resolve(); // Resolve with error information
                     }
                 } else if (code !== 0) {
                     dbUpdateSummary = `C++ process for ${algorithmName} failed with exit code ${code}. Stderr: ${cppErrorOutput || 'No stderr output'}. Stdout: ${cppOutput || 'No stdout output'}.`;
-                    reject(new Error(dbUpdateSummary)); // Reject the promise
-                } else { 
-                     dbUpdateSummary = `C++ process for ${algorithmName} ran successfully but produced no output or empty output. Check C++ program logic.`;
-                     // simulatedOutputFromCpp might already be set for this case if it's a valid "no action needed" output
-                     resolve(); // Resolve the promise
+                    simulatedOutputFromCpp.status = "error_cpp_exit_code";
+                    simulatedOutputFromCpp.summary = dbUpdateSummary;
+                    resolve(); 
+                } else { // code === 0 but cppOutput is empty
+                     dbUpdateSummary = `C++ process for ${algorithmName} ran successfully but produced no output or empty output. Using predefined simulation.`;
+                     // simulatedOutputFromCpp is already set.
+                     resolve(); 
                 }
             });
-        }); // End of Promise for spawn
+        }); 
 
-        // If promise resolved (no reject was called)
+        // After the promise for spawn resolves (either success, spawn error, or C++ error)
         if (!res.headersSent) { 
             res.json({
-                success: true,
+                success: true, // API call itself succeeded, outcome of C++ is in simulatedOutputFromCpp
                 message: successMessage,
                 algorithm: algorithmName,
                 simulatedInputSentToCpp: actualInputForCpp, 
-                simulatedOutputReceivedFromCpp: simulatedOutputFromCpp, 
+                simulatedOutputReceivedFromCpp: simulatedOutputFromCpp, // This will contain error status if C++ part failed
                 simulatedDatabaseUpdateSummary: dbUpdateSummary
             });
         }
 
-    } catch (error) { // Catch errors from the Promise (e.g., spawn failure, parse error) or outer try
-        console.error(`[Backend] Error in algorithm trigger for ${algorithmName}:`, error.message, error.stack);
+    } catch (error) { 
+        console.error(`[Backend] General error in algorithm trigger for ${algorithmName}:`, error.message, error.stack);
         if (!res.headersSent) {
             res.status(500).json({ 
                 success: false, 
