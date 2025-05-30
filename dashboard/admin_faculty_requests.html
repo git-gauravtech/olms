@@ -40,7 +40,7 @@
                     </div>
                     <div class="custom-card-content">
                         <p class="text-muted-foreground mb-4">
-                            Review and manage booking requests or other items from Faculty that require admin approval (e.g., status 'pending-admin-approval').
+                            Review and manage booking requests from Faculty that have been flagged for admin approval (e.g., status 'pending-admin-approval' due to conflicts).
                         </p>
                         <div id="facultyRequestsListContainer" class="space-y-4">
                            <p>Loading Faculty requests...</p>
@@ -55,16 +55,16 @@
     <script src="../js/utils.js"></script>
     <script src="js/dashboard.js"></script>
     <script>
-        const requestsListContainer = document.getElementById('facultyRequestsListContainer');
-        const token = localStorage.getItem('token');
+        const facultyRequestsListContainer = document.getElementById('facultyRequestsListContainer');
+        let token = null; // Will be set in DOMContentLoaded
 
         async function loadAndRenderFacultyRequests() {
-            if (!requestsListContainer || !window.API_BASE_URL || !token) {
-                 if (requestsListContainer) requestsListContainer.innerHTML = '<p class="error-message visible">Page setup error or not authenticated.</p>';
+            if (!facultyRequestsListContainer || !window.API_BASE_URL || !token) {
+                 if (facultyRequestsListContainer) facultyRequestsListContainer.innerHTML = '<p class="error-message visible">Page setup error or not authenticated.</p>';
                 return;
             }
-            requestsListContainer.innerHTML = '<p>Loading Faculty requests...</p>';
-            // console.log("Fetching faculty requests from /api/admin/requests/faculty...");
+            facultyRequestsListContainer.innerHTML = '<p>Loading Faculty requests...</p>';
+            console.log("[admin_faculty_requests.html] Fetching faculty requests from /api/admin/requests/faculty...");
 
             try {
                 const response = await fetch(`${window.API_BASE_URL}/admin/requests/faculty`, {
@@ -78,48 +78,54 @@
                 }
                 const facultyPendingAdminRequests = await response.json();
                 
-                // console.log("Fetched Faculty Pending Admin Requests:", facultyPendingAdminRequests);
+                console.log("[admin_faculty_requests.html] Fetched Faculty Pending Admin Requests:", facultyPendingAdminRequests);
+                console.log("[admin_faculty_requests.html] All MOCK_BOOKINGS for context (if needed for debugging backend logic):", window.MOCK_BOOKINGS_VAR);
+
 
                 if (facultyPendingAdminRequests.length > 0) {
-                    requestsListContainer.innerHTML = ''; 
+                    facultyRequestsListContainer.innerHTML = ''; 
                     facultyPendingAdminRequests.forEach(request => {
                         const card = document.createElement('div');
-                        card.className = 'custom-card p-4 border rounded-md shadow-sm mb-3';
+                        card.className = 'custom-card p-4 border rounded-md shadow-sm mb-3'; // Added shadow-sm
                         
                         const requestTitle = request.requestType ? request.requestType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : (request.purpose || 'Faculty Booking Request');
+                        
+                        const labForRequest = request.labName || 'Unknown Lab';
+                        const timeSlotDisplay = (window.MOCK_TIME_SLOTS && request.timeSlotId) ? (window.MOCK_TIME_SLOTS.find(ts=>ts.id === request.timeSlotId)?.displayTime || request.timeSlotId) : (request.timeSlotId || 'N/A');
                         const batchInfo = request.batchIdentifier ? `<p class="text-sm text-muted-foreground"><strong>Course Section/Batch:</strong> ${request.batchIdentifier}</p>` : '';
                         
                         card.innerHTML = `
-                            <h3 class="text-lg font-semibold mb-1">${requestTitle} ${request.labName ? `(Lab: ${request.labName})` : ''}</h3>
+                            <h3 class="text-lg font-semibold mb-1">${requestTitle} (Lab: ${labForRequest})</h3>
                             <p class="text-sm text-muted-foreground"><strong>Faculty:</strong> ${request.userName || 'N/A'} (${request.userEmail || 'N/A'})</p>
                             ${batchInfo}
                             <p class="text-sm text-muted-foreground"><strong>Details/Purpose:</strong> ${request.purpose || 'N/A'}</p>
                             <p class="text-sm text-muted-foreground"><strong>Submitted Date:</strong> ${request.submittedDate ? window.formatDateForDisplay(new Date(request.submittedDate)) : 'N/A'}</p>
-                            ${request.labId && request.labName ? `<p class="text-sm text-muted-foreground"><strong>Associated Lab:</strong> ${request.labName}</p>` : ''}
-                            ${request.date ? `<p class="text-sm text-muted-foreground"><strong>Requested Date:</strong> ${window.formatDate(new Date(request.date))}</p>` : ''}
-                            ${request.timeSlotId ? `<p class="text-sm text-muted-foreground"><strong>Requested Time:</strong> ${ (window.MOCK_TIME_SLOTS && request.timeSlotId) ? (window.MOCK_TIME_SLOTS.find(ts=>ts.id === request.timeSlotId)?.displayTime || request.timeSlotId) : (request.timeSlotId || 'N/A')}</p>` : ''}
+                            <p class="text-sm text-muted-foreground"><strong>Requested Date:</strong> ${request.date ? window.formatDate(new Date(request.date)) : 'N/A'}</p>
+                            <p class="text-sm text-muted-foreground"><strong>Requested Time:</strong> ${timeSlotDisplay}</p>
                             <p class="text-sm text-muted-foreground"><strong>Status:</strong> <span class="font-medium text-yellow-600">${request.status ? request.status.toUpperCase().replace(/-/g, ' ') : 'N/A'}</span></p>
                             <div class="mt-3 flex gap-2">
-                                <button type="button" class="button button-primary button-sm" onclick="handleFacultyRequest(${request.id}, 'booked')">Approve (Book Slot)</button>
-                                <button type="button" class="button button-outline button-sm" onclick="handleFacultyRequest(${request.id}, 'approved-by-admin')">Mark Approved (No Conflict Check)</button>
-                                <button type="button" class="button button-secondary button-sm" onclick="handleFacultyRequest(${request.id}, 'rejected-by-admin')">Reject</button>
+                                <button type="button" class="button button-primary button-sm" onclick="handleFacultyRequest('${request.id}', 'booked')">Approve (Book Slot)</button>
+                                <button type="button" class="button button-outline button-sm" onclick="handleFacultyRequest('${request.id}', 'approved-by-admin')">Mark Approved (No Conflict Check)</button>
+                                <button type="button" class="button button-secondary button-sm" onclick="handleFacultyRequest('${request.id}', 'rejected-by-admin')">Reject</button>
+                                <!-- <button type="button" class="button button-secondary button-sm" onclick="handleFacultyRequest('${request.id}', 'under-review')">Mark Under Review</button> -->
                             </div>
                         `;
-                        requestsListContainer.appendChild(card);
+                        facultyRequestsListContainer.appendChild(card);
                     });
                 } else {
-                    requestsListContainer.innerHTML = '<p class="text-muted-foreground">No pending faculty-specific requests requiring admin action at this time.</p>';
+                    facultyRequestsListContainer.innerHTML = '<p class="text-muted-foreground">No pending faculty-specific requests requiring admin action at this time.</p>';
                 }
 
             } catch (error) {
                 console.error("Error in loadAndRenderFacultyRequests:", error.message, error.stack);
-                if (requestsListContainer) requestsListContainer.innerHTML = `<p class="error-message visible">Error loading requests: ${error.message}</p>`;
+                if (facultyRequestsListContainer) facultyRequestsListContainer.innerHTML = `<p class="error-message visible">Error loading requests: ${error.message}</p>`;
             }
             if (window.lucide) window.lucide.createIcons();
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
             console.log('DOM fully loaded and parsed for admin_faculty_requests.html');
+            token = localStorage.getItem('token');
             if (!window.roleGuard(window.USER_ROLES.ADMIN)) return;
             
             window.initializeDashboard();
@@ -131,6 +137,11 @@
             const actionText = newStatus.includes('approve') || newStatus.includes('book') ? 'approve' : (newStatus.includes('reject') ? 'reject' : 'update');
             if (!confirm(`Are you sure you want to ${actionText} this request?`)) return;
             
+            if (!token) {
+                alert('Authentication error. Please log in again.');
+                return;
+            }
+
             try {
                 const response = await fetch(`${window.API_BASE_URL}/bookings/${bookingId}/status`, {
                     method: 'PUT',
@@ -143,12 +154,12 @@
                 const result = await response.json();
 
                 if (response.ok) {
-                    alert(`Request status updated to: ${result.status ? result.status.toUpperCase().replace(/-/g, ' ') : 'Updated'}`);
+                    alert(result.msg || `Request status updated successfully to ${newStatus.toUpperCase().replace(/-/g, ' ')}.`);
                     await loadAndRenderFacultyRequests(); // Re-fetch and re-render the list dynamically
                 } else {
-                    const errorMsg = result.msg || `Server error: ${response.status}`;
+                    const errorMsg = result.msg || `Server error: ${response.status}. Failed to update request status.`;
                     console.error("Failed to update request status. Backend response:", result);
-                    alert(`Failed to update request status: ${errorMsg}`);
+                    alert(errorMsg);
                 }
             } catch (error) {
                 console.error("Error in handleFacultyRequest:", error.message, error.stack);
