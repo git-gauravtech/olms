@@ -73,11 +73,11 @@ async function renderLabsList() {
             
             const nameEl = document.createElement('h3');
             nameEl.className = 'text-lg font-semibold';
-            nameEl.textContent = lab.name;
+            nameEl.textContent = lab.name || 'N/A';
 
             const detailsEl = document.createElement('p');
             detailsEl.className = 'text-sm text-muted-foreground';
-            detailsEl.textContent = `ID: ${lab.id}, Capacity: ${lab.capacity}, Room: ${lab.roomNumber || 'N/A'}, Location: ${lab.location || 'N/A'}`;
+            detailsEl.textContent = `ID: ${lab.id}, Capacity: ${lab.capacity || 'N/A'}, Room: ${lab.roomNumber || 'N/A'}, Location: ${lab.location || 'N/A'}`;
             
             const actionsEl = document.createElement('div');
             actionsEl.className = 'mt-3 entity-actions';
@@ -120,9 +120,9 @@ function openLabForm(lab = null) {
     if (lab) {
         labModalTitle.textContent = 'Edit Lab';
         document.getElementById('labId').value = lab.id; // Hidden field for ID
-        document.getElementById('labName').value = lab.name;
-        document.getElementById('labCapacity').value = lab.capacity;
-        document.getElementById('labRoomNumber').value = lab.roomNumber;
+        document.getElementById('labName').value = lab.name || '';
+        document.getElementById('labCapacity').value = lab.capacity || '';
+        document.getElementById('labRoomNumber').value = lab.roomNumber || '';
         document.getElementById('labLocation').value = lab.location || '';
         editingLabId = lab.id;
     } else {
@@ -259,7 +259,7 @@ async function populateEquipmentFormDropdowns() {
     if (labSelect) { 
         labSelect.innerHTML = '<option value="">Loading labs...</option>'; 
         try {
-            const response = await fetch(`${window.API_BASE_URL}/labs`, {
+            const response = await fetch(`${window.API_BASE_URL}/labs`, { // Assuming labs are fetched for assignment
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (!response.ok) throw new Error('Failed to fetch labs for dropdown');
@@ -323,13 +323,13 @@ async function renderEquipmentList() {
             
             const nameEl = document.createElement('h3');
             nameEl.className = 'text-lg font-semibold';
-            nameEl.textContent = equip.name;
+            nameEl.textContent = equip.name || 'N/A';
 
             const labName = equip.labName || 'Unassigned'; 
 
             const detailsEl = document.createElement('p');
             detailsEl.className = 'text-sm text-muted-foreground';
-            detailsEl.textContent = `ID: ${equip.id}, Type: ${equip.type || 'N/A'}, Status: ${equip.status}, Assigned Lab: ${labName}`;
+            detailsEl.textContent = `ID: ${equip.id}, Type: ${equip.type || 'N/A'}, Status: ${equip.status || 'N/A'}, Assigned Lab: ${labName}`;
             
             const actionsEl = document.createElement('div');
             actionsEl.className = 'mt-3 entity-actions';
@@ -373,15 +373,14 @@ async function openEquipmentForm(equip = null) {
     if (equip) {
         equipmentModalTitle.textContent = 'Edit Equipment';
         document.getElementById('equipmentId').value = equip.id;
-        document.getElementById('equipmentName').value = equip.name;
-        document.getElementById('equipmentType').value = equip.type;
-        document.getElementById('equipmentStatus').value = equip.status;
+        document.getElementById('equipmentName').value = equip.name || '';
+        document.getElementById('equipmentType').value = equip.type || '';
+        document.getElementById('equipmentStatus').value = equip.status || 'available';
         document.getElementById('equipmentLabId').value = equip.labId || ""; 
         editingEquipmentId = equip.id;
     } else {
         equipmentModalTitle.textContent = 'Add New Equipment';
         document.getElementById('equipmentId').value = '';
-        // Default status for new equipment, e.g., 'available'
         if (window.EQUIPMENT_STATUSES && window.EQUIPMENT_STATUSES.includes('available')) {
             document.getElementById('equipmentStatus').value = 'available';
         }
@@ -463,3 +462,5 @@ async function deleteEquipment(equipmentId) {
         }
     }
 }
+
+    

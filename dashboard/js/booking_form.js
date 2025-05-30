@@ -15,7 +15,7 @@ async function initializeBookingForm() {
         if(formSubmissionMessageEl) showFormSubmissionMessage('Error: User role not found. Cannot initialize form.', true, formSubmissionMessageEl);
         return;
     }
-    console.log('[booking_form.js] Initializing for role:', currentUserRole);
+    // console.log('[booking_form.js] Initializing for role:', currentUserRole);
 
 
     if (batchIdentifierGroup && batchIdentifierInput) {
@@ -91,7 +91,7 @@ async function initializeBookingForm() {
             }
         }
     } catch (error) {
-        console.error("Error initializing booking form:", error.message, error.stack);
+        // console.error("Error initializing booking form:", error.message, error.stack);
         if(formSubmissionMessageEl) showFormSubmissionMessage(`Error initializing form: ${error.message}`, true, formSubmissionMessageEl);
     }
 
@@ -143,9 +143,9 @@ async function initializeBookingForm() {
                 timeSlotId: timeSlotId,
                 purpose: purpose,
                 equipmentIds: selectedEquipment.length > 0 ? selectedEquipment : null, 
-                batchIdentifier: batchId || null, // Ensure it sends null if empty
+                batchIdentifier: batchId || null, 
             };
-            console.log("[booking_form.js] New booking data to send:", JSON.parse(JSON.stringify(bookingData)));
+            // console.log("[booking_form.js] New booking data to send:", JSON.parse(JSON.stringify(bookingData)));
 
             const submitButton = bookingForm.querySelector('button[type="submit"]');
             const originalButtonHtml = submitButton.innerHTML;
@@ -165,9 +165,10 @@ async function initializeBookingForm() {
 
                 const result = await response.json();
 
-                if (response.ok) { // Typically 201 Created for successful POST
-                    const labNameFromResult = result.labName || (labIdSelect.options[labIdSelect.selectedIndex]?.textContent.split(' (')[0] || 'Selected Lab');
-                    let successMessage = `Booking for "${result.purpose}" (Lab: ${labNameFromResult}, Status: ${result.status?.toUpperCase()}) processed successfully!`;
+                if (response.ok) { // 200 or 201
+                    const labNameFromResult = result.booking?.labName || (labIdSelect.options[labIdSelect.selectedIndex]?.textContent.split(' (')[0] || 'Selected Lab');
+                    const statusFromResult = result.booking?.status?.toUpperCase().replace(/-/g,' ') || 'PROCESSED';
+                    let successMessage = `Booking for "${result.booking?.purpose || purpose}" (Lab: ${labNameFromResult}, Status: ${statusFromResult}) processed successfully!`;
                     showFormSubmissionMessage(successMessage, false, formSubmissionMessageEl);
                     bookingForm.reset(); 
                     if (batchIdentifierInput) batchIdentifierInput.value = ''; 
@@ -178,17 +179,17 @@ async function initializeBookingForm() {
                         history.pushState({path:newURL}, '', newURL);
                     }
                 } else if (response.status === 202 && result.conflict && result.message) { // Accepted for admin review
-                     showFormSubmissionMessage(result.message, false, formSubmissionMessageEl); // Display conflict message with alternatives
+                     showFormSubmissionMessage(result.message, false, formSubmissionMessageEl); 
                      bookingForm.reset(); 
                      if (batchIdentifierInput) batchIdentifierInput.value = ''; 
                      if (bookingDateInput) bookingDateInput.min = window.formatDate(new Date());
                 }
-                 else {
+                 else { // Other errors (400, 401, 403, 500)
                      showFormSubmissionMessage(`Booking failed: ${result.msg || 'An unknown error occurred.'}`, true, formSubmissionMessageEl);
                 }
 
             } catch (error) {
-                console.error("Error submitting booking form:", error.message, error.stack);
+                // console.error("Error submitting booking form:", error.message, error.stack);
                 showFormSubmissionMessage(`Error: Could not submit booking. ${error.message}`, true, formSubmissionMessageEl);
             } finally {
                 submitButton.disabled = false;
@@ -234,3 +235,5 @@ async function initializeBookingForm() {
         }
     }
 }
+
+    

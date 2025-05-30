@@ -89,12 +89,12 @@
                                 <div class="form-group" id="passwordGroup">
                                     <label for="userPassword">Password</label>
                                     <input type="password" id="userPassword" name="userPassword" placeholder="Min. 6 characters">
-                                    <p class="text-xs text-muted-foreground mt-1" id="passwordHelpText">Required for new users. Leave blank if not changing existing user's password.</p>
+                                    <p class="text-xs text-muted-foreground mt-1" id="passwordHelpText" style="display:none;">Required for new users. Leave blank if not changing existing user's password.</p>
                                 </div>
                                 <div class="form-group" id="secretWordGroup">
-                                    <label for="userSecretWord">Secret Word</label>
+                                    <label for="userSecretWord">Secret Word (for password recovery)</label>
                                     <input type="text" id="userSecretWord" name="userSecretWord" placeholder="Min. 4 characters">
-                                    <p class="text-xs text-muted-foreground mt-1" id="secretWordHelpText">Required for new users. Used for password recovery.</p>
+                                    <p class="text-xs text-muted-foreground mt-1" id="secretWordHelpText" style="display:none;">Required for new users. Used for password recovery.</p>
                                 </div>
                                 <div class="form-group">
                                     <label for="userRole">Role</label>
@@ -127,7 +127,7 @@
     <script src="js/dashboard.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('DOM fully loaded and parsed for admin_manage_users.html');
+            // console.log('DOM fully loaded and parsed for admin_manage_users.html');
             if (!window.roleGuard(window.USER_ROLES.ADMIN)) return;
             
             window.initializeDashboard();
@@ -164,7 +164,7 @@
                         roleSelect.appendChild(option);
                     });
                 } else {
-                    console.error("Could not populate role dropdown. Element or USER_ROLE_VALUES missing.");
+                    // console.error("Could not populate role dropdown. Element or USER_ROLE_VALUES missing.");
                 }
             }
             function populateDepartmentDropdown(selectElementId) {
@@ -178,18 +178,21 @@
                         deptSelect.appendChild(option);
                     });
                 } else {
-                    console.error("Could not populate department dropdown. Element or DEPARTMENTS missing.");
+                    // console.error("Could not populate department dropdown. Element or DEPARTMENTS missing.");
                 }
             }
             
             function openUserForm(user = null) {
                 if (!userForm || !userModalTitle || !passwordGroup || !userPasswordInput || !passwordHelpText || !secretWordGroup || !userSecretWordInput || !secretWordHelpText) {
-                    console.error("Modal form elements not found for openUserForm.");
+                    // console.error("Modal form elements not found for openUserForm.");
                     alert("Error: User form cannot be opened.");
                     return;
                 }
                 userForm.reset();
                 EDITING_USER_ID = null;
+                userPasswordInput.value = ''; // Explicitly clear password
+                userSecretWordInput.value = ''; // Explicitly clear secret word
+
                 if (userFormMessage) {
                     userFormMessage.textContent = '';
                     userFormMessage.style.display = 'none';
@@ -205,23 +208,25 @@
                     document.getElementById('userDepartment').value = user.department || "";
                     
                     passwordGroup.style.display = 'none'; 
+                    passwordHelpText.style.display = 'none';
                     userPasswordInput.required = false; 
-                    passwordHelpText.textContent = "Password cannot be changed from this admin interface for existing users.";
 
                     secretWordGroup.style.display = 'none';
+                    secretWordHelpText.style.display = 'none';
                     userSecretWordInput.required = false;
-                    secretWordHelpText.textContent = "Secret word cannot be changed from this admin interface for existing users.";
 
 
                 } else { // Adding new user
                     userModalTitle.textContent = 'Add New User';
                     passwordGroup.style.display = 'block';
-                    userPasswordInput.required = true;
+                    passwordHelpText.style.display = 'block';
                     passwordHelpText.textContent = "Required for new users. Min. 6 characters.";
+                    userPasswordInput.required = true;
 
                     secretWordGroup.style.display = 'block';
-                    userSecretWordInput.required = true;
+                    secretWordHelpText.style.display = 'block';
                     secretWordHelpText.textContent = "Required for new users. Min. 4 characters. Used for password recovery.";
+                    userSecretWordInput.required = true;
                 }
                 if(userModal) userModal.classList.add('open');
                 if (window.lucide) window.lucide.createIcons();
@@ -234,7 +239,7 @@
             async function renderUsersTable() {
                 const tableBody = document.getElementById('userManagementTableBody');
                 if (!tableBody) {
-                    console.error("User management table body not found.");
+                    // console.error("User management table body not found.");
                     return;
                 }
                 if (!token) {
@@ -254,7 +259,7 @@
                     ALL_USERS_CACHE = await response.json();
 
                     if (!Array.isArray(ALL_USERS_CACHE)) {
-                        console.error("Fetched users data is not an array:", ALL_USERS_CACHE);
+                        // console.error("Fetched users data is not an array:", ALL_USERS_CACHE);
                         tableBody.innerHTML = '<tr><td colspan="5" class="text-center p-4 text-red-500">Error: Invalid data format received for users.</td></tr>';
                         return;
                     }
@@ -274,14 +279,14 @@
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${user.department || 'N/A'}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                 <button type="button" class="button button-outline button-sm mr-2 editUserBtn" data-userid="${user.id}"><i data-lucide="edit-2" class="h-4 w-4"></i> Edit</button>
-                                <button type="button" class="button button-secondary button-sm deleteUserBtn" data-userid="${user.id}"><i data-lucide="trash-2" class="h-4 w-4"></i> Delete</button>
+                                <button type="button" class="button button-secondary button-sm deleteUserBtn" data-userid="${user.id}" ${String(user.id) === String(localStorage.getItem('userId')) ? 'disabled title="Cannot delete self"' : ''}><i data-lucide="trash-2" class="h-4 w-4"></i> Delete</button>
                             </td>
                         `;
                     });
                     attachActionListeners();
                     if (window.lucide) window.lucide.createIcons();
                 } catch (error) {
-                    console.error('Error rendering users table:', error);
+                    // console.error('Error rendering users table:', error);
                     tableBody.innerHTML = `<tr><td colspan="5" class="text-center p-4 text-red-500">Error loading users: ${error.message}</td></tr>`;
                 }
             }
@@ -304,6 +309,10 @@
             }
              function handleDeleteUserClick() {
                 const userIdToDelete = this.dataset.userid;
+                if (String(userIdToDelete) === String(localStorage.getItem('userId'))) {
+                    alert("Admins cannot delete their own account through this interface.");
+                    return;
+                }
                 handleDeleteUser(userIdToDelete);
             }
 
@@ -321,15 +330,15 @@
                     role: document.getElementById('userRole').value,
                     department: document.getElementById('userDepartment').value || null
                 };
-                const password = userPasswordInput.value;
-                const secretWord = userSecretWordInput.value;
-
+                
                 let url, method;
                 if (EDITING_USER_ID) {
                     url = `${window.API_BASE_URL}/admin/users/${EDITING_USER_ID}`;
                     method = 'PUT';
                     // Password & Secret Word are not sent for updates via admin panel for existing users
                 } else { // Adding new user
+                    const password = userPasswordInput.value;
+                    const secretWord = userSecretWordInput.value;
                     url = `${window.API_BASE_URL}/admin/users`;
                     method = 'POST';
                     if (!password || password.length < 6) {
@@ -374,7 +383,7 @@
                         }
                     }
                 } catch (error) {
-                    console.error('Error submitting user form:', error);
+                    // console.error('Error submitting user form:', error);
                      if(userFormMessage) {
                         userFormMessage.textContent = 'An error occurred. Please try again.';
                         userFormMessage.style.display = 'block';
@@ -384,6 +393,10 @@
             }
             
             async function handleDeleteUser(userId) {
+                 if (String(userId) === String(localStorage.getItem('userId'))) {
+                    alert("Admins cannot delete their own account through this interface.");
+                    return;
+                }
                 if (!confirm(`Are you sure you want to delete user with ID ${userId}? This might also delete their associated records like bookings.`)) return;
 
                 try {
@@ -399,7 +412,7 @@
                         alert(`Failed to delete user: ${result.msg || 'Server error'}`);
                     }
                 } catch (error) {
-                    console.error('Error deleting user:', error);
+                    // console.error('Error deleting user:', error);
                     alert('An error occurred while deleting user.');
                 }
             }
@@ -419,3 +432,5 @@
     </script>
 </body>
 </html>
+
+    

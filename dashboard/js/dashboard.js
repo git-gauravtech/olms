@@ -1,28 +1,25 @@
 
 function initializeDashboard() {
-    console.log('[dashboard.js] Initializing dashboard...');
+    // console.log('[dashboard.js] Initializing dashboard...');
 
     if (typeof window.API_BASE_URL === 'undefined' || typeof window.USER_ROLES === 'undefined' || typeof window.NAV_LINKS === 'undefined') {
         console.error('[dashboard.js] CRITICAL ERROR: API_BASE_URL, USER_ROLES, or NAV_LINKS not defined. constants.js might not have loaded correctly or has errors.');
-        alert('Critical application error: Dashboard configuration missing. Please contact support. (dashboard.js)');
-        // Potentially redirect to login or show a static error message
-        // window.location.href = '../index.html'; // Avoid redirect if this script itself is on login page somehow
         const pageContent = document.querySelector('.page-content') || document.body;
         if (pageContent) {
             pageContent.innerHTML = '<div class="custom-card p-6 text-center"><h1 class="custom-card-title text-2xl text-red-600">Application Error</h1><p class="text-muted-foreground mt-2">Dashboard cannot be loaded due to a configuration issue. Please try again later or contact support.</p></div>';
         }
-        return; // Halt further execution
+        return; 
     }
-    console.log('[dashboard.js] API_BASE_URL:', window.API_BASE_URL);
-    console.log('[dashboard.js] USER_ROLES:', window.USER_ROLES);
-    console.log('[dashboard.js] NAV_LINKS:', window.NAV_LINKS);
+    // console.log('[dashboard.js] API_BASE_URL:', window.API_BASE_URL);
+    // console.log('[dashboard.js] USER_ROLES:', window.USER_ROLES);
+    // console.log('[dashboard.js] NAV_LINKS:', window.NAV_LINKS);
 
 
     const currentRole = getCurrentUserRole();
-    console.log('[dashboard.js] Current user role from localStorage:', currentRole);
+    // console.log('[dashboard.js] Current user role from localStorage:', currentRole);
 
     if (!currentRole) {
-        console.log('[dashboard.js] No role found in initializeDashboard, redirecting to login.');
+        // console.log('[dashboard.js] No role found in initializeDashboard, redirecting to login.');
         window.location.href = '../index.html'; 
         return;
     }
@@ -34,23 +31,23 @@ function initializeDashboard() {
     setDashboardHomeLink(); 
 
     if (window.lucide && typeof window.lucide.createIcons === 'function') {
-        console.log('[dashboard.js] Calling lucide.createIcons() at the end of initializeDashboard.');
+        // console.log('[dashboard.js] Calling lucide.createIcons() at the end of initializeDashboard.');
         window.lucide.createIcons();
     } else {
-        console.warn('[dashboard.js] Lucide library not found or createIcons not a function on window.');
+        // console.warn('[dashboard.js] Lucide library not found or createIcons not a function on window.');
     }
 }
 
 function setDashboardHomeLink() {
     const dashboardHomeLink = document.getElementById('dashboardHomeLink');
     if (!dashboardHomeLink) {
-        console.warn('[dashboard.js] dashboardHomeLink element not found.');
+        // console.warn('[dashboard.js] dashboardHomeLink element not found.');
         return;
     }
 
     const role = getCurrentUserRole();
     if (!role || !window.USER_ROLES) { 
-        console.warn('[dashboard.js] Cannot set home link: role or window.USER_ROLES missing.');
+        // console.warn('[dashboard.js] Cannot set home link: role or window.USER_ROLES missing.');
         dashboardHomeLink.href = '../index.html'; 
         return;
     }
@@ -61,23 +58,25 @@ function setDashboardHomeLink() {
         [window.USER_ROLES.ASSISTANT]: 'assistant.html'
     };
     dashboardHomeLink.href = homePageMap[role] || '../index.html';
-    console.log(`[dashboard.js] Dashboard home link set to: ${dashboardHomeLink.href}`);
+    // console.log(`[dashboard.js] Dashboard home link set to: ${dashboardHomeLink.href}`);
 }
 
 
 function populateSidebarNav(role) {
     const sidebarNav = document.getElementById('sidebarNav');
     if (!sidebarNav) {
-        console.warn('[dashboard.js] sidebarNav element not found.');
+        // console.warn('[dashboard.js] sidebarNav element not found.');
         return;
     }
 
     sidebarNav.innerHTML = ''; 
-    console.log(`[dashboard.js] Populating sidebar for role: ${role}`);
+    // console.log(`[dashboard.js] Populating sidebar for role: ${role}`);
 
-    const links = window.NAV_LINKS[role] || []; 
-    if (links.length === 0) {
-        console.warn(`[dashboard.js] No NAV_LINKS found for role: ${role}`);
+    let links = [];
+    if (window.NAV_LINKS && window.NAV_LINKS[role]) {
+        links = window.NAV_LINKS[role];
+    } else {
+        // console.warn(`[dashboard.js] No NAV_LINKS found for role: ${role}`);
     }
     
     links.forEach(link => {
@@ -85,7 +84,8 @@ function populateSidebarNav(role) {
         li.className = 'sidebar-nav-item';
         
         const a = document.createElement('a');
-        a.href = link.href.startsWith('http') ? link.href : `${link.href}`; 
+        // Adjust href to be relative to the current dashboard page's location if not absolute
+        a.href = link.href.startsWith('http') || link.href.startsWith('../') ? link.href : link.href; // No longer prefixing with '../dashboard/'
         a.className = 'sidebar-nav-link';
         a.title = link.label;
 
@@ -99,14 +99,15 @@ function populateSidebarNav(role) {
         sidebarNav.appendChild(li);
     });
 
+    // Append COMMON_NAV_LINKS if they exist (currently profile link is not common here)
     if (window.COMMON_NAV_LINKS && window.COMMON_NAV_LINKS.length > 0) {
-        console.log('[dashboard.js] Adding COMMON_NAV_LINKS to sidebar.');
+        // console.log('[dashboard.js] Adding COMMON_NAV_LINKS to sidebar.');
         window.COMMON_NAV_LINKS.forEach(link => {
             const li = document.createElement('li');
             li.className = 'sidebar-nav-item';
             
             const a = document.createElement('a');
-            a.href = link.href.startsWith('http') ? link.href : `${link.href}`;
+            a.href = link.href.startsWith('http') || link.href.startsWith('../') ? link.href : link.href;
             a.className = 'sidebar-nav-link';
             a.title = link.label;
 
@@ -120,19 +121,19 @@ function populateSidebarNav(role) {
             sidebarNav.appendChild(li);
         });
     }
-    console.log('[dashboard.js] Sidebar navigation populated.');
+    // console.log('[dashboard.js] Sidebar navigation populated.');
 }
 
 function populateUserNav(role) {
     const userNavContainer = document.getElementById('userNavContainer');
     if (!userNavContainer) {
-        console.warn('[dashboard.js] userNavContainer element not found.');
+        // console.warn('[dashboard.js] userNavContainer element not found.');
         return;
     }
-    console.log(`[dashboard.js] Populating user navigation for role: ${role}`);
+    // console.log(`[dashboard.js] Populating user navigation for role: ${role}`);
 
     const email = localStorage.getItem('userEmail') || 'user@example.com';
-    const name = localStorage.getItem('userName') || email.split('@')[0] || role; 
+    const name = localStorage.getItem('userName') || email.split('@')[0] || role || "User"; 
     const userInitial = name.charAt(0).toUpperCase();
 
     userNavContainer.innerHTML = `
@@ -164,12 +165,12 @@ function populateUserNav(role) {
             userNavDropdown.classList.toggle('open');
         });
     } else {
-        console.warn('[dashboard.js] User avatar button or dropdown not found for event listener attachment.');
+        // console.warn('[dashboard.js] User avatar button or dropdown not found for event listener attachment.');
     }
 
     if (logoutButton) {
         logoutButton.addEventListener('click', () => {
-            console.log('[dashboard.js] Logout button clicked.');
+            // console.log('[dashboard.js] Logout button clicked.');
             localStorage.removeItem('token');
             localStorage.removeItem('userRole');
             localStorage.removeItem('userEmail');
@@ -179,7 +180,7 @@ function populateUserNav(role) {
             window.location.href = '../index.html'; 
         });
     } else {
-         console.warn('[dashboard.js] Logout button not found.');
+         // console.warn('[dashboard.js] Logout button not found.');
     }
 
     document.addEventListener('click', (event) => {
@@ -187,7 +188,9 @@ function populateUserNav(role) {
             userNavDropdown.classList.remove('open');
         }
     });
-    console.log('[dashboard.js] User navigation populated and event listeners attached.');
+    // console.log('[dashboard.js] User navigation populated and event listeners attached.');
+    // Call Lucide createIcons here specifically after userNavContainer is populated
+    if (window.lucide) window.lucide.createIcons();
 }
 
 function setupMobileSidebar() {
@@ -196,7 +199,7 @@ function setupMobileSidebar() {
     const menuButton = document.getElementById('mobileMenuButton');
 
     if (menuButton && sidebar && overlay) {
-        console.log('[dashboard.js] Setting up mobile sidebar.');
+        // console.log('[dashboard.js] Setting up mobile sidebar.');
         if(isMobile()){
             menuButton.style.display = 'block';
             sidebar.classList.remove('open'); 
@@ -225,16 +228,16 @@ function setupMobileSidebar() {
                 overlay.classList.remove('open'); 
             }
         });
-        console.log('[dashboard.js] Mobile sidebar setup complete.');
+        // console.log('[dashboard.js] Mobile sidebar setup complete.');
     } else {
-        console.warn('[dashboard.js] Mobile sidebar elements (button, sidebar, or overlay) not all found.');
+        // console.warn('[dashboard.js] Mobile sidebar elements (button, sidebar, or overlay) not all found.');
     }
 }
 
 function setActiveNavLink() {
     const currentPath = window.location.pathname.split('/').pop(); 
     const navLinks = document.querySelectorAll('.sidebar-nav-link');
-    console.log(`[dashboard.js] Setting active nav link for path: ${currentPath}`);
+    // console.log(`[dashboard.js] Setting active nav link for path: ${currentPath}`);
     navLinks.forEach(link => {
         const linkPath = link.getAttribute('href').split('/').pop();
         if (linkPath === currentPath) {
@@ -255,10 +258,12 @@ function createFeatureCard(feature) {
             <p class="text-sm text-muted-foreground mb-4" style="font-size: 0.875rem; color: #6B7A88; flex-grow: 1;">${feature.description}</p>
         </div>
         <div class="custom-card-footer" style="padding-top:0; justify-content: center;">
-            <a href="${feature.href.startsWith('http') ? feature.href : `${feature.href}`}" class="button button-primary" style="width: auto;">
+            <a href="${feature.href.startsWith('http') || feature.href.startsWith('../') ? feature.href : feature.href}" class="button button-primary" style="width: auto;">
                 ${feature.label}
             </a>
         </div>
     `;
     return card;
 }
+
+    

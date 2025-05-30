@@ -1,33 +1,33 @@
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('[auth.js] DOMContentLoaded event fired.');
+    // console.log('[auth.js] DOMContentLoaded event fired.');
 
     if (typeof window.API_BASE_URL === 'undefined' || typeof window.USER_ROLES === 'undefined') {
         console.error('[auth.js] CRITICAL ERROR: API_BASE_URL or USER_ROLES not defined. constants.js might not have loaded correctly or has errors.');
         alert('Critical application error: Configuration missing. Please contact support. (auth.js)');
-        return; // Halt further execution if critical constants are missing
+        return; 
     }
-    console.log('[auth.js] API_BASE_URL:', window.API_BASE_URL);
-    console.log('[auth.js] USER_ROLES:', window.USER_ROLES);
+    // console.log('[auth.js] API_BASE_URL:', window.API_BASE_URL);
+    // console.log('[auth.js] USER_ROLES:', window.USER_ROLES);
 
 
     const loginForm = document.getElementById('loginForm');
     const signupForm = document.getElementById('signupForm');
-    const forgotPasswordForm = document.getElementById('forgotPasswordForm'); // Added for forgot password page logic
+    const forgotPasswordForm = document.getElementById('forgotPasswordForm'); 
 
     if (loginForm) {
-        console.log('[auth.js] Login form found. Attaching submit listener.');
+        // console.log('[auth.js] Login form found. Attaching submit listener.');
         loginForm.addEventListener('submit', handleLogin);
     } else {
-        console.log('[auth.js] Login form not found on this page.');
+        // console.log('[auth.js] Login form not found on this page.');
     }
 
     if (signupForm) {
-        console.log('[auth.js] Signup form found. Attaching submit listener and populating departments.');
+        // console.log('[auth.js] Signup form found. Attaching submit listener and populating departments.');
         signupForm.addEventListener('submit', handleSignup);
         const departmentSelect = document.getElementById('department');
         if (departmentSelect && window.DEPARTMENTS) {
-            departmentSelect.innerHTML = '<option value="">Select your department</option>'; // Clear existing options
+            departmentSelect.innerHTML = '<option value="">Select your department</option>'; 
             window.DEPARTMENTS.forEach(dept => {
                 const option = document.createElement('option');
                 option.value = dept;
@@ -36,21 +36,21 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     } else {
-        console.log('[auth.js] Signup form not found on this page.');
+        // console.log('[auth.js] Signup form not found on this page.');
     }
 
     if (forgotPasswordForm) {
-        console.log('[auth.js] Forgot password form found. Attaching submit listener.');
+        // console.log('[auth.js] Forgot password form found. Attaching submit listener.');
         forgotPasswordForm.addEventListener('submit', handleForgotPassword);
     } else {
-        console.log('[auth.js] Forgot password form not found on this page.');
+        // console.log('[auth.js] Forgot password form not found on this page.');
     }
 });
 
 async function handleLogin(event) {
     event.preventDefault();
     clearErrors();
-    console.log("[auth.js] handleLogin triggered");
+    // console.log("[auth.js] handleLogin triggered");
 
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
@@ -79,7 +79,7 @@ async function handleLogin(event) {
     const email = emailInput.value;
     const password = passwordInput.value;
 
-    console.log("[auth.js] Login attempt:", { email });
+    // console.log(`[auth.js] Login attempt:`, { email });
 
     let isValid = true;
     if (!email) {
@@ -95,30 +95,30 @@ async function handleLogin(event) {
     }
 
     if (!isValid) {
-        console.log("[auth.js] Login validation failed on frontend.");
+        // console.log("[auth.js] Login validation failed on frontend.");
         loginButton.disabled = false;
         loginButton.innerHTML = originalButtonText;
         if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
         return;
     }
 
-    console.log(`[auth.js] Attempting to fetch from: ${window.API_BASE_URL}/auth/login`);
+    // console.log(`[auth.js] Attempting to fetch from: ${window.API_BASE_URL}/auth/login`);
     try {
         const response = await fetch(`${window.API_BASE_URL}/auth/login`, { 
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ email, password }),
+            body: JSON.stringify({ email, password }), // Role removed from login request
         });
 
         const data = await response.json();
-        console.log('[auth.js] Login response status:', response.status);
-        console.log('[auth.js] Login response data:', data);
+        // console.log('[auth.js] Login response status:', response.status);
+        // console.log('[auth.js] Login response data:', data);
 
 
         if (response.ok && data.user && data.user.role) {
-            console.log("[auth.js] Login successful from backend:", data);
+            // console.log("[auth.js] Login successful from backend:", data);
             localStorage.setItem('token', data.token); 
             localStorage.setItem('userRole', data.user.role); 
             localStorage.setItem('userEmail', data.user.email);
@@ -135,24 +135,24 @@ async function handleLogin(event) {
                  if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
                  return;
             }
-            console.log("[auth.js] Role from backend for redirection:", data.user.role);
-            console.log("[auth.js] USER_ROLES for comparison:", currentUserRoleConst);
+            // console.log("[auth.js] Role from backend for redirection:", data.user.role);
+            // console.log("[auth.js] USER_ROLES for comparison:", currentUserRoleConst);
 
             switch (data.user.role) { 
                 case currentUserRoleConst.ADMIN:
-                    console.log("[auth.js] Redirecting to Admin dashboard...");
+                    // console.log("[auth.js] Redirecting to Admin dashboard...");
                     window.location.href = 'dashboard/admin.html';
                     break;
                 case currentUserRoleConst.FACULTY:
-                    console.log("[auth.js] Redirecting to Faculty dashboard...");
+                    // console.log("[auth.js] Redirecting to Faculty dashboard...");
                     window.location.href = 'dashboard/faculty.html';
                     break;
                 case currentUserRoleConst.STUDENT:
-                    console.log("[auth.js] Redirecting to Student dashboard...");
+                    // console.log("[auth.js] Redirecting to Student dashboard...");
                     window.location.href = 'dashboard/student.html';
                     break;
                 case currentUserRoleConst.ASSISTANT:
-                    console.log("[auth.js] Redirecting to Assistant dashboard...");
+                    // console.log("[auth.js] Redirecting to Assistant dashboard...");
                     window.location.href = 'dashboard/assistant.html';
                     break;
                 default:
@@ -160,21 +160,21 @@ async function handleLogin(event) {
                     alert(`Invalid role (${data.user.role}) received from server. Cannot redirect.`);
             }
         } else {
-            console.error("[auth.js] Login failed from backend:", data);
-            const errorMessage = data.msg || 'Login failed. Please check your credentials or role selection.';
+            // console.error("[auth.js] Login failed from backend:", data);
+            const errorMessage = data.msg || 'Login failed. Please check your credentials.';
+            alert(errorMessage); // Show error as a popup
             if (generalErrorElement) {
-                showError(null, errorMessage, generalErrorElement);
-            } else {
-                alert(errorMessage);
+                generalErrorElement.textContent = ''; // Clear any previous general error below form
+                generalErrorElement.style.display = 'none';
             }
         }
     } catch (error) {
-        console.error('[auth.js] Login request failed:', error);
-        const errorMessage = 'An error occurred during login. Could not connect to server.';
+        // console.error('[auth.js] Login request failed:', error);
+        const errorMessage = 'An error occurred during login. Could not connect to server or server returned an invalid response.';
+        alert(errorMessage); // Show error as a popup
         if (generalErrorElement) {
-            showError(null, errorMessage, generalErrorElement);
-        } else {
-            alert(errorMessage);
+            generalErrorElement.textContent = '';
+            generalErrorElement.style.display = 'none';
         }
     } finally {
         loginButton.disabled = false;
@@ -186,7 +186,7 @@ async function handleLogin(event) {
 async function handleSignup(event) {
     event.preventDefault();
     clearErrors();
-    console.log("[auth.js] handleSignup triggered");
+    // console.log("[auth.js] handleSignup triggered");
 
     if (typeof window.API_BASE_URL === 'undefined') {
         console.error('[auth.js] CRITICAL ERROR in handleSignup: API_BASE_URL not defined.');
@@ -195,8 +195,7 @@ async function handleSignup(event) {
     }
 
     const signupButton = document.getElementById('signupButton');
-    const generalErrorElement = null; // Use alert for general signup errors for now
-
+    
     if (!signupButton) {
         console.error("[auth.js] Signup button not found!");
         alert('Signup form button missing. Please refresh.');
@@ -213,7 +212,7 @@ async function handleSignup(event) {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     const confirmPassword = document.getElementById('confirmPassword').value;
-    const secretWord = document.getElementById('secretWord').value; // Get secret word
+    const secretWord = document.getElementById('secretWord').value; 
     const role = document.getElementById('role').value;
     const department = document.getElementById('department').value;
 
@@ -234,7 +233,7 @@ async function handleSignup(event) {
         showError('confirmPasswordError', 'Passwords do not match.');
         isValid = false;
     }
-    if (!secretWord || secretWord.length < 4) { // Add validation for secret word
+    if (!secretWord || secretWord.length < 4) { 
         showError('secretWordError', 'Secret word must be at least 4 characters.');
         isValid = false;
     }
@@ -249,36 +248,28 @@ async function handleSignup(event) {
         return;
     }
     
-    console.log(`[auth.js] Attempting to fetch (signup) from: ${window.API_BASE_URL}/auth/signup`);
+    // console.log(`[auth.js] Attempting to fetch (signup) from: ${window.API_BASE_URL}/auth/signup`);
     try {
         const response = await fetch(`${window.API_BASE_URL}/auth/signup`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ fullName, email, password, secretWord, role, department }), // Send secretWord
+            body: JSON.stringify({ fullName, email, password, secretWord, role, department }), 
         });
         const data = await response.json();
-        console.log('[auth.js] Signup response status:', response.status);
-        console.log('[auth.js] Signup response data:', data);
+        // console.log('[auth.js] Signup response status:', response.status);
+        // console.log('[auth.js] Signup response data:', data);
 
         if (response.status === 201) { 
             alert(data.msg || `Account Created! Welcome, ${fullName}! Please login.`);
             window.location.href = 'index.html'; 
         } else {
              const errorMessage = data.msg || 'Signup failed. Please try again.';
-            if (generalErrorElement) {
-                showError(null, errorMessage, generalErrorElement);
-            } else {
-                alert(errorMessage);
-            }
+            alert(errorMessage); // Show error as a popup
         }
     } catch (error) {
-        console.error('[auth.js] Signup request failed:', error);
-        const errorMessage = 'An error occurred during signup. Could not connect to server.';
-        if (generalErrorElement) {
-            showError(null, errorMessage, generalErrorElement);
-        } else {
-            alert(errorMessage);
-        }
+        // console.error('[auth.js] Signup request failed:', error);
+        const errorMessage = 'An error occurred during signup. Could not connect to server or server returned an invalid response.';
+        alert(errorMessage); // Show error as a popup
     } finally {
         signupButton.disabled = false;
         signupButton.innerHTML = originalButtonText;
@@ -288,12 +279,12 @@ async function handleSignup(event) {
 
 async function handleForgotPassword(event) {
     event.preventDefault();
-    clearErrors(); // Clear previous errors
-    console.log("[auth.js] handleForgotPassword triggered");
+    clearErrors(); 
+    // console.log("[auth.js] handleForgotPassword triggered");
 
     const emailInput = document.getElementById('email');
-    const secretWordInput = document.getElementById('secretWord'); // Get secret word input
-    const formMessage = document.getElementById('formMessage'); // For general messages
+    const secretWordInput = document.getElementById('secretWord'); 
+    const formMessage = document.getElementById('formMessage'); 
     const submitButton = document.querySelector('#forgotPasswordForm button[type="submit"]');
 
     if (!emailInput || !secretWordInput || !formMessage || !submitButton) {
@@ -303,7 +294,7 @@ async function handleForgotPassword(event) {
     }
 
     const email = emailInput.value.trim();
-    const secretWord = secretWordInput.value.trim(); // Get secret word value
+    const secretWord = secretWordInput.value.trim(); 
 
     let isValid = true;
     if (!email) {
@@ -313,7 +304,7 @@ async function handleForgotPassword(event) {
         showError('emailError', 'Please enter a valid email address.');
         isValid = false;
     }
-    if (!secretWord) { // Add validation for secret word
+    if (!secretWord) { 
         showError('secretWordError', 'Secret word is required.');
         isValid = false;
     }
@@ -331,18 +322,18 @@ async function handleForgotPassword(event) {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ email, secretWord }) // Send email and secretWord
+            body: JSON.stringify({ email, secretWord }) 
         });
         const data = await response.json();
 
-        if (response.ok && data.resetToken) { // Backend now returns token for auto-redirect simulation
+        if (response.ok && data.resetToken) { 
+            // console.log("[auth.js] Forgot password success, redirecting with token:", data.resetToken);
             window.location.href = `reset_password.html?token=${data.resetToken}`;
         } else {
-            // Generic message if email/secret word combo not found or other error
             showError(null, data.msg || 'Could not process request. Please check your email and secret word.', formMessage);
         }
     } catch (error) {
-        console.error('Forgot password request failed:', error);
+        // console.error('Forgot password request failed:', error);
         showError(null, 'Could not connect to the server. Please try again later.', formMessage);
     } finally {
         submitButton.disabled = false;
@@ -361,7 +352,7 @@ function showError(elementId, message, elementInstance = null) {
              errorElement.style.display = 'block';
         }
     } else {
-        console.warn(`[auth.js] Error element with ID '${elementId}' or instance not found. Message: ${message}`);
+        // console.warn(`[auth.js] Error element with ID '${elementId}' or instance not found. Message: ${message}`);
     }
 }
 
@@ -375,3 +366,5 @@ function clearErrors() {
         }
     });
 }
+
+    
