@@ -1,10 +1,11 @@
-
+<!-- This file is no longer used and its functionality (logs/reports) was removed. -->
+<!-- Keeping as a placeholder for potential future re-introduction or if other links still point here inadvertently. -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>System Overview & Reports - Optimized Lab Management System</title>
+    <title>System Overview - Optimized Lab Management System</title>
     <link rel="stylesheet" href="../css/style.css">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
@@ -17,277 +18,40 @@
                     <span class="sidebar-title">Optimized Lab Management</span>
                 </a>
             </div>
-            <ul class="sidebar-nav" id="sidebarNav">
-                <!-- Nav items will be populated by JS -->
-            </ul>
+            <ul class="sidebar-nav" id="sidebarNav"></ul>
         </aside>
         <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
         <div class="main-content-wrapper">
             <header class="dashboard-header">
-                <button type="button" class="mobile-menu-button" id="mobileMenuButton">
-                    <i data-lucide="menu"></i>
-                </button>
-                <div class="user-nav" id="userNavContainer">
-                    <!-- UserNav will be populated by JS -->
-                </div>
+                <button type="button" class="mobile-menu-button" id="mobileMenuButton"><i data-lucide="menu"></i></button>
+                <div class="user-nav" id="userNavContainer"></div>
             </header>
             <main class="page-content">
                 <div class="custom-card">
                     <div class="custom-card-header">
                         <i data-lucide="activity"></i>
-                        <h1 class="custom-card-title">System Overview & Reports</h1>
+                        <h1 class="custom-card-title">System Overview &amp; Reports (Feature Removed)</h1>
                     </div>
                     <div class="custom-card-content">
                         <p class="text-muted-foreground mb-6">
-                            View system activity logs and generate various reports.
+                            This feature for viewing system logs and generating detailed reports has been removed in the current version.
                         </p>
-                        
-                        <section id="systemLogsSection" class="mb-8">
-                            <h2 class="text-xl font-semibold mb-3">System Activity Logs (Mock)</h2>
-                            <div class="bg-gray-100 p-4 rounded-md border border-gray-200 min-h-[150px] max-h-[300px] overflow-y-auto">
-                                <ul id="systemLogsList" class="list-disc list-inside space-y-1 text-sm text-gray-600 mt-2">
-                                    <li>Loading logs...</li>
-                                </ul>
-                            </div>
-                        </section>
-
-                        <section id="generateReportsSection">
-                            <h2 class="text-xl font-semibold mb-3">Generate Reports</h2>
-                             <div class="grid sm-grid-cols-2 md-grid-cols-3 gap-4 items-end">
-                                <div class="form-group">
-                                    <label for="reportType">Report Type:</label>
-                                    <select id="reportType" name="reportType" class="custom-card-content select">
-                                        <option value="lab_usage">Lab Usage Statistics</option>
-                                        <option value="resource_allocation">Resource Allocation Summary (Mock)</option>
-                                        <option value="user_activity">User Activity Log (Mock)</option>
-                                        <option value="booking_history">Booking History by Lab (Mock)</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="reportDateRangeStart">Start Date (Optional):</label>
-                                    <input type="date" id="reportDateRangeStart" name="reportDateRangeStart" class="custom-card-content input">
-                                </div>
-                                <div class="form-group">
-                                    <label for="reportDateRangeEnd">End Date (Optional):</label>
-                                    <input type="date" id="reportDateRangeEnd" name="reportDateRangeEnd" class="custom-card-content input">
-                                </div>
-                            </div>
-                            <button type="button" id="generateMockReportBtn" class="button button-primary mt-4">
-                                <i data-lucide="download-cloud" class="mr-2 h-4 w-4"></i>Download Mock Lab Usage Report (CSV)
-                            </button>
-                            <div id="reportOutputAreaPlaceholder" class="mt-6 p-4 border rounded-md bg-gray-50" style="display: none;">
-                                <h3 class="font-semibold text-lg mb-2">Report Results:</h3>
-                                <pre id="reportContentPlaceholder" class="text-sm whitespace-pre-wrap"></pre>
-                            </div>
-                        </section>
                     </div>
                 </div>
             </main>
         </div>
     </div>
-
     <script src="../js/constants.js"></script>
     <script src="../js/utils.js"></script>
     <script src="js/dashboard.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', async () => {
-            console.log('DOM fully loaded and parsed for admin_system_overview.html');
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM fully loaded and parsed for admin_system_overview.html (Feature Removed)');
             if (!window.roleGuard(window.USER_ROLES.ADMIN)) return;
-            
             window.initializeDashboard();
             window.setDashboardHomeLink();
-            await loadSystemLogs();
-
-            const generateReportBtn = document.getElementById('generateMockReportBtn');
-            const reportTypeSelect = document.getElementById('reportType');
-            const token = localStorage.getItem('token');
-            
-            if (generateReportBtn && reportTypeSelect && token) {
-                generateReportBtn.addEventListener('click', async () => {
-                    const reportType = reportTypeSelect.value;
-                    const reportTypeName = reportTypeSelect.options[reportTypeSelect.selectedIndex].text.replace(/\s+/g, '_');
-                    const filename = `${reportTypeName}_${new Date().toISOString().split('T')[0]}.csv`;
-                    
-                    let bookingsForReport = [];
-                    
-                    // For lab_usage, fetch all bookings (admin endpoint)
-                    // For other types, use mock or specific logic if developed
-                    try {
-                        const response = await fetch(`${window.API_BASE_URL}/bookings`, { // Admin endpoint to fetch ALL bookings
-                            headers: { 'Authorization': `Bearer ${token}` }
-                        });
-                        if (response.ok) {
-                            bookingsForReport = await response.json();
-                            if (!Array.isArray(bookingsForReport)) { // Ensure it's an array
-                                console.warn("Bookings data for report is not an array:", bookingsForReport);
-                                bookingsForReport = []; // Fallback to empty
-                            }
-                        } else {
-                            const errorData = await response.json().catch(() => ({ msg: `Server error: ${response.status}` }));
-                            console.warn("Could not fetch all bookings for mock report.", errorData.msg);
-                            alert(`Failed to fetch bookings data for the report: ${errorData.msg || response.statusText}`);
-                            // Fallback to static mock data if API fails (optional, or just show error)
-                            bookingsForReport = [
-                                { labName: "Error Fallback Lab A", date: "2024-01-01", timeSlotId: "ts_0800_0900", purpose: "Error Data Fetching", userName: "System", requestedByRole: "System" }
-                            ];
-                        }
-                    } catch(e) {
-                        console.warn("Error fetching all bookings for mock report:", e);
-                        alert(`Error fetching bookings data for the report: ${e.message}`);
-                         bookingsForReport = [ 
-                            { labName: "Catch Block Fallback Lab", date: "2024-01-02", timeSlotId: "ts_0900_1000", purpose: "Exception Data", userName: "System", requestedByRole: "System" }
-                        ];
-                    }
-                    
-                    const csvData = generateMockCSV(bookingsForReport, reportType); // Pass all bookings for "lab_usage"
-                    if (csvData.startsWith("data:text/csv")) {
-                        downloadCSV(csvData, filename);
-                    } else {
-                        alert(csvData); // Show error message if report type not implemented or no data
-                    }
-                });
-            } else {
-                if(!token) console.warn("Token not found, report generation disabled.");
-                if(!generateReportBtn) console.warn("Generate report button not found.");
-                if(!reportTypeSelect) console.warn("Report type select not found.");
-            }
-
             if (window.lucide) window.lucide.createIcons();
         });
-
-        async function loadSystemLogs() {
-            const logsList = document.getElementById('systemLogsList');
-            const token = localStorage.getItem('token');
-            if (!logsList || !window.API_BASE_URL || !token) {
-                if (logsList) logsList.innerHTML = '<li>Error: Could not initialize log viewer. Missing token or API URL.</li>';
-                return;
-            }
-
-            logsList.innerHTML = '<li>Loading logs...</li>';
-
-            try {
-                const response = await fetch(`${window.API_BASE_URL}/admin/system-activity`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({ msg: `Failed to fetch logs: ${response.status}` }));
-                    throw new Error(errorData.msg || `Failed to fetch logs: ${response.statusText}`);
-                }
-                const logs = await response.json();
-
-                if (logs && Array.isArray(logs) && logs.length > 0) {
-                    logsList.innerHTML = '';
-                    logs.forEach(log => {
-                        const li = document.createElement('li');
-                        li.textContent = `[${window.formatDateForDisplay ? window.formatDateForDisplay(new Date(log.timestamp)) : new Date(log.timestamp).toLocaleString()}] User: ${log.user || 'System'} - Action: ${log.action}`;
-                        if (log.details) {
-                            li.textContent += ` - Details: ${log.details}`;
-                        }
-                        logsList.appendChild(li);
-                    });
-                } else {
-                    logsList.innerHTML = '<li>No system activity logs found.</li>';
-                }
-            } catch (error) {
-                console.error('Error loading system logs:', error);
-                if (logsList) logsList.innerHTML = `<li>Error loading logs: ${error.message}</li>`;
-            }
-        }
-
-        function generateMockCSV(bookings, reportType) {
-            if (!bookings || !Array.isArray(bookings)) {
-                console.error("generateMockCSV received invalid bookings data:", bookings);
-                return `No data available for this report type: ${reportType} (invalid input).`;
-            }
-            let csvContent = "data:text/csv;charset=utf-8,";
-            let headers = [];
-            let rows = [];
-
-            const dataToProcess = bookings; 
-
-            switch(reportType) {
-                case "lab_usage":
-                    if (dataToProcess.length === 0) return "No lab usage data available to generate report.";
-                    headers = ["LabName", "Date", "TimeSlot", "Purpose", "BookedByUserName", "BookedByRole", "BatchIdentifier", "Status"];
-                    dataToProcess.forEach(b => {
-                        const timeSlotDisplay = (window.MOCK_TIME_SLOTS && b.timeSlotId) ? (window.MOCK_TIME_SLOTS.find(ts => ts.id === b.timeSlotId)?.displayTime || b.timeSlotId) : (b.timeSlotId || 'N/A');
-                        rows.push([
-                            b.labName || "N/A", 
-                            b.date ? window.formatDate(new Date(b.date)) : "N/A", 
-                            timeSlotDisplay, 
-                            (b.purpose || "N/A").replace(/,/g, ';'), 
-                            b.userName || "N/A", 
-                            b.requestedByRole || "N/A",
-                            b.batchIdentifier || "N/A",
-                            b.status || "N/A"
-                        ].map(field => `"${String(field === null || typeof field === 'undefined' ? '' : field).replace(/"/g, '""')}"`).join(","));
-                    });
-                    break;
-                case "booking_history": 
-                     if (dataToProcess.length === 0) return "No booking history data available to generate report.";
-                    headers = ["BookingID", "LabName", "Date", "TimeSlot", "Status", "BookedByUserName", "BookedByRole", "Purpose", "BatchIdentifier", "SubmittedDate"];
-                     dataToProcess.forEach(b => {
-                        const timeSlotDisplay = (window.MOCK_TIME_SLOTS && b.timeSlotId) ? (window.MOCK_TIME_SLOTS.find(ts => ts.id === b.timeSlotId)?.displayTime || b.timeSlotId) : (b.timeSlotId || 'N/A');
-                        rows.push([
-                            b.id || "N/A", 
-                            b.labName || "N/A", 
-                            b.date ? window.formatDate(new Date(b.date)) : "N/A", 
-                            timeSlotDisplay, 
-                            b.status || "N/A", 
-                            b.userName || "N/A",
-                            b.requestedByRole || "N/A",
-                            (b.purpose || "N/A").replace(/,/g, ';'),
-                            b.batchIdentifier || "N/A",
-                            b.submittedDate ? window.formatDateForDisplay(new Date(b.submittedDate)) : "N/A"
-                        ].map(field => `"${String(field === null || typeof field === 'undefined' ? '' : field).replace(/"/g, '""')}"`).join(","));
-                    });
-                    break;
-                 case "user_activity": 
-                    headers = ["User", "Action", "Timestamp", "Details (Mock)"];
-                    // This case might still use more static mock data if bookings don't represent user activity well
-                    if (dataToProcess.length > 0 && dataToProcess[0].userName ) { 
-                         dataToProcess.slice(0, 5).forEach(b => { // Limit to first 5 bookings as example
-                            rows.push([
-                                b.userName || "System User",
-                                `Interacted with booking for '${(b.purpose || "N/A").replace(/,/g, ';')}' in lab ${b.labName || 'N/A'}`,
-                                b.submittedDate ? window.formatDateForDisplay(new Date(b.submittedDate)) : "N/A",
-                                `Booking Status: ${b.status || 'N/A'}, Batch: ${b.batchIdentifier || 'N/A'}`
-                            ].map(field => `"${String(field === null || typeof field === 'undefined' ? '' : field).replace(/"/g, '""')}"`).join(","));
-                        });
-                        if (rows.length === 0) { // Fallback if no processable bookings
-                             rows.push(["admin@example.com", "Logged In", new Date(Date.now() - 100000).toLocaleString(), "Accessed dashboard"].map(field => `"${String(field || '').replace(/"/g, '""')}"`).join(","));
-                             rows.push(["faculty@example.com", "Booked Lab", new Date(Date.now() - 200000).toLocaleString(), "Lab CS101 for 2 hours"].map(field => `"${String(field || '').replace(/"/g, '""')}"`).join(","));
-                        }
-                    } else { 
-                         rows.push(["admin@example.com", "Logged In", new Date(Date.now() - 100000).toLocaleString(), "Accessed dashboard"].map(field => `"${String(field || '').replace(/"/g, '""')}"`).join(","));
-                         rows.push(["faculty@example.com", "Booked Lab", new Date(Date.now() - 200000).toLocaleString(), "Lab CS101 for 2 hours"].map(field => `"${String(field || '').replace(/"/g, '""')}"`).join(","));
-                    }
-                    break;
-                default: // For 'resource_allocation' or any other type
-                    headers = ["MockHeader1", "MockHeader2", `MockDataFor_${reportTypeName}`];
-                    rows.push(["Sample1", "Info1", "Value1"].map(field => `"${String(field || '').replace(/"/g, '""')}"`).join(","));
-                    rows.push(["Sample2", "Info2", "Value2"].map(field => `"${String(field || '').replace(/"/g, '""')}"`).join(","));
-            }
-            
-            if (rows.length === 0) {
-                return `No data available to generate report for "${reportType}".`;
-            }
-
-            csvContent += headers.join(",") + "\n";
-            rows.forEach(row => csvContent += row + "\n");
-            return csvContent;
-        }
-
-        function downloadCSV(csvContent, filename) {
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", filename);
-            document.body.appendChild(link); 
-            link.click();
-            document.body.removeChild(link);
-        }
     </script>
 </body>
 </html>

@@ -4,7 +4,7 @@ console.log('[constants.js] Script start.');
 
 // API_BASE_URL_CONST should be absolute for separate frontend/backend servers
 // If served from same origin, can be relative like '/api'
-const API_BASE_URL_CONST = '/api'; // Changed because backend now serves frontend
+const API_BASE_URL_CONST = '/api'; // Backend now serves frontend
 console.log(`[constants.js] API_BASE_URL_CONST set to: ${API_BASE_URL_CONST}`);
 
 const USER_ROLES_OBJ = {
@@ -14,7 +14,7 @@ const USER_ROLES_OBJ = {
   ASSISTANT: 'Assistant',
 };
 const ROLES_ARRAY_CONST = Object.values(USER_ROLES_OBJ);
-const USER_ROLE_VALUES_CONST = Object.values(USER_ROLES_OBJ); // For dropdowns
+const USER_ROLE_VALUES_CONST = Object.values(USER_ROLES_OBJ); // For role dropdowns
 
 const NAV_LINKS_OBJ = {
   [USER_ROLES_OBJ.ADMIN]: [
@@ -22,11 +22,12 @@ const NAV_LINKS_OBJ = {
     { href: 'admin_manage_labs.html', label: 'Manage Labs', icon: 'settings-2' },
     { href: 'admin_manage_equipment.html', label: 'Manage Equipment', icon: 'wrench' },
     { href: 'admin_faculty_requests.html', label: 'Faculty Requests', icon: 'user-check' },
-    // { href: 'admin_assistant_requests.html', label: 'Assistant Requests', icon: 'user-cog' }, // Removed
     { href: 'admin_manage_users.html', label: 'User Management', icon: 'users' },
     { href: 'labs.html', label: 'Lab Availability', icon: 'flask-conical' },
     { href: 'admin_run_algorithms.html', label: 'Run Optimization Algorithms', icon: 'cpu' },
-    // { href: 'admin_system_overview.html', label: 'System Overview & Reports', icon: 'activity' }, // Removed
+    // Removed "System Overview & Reports"
+    // Removed "View All Bookings" as standalone - Admins use labs.html
+    // Removed "Assistant Requests" as this feature was removed
   ],
   [USER_ROLES_OBJ.FACULTY]: [
     { href: 'faculty.html', label: 'Faculty Dashboard', icon: 'layout-dashboard' },
@@ -43,14 +44,13 @@ const NAV_LINKS_OBJ = {
     { href: 'assistant.html', label: 'Assistant Dashboard', icon: 'layout-dashboard' },
     { href: 'labs.html', label: 'Lab Availability', icon: 'flask-conical' },
     { href: 'assistant_update_seat_status.html', label: 'Update Seat Status', icon: 'edit-3' },
-    // { href: 'assistant_request_lab.html', label: 'Request Lab Slot', icon: 'send' }, // Removed
-    // { href: 'student_my_bookings.html', label: 'My Schedule', icon: 'calendar-check' }, // Assistant specific schedule might be different
+    // "Request Lab Slot" was removed
+    // "View My Schedule" is covered by student_my_bookings.html
   ],
 };
 
 const COMMON_NAV_LINKS_CONST = [
   // Profile is accessed via user dropdown in header, not a direct sidebar link.
-  // { href: 'profile.html', label: 'My Profile', icon: 'user' }
 ];
 
 const MOCK_TIME_SLOTS_CONST = [
@@ -67,42 +67,59 @@ const MOCK_TIME_SLOTS_CONST = [
 ];
 
 function formatDate(dateInput) {
-    if (!dateInput &amp;&amp; dateInput !== 0) {
-        console.warn('[constants.js] formatDate: Received null or undefined dateInput.');
+    if (!dateInput && dateInput !== 0) {
+        // console.warn('[constants.js] formatDate: Received null or undefined dateInput.');
         return 'N/A';
     }
     let d;
 
-    // Check if dateInput is already a Date object
     if (dateInput instanceof Date) {
         if (isNaN(dateInput.getTime())) {
-            console.warn('[constants.js] formatDate: Invalid Date object passed', dateInput);
+            // console.warn('[constants.js] formatDate: Invalid Date object passed', dateInput);
             return 'Invalid Date Object';
         }
         d = dateInput;
     } else if (typeof dateInput === 'string' || typeof dateInput === 'number') {
-        // Attempt to parse string/number. Add 'T00:00:00' for date-only strings to ensure UTC parsing
-        const dateString = String(dateInput).includes('T') ? String(dateInput) : String(dateInput) + 'T00:00:00Z';
-        d = new Date(dateString);
-        if (isNaN(d.getTime())) {
-            // Try replacing hyphens with slashes for broader compatibility if initial parse fails
-            d = new Date(String(dateInput).replace(/-/g, '/') + 'T00:00:00Z');
-            if (isNaN(d.getTime())) {
-                console.warn('[constants.js] formatDate: Invalid Date String/Number after attempts', dateInput);
-                return 'Invalid Date String/Number';
+        // For YYYY-MM-DD strings, creating new Date(dateString) can lead to timezone issues.
+        // Safter to parse manually or use UTC. For YYYY-MM-DD, we can split.
+        let dateString = String(dateInput);
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) { // Matches YYYY-MM-DD
+             const [year, month, day] = dateString.split('-').map(Number);
+             d = new Date(Date.UTC(year, month - 1, day)); // Use UTC to avoid timezone shifts
+        } else { // Attempt to parse other string formats, or if it includes time
+             d = new Date(dateString);
+             if (isNaN(d.getTime())) {
+                d = new Date(dateString.replace(/-/g, '/') + 'T00:00:00Z'); // Fallback for broader compatibility
+                if (isNaN(d.getTime())) {
+                    // console.warn('[constants.js] formatDate: Invalid Date String/Number after attempts', dateInput);
+                    return 'Invalid Date String/Number';
+                }
             }
         }
     } else {
-        console.warn('[constants.js] formatDate: Invalid Date Type', typeof dateInput, dateInput);
+        // console.warn('[constants.js] formatDate: Invalid Date Type', typeof dateInput, dateInput);
         return 'Invalid Date Type';
     }
 
-    // Format to YYYY-MM-DD using UTC methods to avoid timezone shifts
     const year = d.getUTCFullYear();
     const month = String(d.getUTCMonth() + 1).padStart(2, '0'); // Months are 0-indexed
     const day = String(d.getUTCDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
 }
+
+function formatDateForDisplay(dateInput) {
+    if (!dateInput) return '';
+    const d = dateInput instanceof Date ? dateInput : new Date(String(dateInput).replace(/-/g, '/')); // Replace for wider compatibility
+    if (isNaN(d.getTime())) return 'Invalid Date';
+    
+    // Use UTC methods to avoid timezone shifts during formatting for display
+    const year = d.getUTCFullYear();
+    const monthIndex = d.getUTCMonth();
+    const day = d.getUTCDate();
+
+    const tempDate = new Date(Date.UTC(year, monthIndex, day)); 
+    return tempDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+};
 
 
 const DAYS_OF_WEEK_CONST = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -113,11 +130,11 @@ const DEPARTMENTS_CONST = [
   'ECE (Electronics & Communication Engineering)',
   'MECH (Mechanical Engineering)',
   'CIVIL (Civil Engineering)',
-  'EEE (Electrical &amp; Electronics Engineering)',
-  'BIO (Biological Sciences &amp; Bioengineering)',
+  'EEE (Electrical & Electronics Engineering)',
+  'BIO (Biological Sciences & Bioengineering)',
   'CHEM (Chemistry)',
   'PHYS (Physics)',
-  'MATH (Mathematics &amp; Statistics)',
+  'MATH (Mathematics & Statistics)',
   'Other',
 ];
 
@@ -128,16 +145,16 @@ const BOOKING_STATUSES_ARRAY_CONST = ['pending', 'booked', 'rejected', 'cancelle
 console.log('[constants.js] Assigning constants to window object...');
 if (typeof window !== 'undefined') {
     window.API_BASE_URL = API_BASE_URL_CONST;
-    console.log('[constants.js] window.API_BASE_URL set to:', window.API_BASE_URL);
+    // console.log('[constants.js] window.API_BASE_URL set to:', window.API_BASE_URL);
 
     window.USER_ROLES = USER_ROLES_OBJ;
-    console.log('[constants.js] window.USER_ROLES set to:', window.USER_ROLES);
+    // console.log('[constants.js] window.USER_ROLES set to:', window.USER_ROLES);
 
     window.ROLES_ARRAY = ROLES_ARRAY_CONST;
     window.USER_ROLE_VALUES = USER_ROLE_VALUES_CONST; // For role dropdowns
 
     window.NAV_LINKS = NAV_LINKS_OBJ;
-    console.log('[constants.js] window.NAV_LINKS set.');
+    // console.log('[constants.js] window.NAV_LINKS set.');
 
     window.COMMON_NAV_LINKS = COMMON_NAV_LINKS_CONST;
     window.MOCK_TIME_SLOTS = MOCK_TIME_SLOTS_CONST;
@@ -146,6 +163,7 @@ if (typeof window !== 'undefined') {
     window.EQUIPMENT_STATUSES = EQUIPMENT_STATUSES_CONST;
     window.BOOKING_STATUSES_ARRAY = BOOKING_STATUSES_ARRAY_CONST;
     window.formatDate = formatDate;
+    window.formatDateForDisplay = formatDateForDisplay;
     console.log('[constants.js] All constants assigned to window.');
 } else {
     console.error('[constants.js] CRITICAL: window object not found. This script is intended for browser environment.');
