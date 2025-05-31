@@ -1,20 +1,26 @@
 
+
 // --- API Configuration ---
+// Base URL for all backend API calls.
 const API_BASE_URL_CONST = '/api'; 
 
 // --- User Roles ---
 // Defines the set of user roles available in the system.
+// Used for role-based access control and UI customization.
 const USER_ROLES_OBJ = {
   ADMIN: 'Admin',
   FACULTY: 'Faculty',
   STUDENT: 'Student',
   ASSISTANT: 'Assistant',
 };
+// Array of all role values, useful for validation or iteration.
 const ROLES_ARRAY_CONST = Object.values(USER_ROLES_OBJ);
+// Explicitly named array of role values, can be redundant with ROLES_ARRAY_CONST but used in some places.
 const USER_ROLE_VALUES_CONST = Object.values(USER_ROLES_OBJ);
 
 // --- Navigation Links ---
 // Defines dashboard navigation links specific to each user role.
+// Each link has a destination URL (href), display label, and an optional Lucide icon name.
 const NAV_LINKS_OBJ = {
   [USER_ROLES_OBJ.ADMIN]: [
     { href: 'admin.html', label: 'Admin Dashboard', icon: 'layout-dashboard' },
@@ -51,17 +57,16 @@ const COMMON_NAV_LINKS_CONST = [];
 
 // --- Time Slots ---
 // Defines the standard time slots available for booking throughout the day.
+// Used by the frontend for display in forms and grids.
+// 'id' should be unique and descriptive.
+// 'startTime' and 'endTime' are for display logic or simple frontend calculations.
+// 'displayTime' is the user-friendly representation.
 const MOCK_TIME_SLOTS_CONST = [
-  { id: 'ts_0800_0900', startTime: '08:00', endTime: '09:00', displayTime: '08:00 AM - 09:00 AM' },
-  { id: 'ts_0900_1000', startTime: '09:00', endTime: '10:00', displayTime: '09:00 AM - 10:00 AM' },
-  { id: 'ts_1000_1100', startTime: '10:00', endTime: '11:00', displayTime: '10:00 AM - 11:00 AM' },
-  { id: 'ts_1100_1200', startTime: '11:00', endTime: '12:00', displayTime: '11:00 AM - 12:00 PM' },
-  { id: 'ts_1200_1300', startTime: '12:00', endTime: '13:00', displayTime: '12:00 PM - 01:00 PM' },
-  { id: 'ts_1300_1400', startTime: '13:00', endTime: '14:00', displayTime: '01:00 PM - 02:00 PM' },
-  { id: 'ts_1400_1500', startTime: '14:00', endTime: '15:00', displayTime: '02:00 PM - 03:00 PM' },
-  { id: 'ts_1500_1600', startTime: '15:00', endTime: '16:00', displayTime: '03:00 PM - 04:00 PM' },
-  { id: 'ts_1600_1700', startTime: '16:00', endTime: '17:00', displayTime: '04:00 PM - 05:00 PM' },
-  { id: 'ts_1700_1800', startTime: '17:00', endTime: '18:00', displayTime: '05:00 PM - 06:00 PM' },
+  { id: 'ts_0800_0950', startTime: '08:00', endTime: '09:50', displayTime: '08:00 AM - 09:50 AM' },
+  { id: 'ts_1010_1205', startTime: '10:10', endTime: '12:05', displayTime: '10:10 AM - 12:05 PM' },
+  { id: 'ts_1205_1350', startTime: '12:05', endTime: '13:50', displayTime: '12:05 PM - 01:50 PM' },
+  { id: 'ts_1410_1605', startTime: '14:10', endTime: '16:05', displayTime: '02:10 PM - 04:05 PM' },
+  { id: 'ts_1605_1750', startTime: '16:05', endTime: '17:50', displayTime: '04:05 PM - 05:50 PM' },
 ];
 
 // --- Date Formatting Utilities ---
@@ -162,6 +167,7 @@ function formatDateForDisplay(dateInput) {
 };
 
 // --- Weekdays ---
+// Standard array of weekday names, used for display in calendars/grids.
 const DAYS_OF_WEEK_CONST = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 // --- Academic Departments ---
@@ -174,7 +180,9 @@ const DEPARTMENTS_CONST = [
 ];
 
 // --- Equipment & Booking Statuses ---
+// Defines possible statuses for equipment items.
 const EQUIPMENT_STATUSES_CONST = ['available', 'in-use', 'maintenance', 'broken'];
+// Defines possible statuses for booking requests.
 const BOOKING_STATUSES_ARRAY_CONST = ['pending', 'booked', 'rejected', 'cancelled', 'pending-admin-approval', 'approved-by-admin', 'rejected-by-admin'];
 
 // --- Global Exposure ---

@@ -5,18 +5,23 @@ const pool = require('../config/db');
 const { auth, isAdmin, USER_ROLES } = require('../middleware/authMiddleware');
 
 // Consistent with MySQL TIME format: HH:MM:SS
+// This array is the backend's source of truth for converting timeSlotId to actual start/end times.
 const MOCK_TIME_SLOTS_BACKEND = [
-  { id: 'ts_0800_0900', startTime: '08:00:00', endTime: '09:00:00' }, { id: 'ts_0900_1000', startTime: '09:00:00', endTime: '10:00:00' },
-  { id: 'ts_1000_1100', startTime: '10:00:00', endTime: '11:00:00' }, { id: 'ts_1100_1200', startTime: '11:00:00', endTime: '12:00:00' },
-  { id: 'ts_1200_1300', startTime: '12:00:00', endTime: '13:00:00' }, { id: 'ts_1300_1400', startTime: '13:00:00', endTime: '14:00:00' },
-  { id: 'ts_1400_1500', startTime: '14:00:00', endTime: '15:00:00' }, { id: 'ts_1500_1600', startTime: '15:00:00', endTime: '16:00:00' },
-  { id: 'ts_1600_1700', startTime: '16:00:00', endTime: '17:00:00' }, { id: 'ts_1700_1800', startTime: '17:00:00', endTime: '18:00:00' },
+  { id: 'ts_0800_0950', startTime: '08:00:00', endTime: '09:50:00' },
+  { id: 'ts_1010_1205', startTime: '10:10:00', endTime: '12:05:00' },
+  { id: 'ts_1205_1350', startTime: '12:05:00', endTime: '13:50:00' },
+  { id: 'ts_1410_1605', startTime: '14:10:00', endTime: '16:05:00' },
+  { id: 'ts_1605_1750', startTime: '16:05:00', endTime: '17:50:00' },
 ];
+
 function getTimesFromSlotId(timeSlotId) {
     const slot = MOCK_TIME_SLOTS_BACKEND.find(ts => ts.id === timeSlotId);
     return slot ? { startTime: slot.startTime, endTime: slot.endTime } : { startTime: null, endTime: null };
 }
 
+// @route   GET api/bookings
+// @desc    Get all bookings (Admin only)
+// @access  Private (Admin)
 router.get('/', [auth, isAdmin], async (req, res) => {
     try {
         const [allBookings] = await pool.query(`
@@ -36,6 +41,9 @@ router.get('/', [auth, isAdmin], async (req, res) => {
     }
 });
 
+// @route   GET api/bookings/my
+// @desc    Get bookings for the logged-in user (Faculty, Student, Assistant)
+// @access  Private
 router.get('/my', auth, async (req, res) => {
     const userId = req.user.id;
     const userRole = req.user.role;
@@ -43,7 +51,7 @@ router.get('/my', auth, async (req, res) => {
     const queryParams = [];
 
     try {
-        if (userRole === USER_ROLES.FACULTY || userRole === USER_ROLES.ADMIN) {
+        if (userRole === USER_ROLES.FACULTY || userRole === USER_ROLES.ADMIN) { // Admin can also use this to see their own bookings if any
             query = `
                 SELECT b.*, l.name as labName, s.section_name as sectionName, crs.name as courseName
                 FROM bookings b
@@ -57,12 +65,13 @@ router.get('/my', auth, async (req, res) => {
         } else if (userRole === USER_ROLES.STUDENT) {
             // PRD: "Students view schedules for their enrolled sections"
             // For now, this will be an empty array as student_section_enrollments table is not implemented.
-            // In a full system, this would join with a student_enrollments table.
+            // To show something for demo, it previously fetched all 'booked' bookings.
+            // Reverting to PRD intent: should be specific to student, which requires enrollment logic not yet built.
             return res.json([]); 
         } else if (userRole === USER_ROLES.ASSISTANT) {
-             // Assistants might see all bookings or bookings for labs they are assigned to (if such concept exists)
-             // For now, similar to students for simplicity, or provide all 'booked' status for visibility.
-             // As per PRD "view lab availability" - implies they can see the schedule.
+             // Assistants might see all bookings or bookings for labs they are assigned to.
+             // For current PRD, their primary role is seat status. This endpoint might not be directly used by them unless they also book.
+             // For demo, allow them to see all 'booked' for general lab visibility if needed, similar to Lab Availability grid.
              query = `
                 SELECT b.*, l.name as labName, u.fullName as bookedByUserName, 
                        s.section_name as sectionName, crs.name as courseName
@@ -86,6 +95,9 @@ router.get('/my', auth, async (req, res) => {
     }
 });
 
+// @route   POST api/bookings
+// @desc    Create a new booking or booking request
+// @access  Private (Faculty or Admin)
 router.post('/', auth, async (req, res) => {
     console.log('[POST /api/bookings] User making request:', JSON.stringify(req.user));
     console.log('[POST /api/bookings] Request body received:', JSON.stringify(req.body));
@@ -106,7 +118,7 @@ router.post('/', auth, async (req, res) => {
         return res.status(400).json({ msg: 'Invalid timeSlotId provided.' });
     }
 
-    let status = 'booked'; // Default to booked
+    let status = 'booked'; // Default to booked for both Admin and Faculty initial attempt
     console.log(`[POST /api/bookings] Initial status for ${requestedByRole} role: ${status}`);
 
 
@@ -129,10 +141,11 @@ router.post('/', auth, async (req, res) => {
         if (conflictOccurred) {
              if (requestedByRole === USER_ROLES.FACULTY) {
                 status = 'pending-admin-approval'; // Faculty request goes to admin review on conflict
-                console.log("[POST /api/bookings] Faculty request has conflict with a 'booked' slot. Status changed to 'pending-admin-approval'.");
+                // The original purpose is maintained. Admin sees conflict by checking grid.
+                console.log("[POST /api/bookings] Faculty request HAS CONFLICT with a 'booked' slot. Status changed to 'pending-admin-approval'.");
              } else if (requestedByRole === USER_ROLES.ADMIN) {
                 // Admin using the form directly and encountering a conflict
-                console.log("[POST /api/bookings] Admin booking via form has conflict with an existing 'booked' slot.");
+                console.log("[POST /api/bookings] Admin booking via form HAS CONFLICT with an existing 'booked' slot. Returning 409.");
                 return res.status(409).json({
                     success: false, conflict: true, 
                     message: "This slot is already booked. As Admin, please use the Lab Availability Grid to check availability or manage existing bookings."
@@ -176,7 +189,7 @@ router.post('/', auth, async (req, res) => {
         
         const responsePayload = { 
             success: true, 
-            conflict: status === 'pending-admin-approval' && conflictOccurred,
+            conflict: status === 'pending-admin-approval' && conflictOccurred, // True if faculty request resulted in pending status
             message: status === 'booked' ? "Booking created successfully!" : "Booking request submitted for admin approval due to conflict.",
             booking: createdBookingResult[0] 
         };
@@ -200,6 +213,9 @@ router.post('/', auth, async (req, res) => {
     }
 });
 
+// @route   PUT api/bookings/:bookingId/status
+// @desc    Update booking status (Admin only)
+// @access  Private (Admin)
 router.put('/:bookingId/status', [auth, isAdmin], async (req, res) => {
     const { status: newStatus } = req.body; 
     const { bookingId } = req.params;
@@ -219,6 +235,7 @@ router.put('/:bookingId/status', [auth, isAdmin], async (req, res) => {
         }
         const booking = bookingResult[0];
 
+        // If admin is trying to change status to 'booked', perform a conflict check
         if (newStatus === 'booked') { 
              const [conflictingBookings] = await pool.query(
                 `SELECT * FROM bookings 
@@ -226,7 +243,7 @@ router.put('/:bookingId/status', [auth, isAdmin], async (req, res) => {
                  AND (
                      (start_time < ? AND end_time > ?) OR 
                      (start_time >= ? AND start_time < ?) 
-                 ) AND status = 'booked' AND id != ?`,
+                 ) AND status = 'booked' AND id != ?`, // Exclude the current booking being updated
                 [booking.labId, booking.date, booking.end_time, booking.start_time, booking.start_time, booking.end_time, bookingId]
             );
             if (conflictingBookings.length > 0) {
@@ -249,13 +266,16 @@ router.put('/:bookingId/status', [auth, isAdmin], async (req, res) => {
         if (updatedBookingResult.length === 0) {
              return res.status(500).json({ msg: 'Failed to retrieve updated booking details.' });
         }
-        res.json(updatedBookingResult[0]);
+        res.json(updatedBookingResult[0]); // Send back the updated booking object
     } catch (err) {
         console.error('Error updating booking status:', err.message, err.stack);
         res.status(500).json({ msg: 'Server Error while updating booking status' });
     }
 });
 
+// @route   PUT api/bookings/:bookingId/purpose
+// @desc    Update booking purpose (Admin only)
+// @access  Private (Admin)
 router.put('/:bookingId/purpose', [auth, isAdmin], async (req, res) => {
     const { purpose } = req.body;
     const { bookingId } = req.params;
@@ -293,6 +313,9 @@ router.put('/:bookingId/purpose', [auth, isAdmin], async (req, res) => {
     }
 });
 
+// @route   DELETE api/bookings/:bookingId
+// @desc    Cancel a booking (Owner or Admin)
+// @access  Private
 router.delete('/:bookingId', auth, async (req, res) => {
     const { bookingId } = req.params;
     const userIdFromToken = req.user.id;
@@ -305,10 +328,12 @@ router.delete('/:bookingId', auth, async (req, res) => {
         }
         const booking = bookingResult[0];
 
+        // Allow cancellation if user is admin OR if user is the one who made the booking
         if (String(booking.user_id) !== String(userIdFromToken) && userRoleFromToken !== USER_ROLES.ADMIN) {
             return res.status(403).json({ msg: 'Not authorized to cancel this booking' });
         }
 
+        // Instead of deleting, update status to 'cancelled'
         await pool.query('UPDATE bookings SET status = ? WHERE id = ?', ['cancelled', bookingId]);
         res.json({ msg: 'Booking cancelled successfully' });
 
