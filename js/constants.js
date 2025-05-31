@@ -21,11 +21,10 @@ const NAV_LINKS_OBJ = {
     { href: 'admin.html', label: 'Admin Dashboard', icon: 'layout-dashboard' },
     { href: 'admin_manage_labs.html', label: 'Manage Labs', icon: 'settings-2' },
     { href: 'admin_manage_equipment.html', label: 'Manage Equipment', icon: 'wrench' },
-    { href: 'admin_faculty_requests.html', label: 'Faculty Requests', icon: 'user-check' }, // Corrected
+    { href: 'admin_faculty_requests.html', label: 'Faculty Requests', icon: 'user-check' },
     { href: 'admin_manage_users.html', label: 'User Management', icon: 'users' },
     { href: 'labs.html', label: 'Lab Availability', icon: 'flask-conical' },
     { href: 'admin_run_algorithms.html', label: 'Run Optimization Algorithms', icon: 'cpu' },
-    // { href: 'admin_system_overview.html', label: 'System Overview & Reports', icon: 'activity' }, // Feature removed
   ],
   [USER_ROLES_OBJ.FACULTY]: [
     { href: 'faculty.html', label: 'Faculty Dashboard', icon: 'layout-dashboard' },
@@ -42,11 +41,9 @@ const NAV_LINKS_OBJ = {
     { href: 'assistant.html', label: 'Assistant Dashboard', icon: 'layout-dashboard' },
     { href: 'labs.html', label: 'Lab Availability', icon: 'flask-conical' },
     { href: 'assistant_update_seat_status.html', label: 'Update Seat Status', icon: 'edit-3' },
-    // "Request Lab Slot" was removed for Assistant
   ],
 };
 
-// Profile is accessed via user dropdown in header, not a direct sidebar link.
 const COMMON_NAV_LINKS_CONST = [];
 
 
@@ -65,32 +62,38 @@ const MOCK_TIME_SLOTS_CONST = [
 
 function formatDate(dateInput) {
     if (!dateInput && dateInput !== 0) {
-        // console.warn('[constants.js] formatDate: Received null or undefined dateInput.');
+        console.warn('[constants.js] formatDate: Received null or undefined dateInput. Input was:', dateInput);
         return 'N/A';
     }
     let d;
 
     if (dateInput instanceof Date) {
         if (isNaN(dateInput.getTime())) {
-            // console.warn('[constants.js] formatDate: Invalid Date object passed', dateInput);
+            console.warn('[constants.js] formatDate: Invalid Date object passed. Input was:', dateInput);
             return 'Invalid Date Object';
         }
         d = dateInput;
     } else if (typeof dateInput === 'string' || typeof dateInput === 'number') {
         let dateString = String(dateInput);
-        if (/^\d{4}-\d{2}-\d{2}/.test(dateString)) { // Matches YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss...
+        // Check if the string already has a time component before appending T00:00:00Z
+        // A simple check for 'T' or space followed by digits
+        const hasTimeComponent = /T| \d{2}:/.test(dateString);
+
+        if (/^\d{4}-\d{2}-\d{2}/.test(dateString) && !hasTimeComponent) { // Matches YYYY-MM-DD only
              const [year, month, day] = dateString.substring(0,10).split('-').map(Number);
              d = new Date(Date.UTC(year, month - 1, day));
-        } else {
-             d = new Date(dateString);
-             if (isNaN(d.getTime())) {
-                d = new Date(dateString.replace(/-/g, '/') + 'T00:00:00Z');
+        } else { // Handles YYYY-MM-DDTHH:mm:ss, or other string/number inputs
+             d = new Date(dateString); // Try direct parsing first
+             if (isNaN(d.getTime())) { // If direct parsing fails, try with common ISO fixes
+                d = new Date(dateString.replace(/-/g, '/') + (hasTimeComponent ? '' : 'T00:00:00Z'));
                 if (isNaN(d.getTime())) {
+                    console.warn('[constants.js] formatDate: Could not parse date string/number. Input was:', dateInput);
                     return 'Invalid Date String/Number';
                 }
             }
         }
     } else {
+        console.warn('[constants.js] formatDate: Invalid dateInput type. Input was:', dateInput, 'Type:', typeof dateInput);
         return 'Invalid Date Type';
     }
 
@@ -101,14 +104,32 @@ function formatDate(dateInput) {
 }
 
 function formatDateForDisplay(dateInput) {
-    if (!dateInput) return '';
-    const d = dateInput instanceof Date ? dateInput : new Date(String(dateInput).replace(/-/g, '/').substring(0,10));
-    if (isNaN(d.getTime())) return 'Invalid Date';
+    if (!dateInput && dateInput !== 0) {
+        console.warn('[constants.js] formatDateForDisplay: Received null or undefined dateInput. Input was:', dateInput);
+        return '';
+    }
+    // Ensure the date string is treated as UTC if it's just YYYY-MM-DD
+    let dateStringToParse = String(dateInput);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStringToParse)) { // Only YYYY-MM-DD
+        dateStringToParse += 'T00:00:00Z'; // Append UTC time to ensure correct day
+    } else {
+        // For full ISO strings or other formats, replace hyphens in date part for broader compatibility with new Date()
+        dateStringToParse = dateStringToParse.substring(0, 10).replace(/-/g, '/') + dateStringToParse.substring(10);
+    }
+
+    const d = new Date(dateStringToParse);
+
+    if (isNaN(d.getTime())) {
+        console.warn('[constants.js] formatDateForDisplay: Invalid dateInput resulted in Invalid Date. Original input was:', dateInput, 'Parsed as:', dateStringToParse);
+        return 'Invalid Date';
+    }
     
+    // Use UTC methods to get date parts to ensure consistency regardless of client timezone for display
     const year = d.getUTCFullYear();
     const monthIndex = d.getUTCMonth();
     const day = d.getUTCDate();
 
+    // Create a new Date object specifically for formatting, ensuring it represents the UTC date
     const tempDate = new Date(Date.UTC(year, monthIndex, day)); 
     return tempDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 };
@@ -154,3 +175,4 @@ if (typeof window !== 'undefined') {
     console.error('[constants.js] CRITICAL: window object not found. This script is intended for browser environment.');
 }
 console.log('[constants.js] Script end.');
+
