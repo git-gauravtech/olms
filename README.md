@@ -21,7 +21,7 @@ LabLink is a web-based system designed to efficiently manage laboratory schedule
 *   **DAA Integration (Simulated):**
     *   The system is designed to incorporate algorithms like Graph Coloring, 0/1 Knapsack, Greedy algorithms, and Dijkstra’s algorithm.
     *   These are conceptualized as C++ programs. The Node.js backend simulates calling these programs, providing input, and receiving output.
-    *   Admins can trigger these optimization simulations from a dedicated page in the web application.
+    *   Admins can trigger these optimization simulations from a dedicated page in the web application. The system displays the simulated inputs, outputs, and potential database impact for Admin review. The actual application of these algorithm-driven suggestions to the live database is a conceptual next step for a more advanced version, maintaining the current semi-automated approach.
 
 ## 3. User Roles and Permissions
 
@@ -59,18 +59,55 @@ LabLink is a web-based system designed to efficiently manage laboratory schedule
     *   Detailed booking information (status, purpose, user).
     *   Admin actions (cancel booking, modify purpose).
     *   A "Book This Slot" button for Faculty/Admin if the slot is available.
-    *   **Lab Layout Visualization:** A schematic diagram of the selected lab's desk/seat layout, with each seat color-coded by its working status (updated by Assistants).
-    *   **Warning for Zero Working Systems:** If an "Available" slot is in a lab with 0 working systems, a warning is displayed.
+    *   **Lab Layout Visualization:** A schematic diagram of the selected lab's desk/seat layout, with each seat color-coded by its working status (updated by Assistants). Includes a summary of working/non-working systems.
+    *   **Warning for Zero Working Systems:** If an "Available" slot is in a lab with 0 working systems, a warning is displayed, and users are prompted for confirmation if they attempt to book it.
 
 ### 4.6. DAA Algorithm Integration (Admin Simulation)
 *   Admins can trigger simulations of DAA algorithms from a dedicated page:
-    *   **Graph Coloring:** For conflict-free lab session scheduling.
-    *   **0/1 Knapsack:** For optimal allocation of scarce equipment.
-    *   **Greedy Algorithm:** For efficient filling of empty lab slots.
-    *   **Dijkstra’s Algorithm:** For assigning labs nearest to a user's location.
-*   The backend simulates preparing input data, calling a C++ executable (via `child_process.spawn`), receiving output, and summarizing potential database changes. This entire simulation (input, output, summary) is displayed to the Admin.
+    *   **Graph Coloring:** For conflict-free lab session scheduling based on lab session requests, time slots, and faculty availability.
+    *   **0/1 Knapsack:** For optimal allocation of scarce equipment to booking requests based on resource availability and request priority.
+    *   **Greedy Algorithm:** For efficient filling of empty lab slots with pending bookings or tasks.
+    *   **Dijkstra’s Algorithm:** For assigning labs nearest to a user's department/location based on a campus layout graph.
+*   The backend simulates preparing input data, calling a C++ executable (via `child_process.spawn`), receiving output, and summarizing potential database changes. This entire simulation (input, output, summary) is displayed to the Admin for review.
 
-## 5. To Run This Project:
+## 5. Algorithm Usage & Integration (as per PRD)
+
+The system integrates the following DAA algorithms (simulated as C++ calls) for optimization:
+
+### 5.1 Graph Coloring Algorithm
+*   **Purpose:** Schedule lab sessions to avoid time conflicts among labs or shared student groups.
+*   **Input (Simulated):** Graph nodes (lab session requests with details like course, faculty, student batch), available time slots, faculty availability.
+*   **Output (Simulated):** Assignment of time slots (colors) to lab sessions to achieve a conflict-free schedule, or identification of unschedulable sessions.
+*   **Usage:** Admin triggers simulation; backend builds a conceptual conflict graph and runs the "Graph Coloring" simulation. The output displayed suggests an optimized schedule for Admin review.
+
+### 5.2 Knapsack Algorithm
+*   **Purpose:** Allocate scarce lab equipment to bookings, maximizing total priority or utility.
+*   **Input (Simulated):** List of booking requests needing specific equipment (with priority values), and total available units of scarce resources.
+*   **Output (Simulated):** An optimal subset of bookings to allocate equipment to, without exceeding availability, maximizing total priority.
+*   **Usage:** Admin triggers simulation; backend gathers equipment demands and runs the "Knapsack" simulation. The output suggests an optimal equipment allocation for Admin review.
+
+### 5.3 Greedy Algorithm
+*   **Purpose:** Fill free lab slots or seats efficiently with smaller pending bookings or tasks.
+*   **Input (Simulated):** Identified free time slots in the schedule and a list of pending bookings or tasks with priorities and requirements.
+*   **Output (Simulated):** Assignments of tasks/bookings to free slots that maximize lab utilization based on a greedy strategy.
+*   **Usage:** Admin triggers simulation; backend identifies gaps and runs the "Greedy" simulation. The output suggests slot fillings for Admin review.
+
+### 5.4 Dijkstra’s Algorithm
+*   **Purpose:** Assign labs or resources nearest to a user's location for convenience.
+*   **Input (Simulated):** A graph representing the campus/building layout with weighted edges (distances), a user's source location, and a list of target available labs.
+*   **Output (Simulated):** The nearest available lab(s) and the shortest path(s) to them.
+*   **Usage:** Admin triggers simulation; backend models the layout and runs "Dijkstra's" simulation. The output suggests the most convenient lab(s) for Admin review.
+
+## 6. Detailed System Workflow (Summary)
+1.  **User Login & Role-Based Dashboard:** JWT authentication, role-specific views.
+2.  **Faculty Submits Booking Request:** Form submission, backend conflict check. Conflicting requests become `pending-admin-approval`.
+3.  **Admin Reviews Pending Faculty Requests:** Admin dashboard lists `pending-admin-approval` requests for action.
+4.  **Admin Triggers Algorithmic Optimizations:** Admin uses a dedicated page to run simulations of the DAA algorithms.
+5.  **Admin Reviews Algorithm Suggestions:** Frontend displays simulated inputs, outputs, and database impact summaries from the algorithm runs.
+6.  **Schedule Update:** Bookings are updated in the database (e.g., when an admin approves a request, or faculty/admin books an available slot).
+7.  **Daily Lab Operations:** Assistants update seat statuses; users view real-time lab availability and seat conditions.
+
+## 7. To Run This Project:
 
 **Prerequisites:**
 1.  Node.js and npm installed.
@@ -127,7 +164,7 @@ If you only want to work on frontend HTML/CSS/JS changes without running the ful
     This will use `live-server` to serve the frontend (typically on `http://localhost:9002`).
     **Important:** In this mode, ensure `js/constants.js` has `API_BASE_URL_CONST` set to the full backend URL (e.g., `http://localhost:5001/api`). For unified serving (default `npm start`), it should be `/api`.
 
-## 6. Project Structure
+## 8. Project Structure
 
 **Root (`LabLink/` or `olms-main/`):**
 *   `index.html`: The login page and main entry point.
@@ -162,8 +199,8 @@ If you only want to work on frontend HTML/CSS/JS changes without running the ful
 *   `package.json`: Backend dependencies and scripts.
 
 ## Notes
-*   The system provides a semi-automated approach: Admins control when to run DAA optimization simulations and review their outputs.
-*   DAA algorithms provide data-driven recommendations to improve scheduling efficiency. The actual application of these recommendations to the database is a manual step for the Admin after review (or a future enhancement).
+*   The system provides a semi-automated approach: Admins control when to run DAA optimization simulations and review their outputs. The application of these suggestions to the live database is a conceptual next step for a more advanced system.
+*   DAA algorithms provide data-driven recommendations to improve scheduling efficiency.
 *   Real-time updates by Assistants on seat status keep the system’s view of lab conditions accurate.
 *   The C++ integration point is designed for scalability and reuse of potentially complex, tested algorithm implementations. The current project simulates this integration.
     
