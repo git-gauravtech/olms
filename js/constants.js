@@ -1,6 +1,9 @@
 
+// --- API Configuration ---
 const API_BASE_URL_CONST = '/api'; 
 
+// --- User Roles ---
+// Defines the set of user roles available in the system.
 const USER_ROLES_OBJ = {
   ADMIN: 'Admin',
   FACULTY: 'Faculty',
@@ -10,6 +13,8 @@ const USER_ROLES_OBJ = {
 const ROLES_ARRAY_CONST = Object.values(USER_ROLES_OBJ);
 const USER_ROLE_VALUES_CONST = Object.values(USER_ROLES_OBJ);
 
+// --- Navigation Links ---
+// Defines dashboard navigation links specific to each user role.
 const NAV_LINKS_OBJ = {
   [USER_ROLES_OBJ.ADMIN]: [
     { href: 'admin.html', label: 'Admin Dashboard', icon: 'layout-dashboard' },
@@ -41,8 +46,11 @@ const NAV_LINKS_OBJ = {
   ],
 };
 
+// Defines common navigation links, currently empty but can be used for shared links like a profile page.
 const COMMON_NAV_LINKS_CONST = [];
 
+// --- Time Slots ---
+// Defines the standard time slots available for booking throughout the day.
 const MOCK_TIME_SLOTS_CONST = [
   { id: 'ts_0800_0900', startTime: '08:00', endTime: '09:00', displayTime: '08:00 AM - 09:00 AM' },
   { id: 'ts_0900_1000', startTime: '09:00', endTime: '10:00', displayTime: '09:00 AM - 10:00 AM' },
@@ -56,6 +64,14 @@ const MOCK_TIME_SLOTS_CONST = [
   { id: 'ts_1700_1800', startTime: '17:00', endTime: '18:00', displayTime: '05:00 PM - 06:00 PM' },
 ];
 
+// --- Date Formatting Utilities ---
+/**
+ * Formats a dateInput into 'YYYY-MM-DD' string (UTC).
+ * Handles Date objects, date strings, or numbers (timestamps).
+ * Warns if input is invalid.
+ * @param {Date|string|number} dateInput - The date to format.
+ * @returns {string} Formatted date string or 'N/A'/'Invalid Date'.
+ */
 function formatDate(dateInput) {
     if (!dateInput && dateInput !== 0) {
         console.warn('[constants.js formatDate] Received null or undefined dateInput. Input was:', dateInput);
@@ -98,6 +114,14 @@ function formatDate(dateInput) {
     return `${year}-${month}-${day}`;
 }
 
+/**
+ * Formats a dateInput for user display (e.g., 'Sep 10, 2024').
+ * Handles Date objects or date strings.
+ * Attempts to interpret date-only strings as UTC to prevent timezone-related day shifts.
+ * Warns if input is invalid.
+ * @param {Date|string} dateInput - The date to format for display.
+ * @returns {string} Formatted date string or 'Invalid Date'.
+ */
 function formatDateForDisplay(dateInput) {
     if (!dateInput && dateInput !== 0) {
         console.warn('[constants.js formatDateForDisplay] Received null or undefined dateInput. Input was:', dateInput);
@@ -137,8 +161,11 @@ function formatDateForDisplay(dateInput) {
     });
 };
 
+// --- Weekdays ---
 const DAYS_OF_WEEK_CONST = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
+// --- Academic Departments ---
+// Standard list of academic departments for user profiles, courses, etc.
 const DEPARTMENTS_CONST = [
   'CSE (Computer Science & Engineering)', 'IT (Information Technology)', 'ECE (Electronics & Communication Engineering)',
   'MECH (Mechanical Engineering)', 'CIVIL (Civil Engineering)', 'EEE (Electrical & Electronics Engineering)',
@@ -146,9 +173,12 @@ const DEPARTMENTS_CONST = [
   'Other',
 ];
 
+// --- Equipment & Booking Statuses ---
 const EQUIPMENT_STATUSES_CONST = ['available', 'in-use', 'maintenance', 'broken'];
 const BOOKING_STATUSES_ARRAY_CONST = ['pending', 'booked', 'rejected', 'cancelled', 'pending-admin-approval', 'approved-by-admin', 'rejected-by-admin'];
 
+// --- Global Exposure ---
+// Expose constants and utility functions to the window object for global access in other scripts.
 if (typeof window !== 'undefined') {
     window.API_BASE_URL = API_BASE_URL_CONST;
     window.USER_ROLES = USER_ROLES_OBJ;
@@ -164,6 +194,7 @@ if (typeof window !== 'undefined') {
     window.formatDate = formatDate;
     window.formatDateForDisplay = formatDateForDisplay;
 } else {
-    console.error('[constants.js] CRITICAL: window object not found.');
+    // This case should ideally not happen in a browser environment.
+    console.error('[constants.js] CRITICAL: window object not found. Constants cannot be set globally.');
 }
     
