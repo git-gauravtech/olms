@@ -23,14 +23,13 @@ const USER_ROLE_VALUES_CONST = Object.values(USER_ROLES_OBJ);
 const NAV_LINKS_OBJ = {
   [USER_ROLES_OBJ.ADMIN]: [
     { href: 'admin.html', label: 'Admin Dashboard', icon: 'layout-dashboard' },
-    { href: 'admin_academic_structure.html', label: 'Academic Structure', icon: 'book-open' }, // Merged Courses & Sections
+    { href: 'admin_academic_structure.html', label: 'Academic Structure', icon: 'book-open' },
     { href: 'admin_manage_labs.html', label: 'Manage Labs', icon: 'settings-2' },
     { href: 'admin_manage_equipment.html', label: 'Manage Equipment', icon: 'wrench' },
     { href: 'admin_faculty_requests.html', label: 'Faculty Requests', icon: 'user-check' },
     { href: 'admin_manage_users.html', label: 'User Management', icon: 'users' },
     { href: 'labs.html', label: 'Lab Availability', icon: 'flask-conical' },
     { href: 'admin_run_algorithms.html', label: 'Run Optimization Algorithms', icon: 'cpu' },
-    // System Activity Log removed
   ],
   [USER_ROLES_OBJ.FACULTY]: [
     { href: 'faculty.html', label: 'Faculty Dashboard', icon: 'layout-dashboard' },
@@ -40,8 +39,8 @@ const NAV_LINKS_OBJ = {
   ],
   [USER_ROLES_OBJ.STUDENT]: [
     { href: 'student.html', label: 'Student Dashboard', icon: 'layout-dashboard' },
-    { href: 'student_my_bookings.html', label: 'My Schedule', icon: 'calendar-check' },
-    // Lab Availability removed for students
+    { href: 'student_my_bookings.html', label: 'View Section Schedule', icon: 'calendar-check' },
+    // Lab Availability direct link removed for students, they access schedule via the above page.
   ],
   [USER_ROLES_OBJ.ASSISTANT]: [
     { href: 'assistant.html', label: 'Assistant Dashboard', icon: 'layout-dashboard' },
@@ -77,14 +76,14 @@ const MOCK_TIME_SLOTS_CONST = [
  */
 function formatDate(dateInput) {
     if (!dateInput && dateInput !== 0) {
-        console.warn('[constants.js formatDate] Received null or undefined dateInput. Input was:', dateInput);
+        // console.warn('[constants.js formatDate] Received null or undefined dateInput. Input was:', dateInput);
         return 'N/A';
     }
     let d;
 
     if (dateInput instanceof Date) {
         if (isNaN(dateInput.getTime())) {
-            console.warn('[constants.js formatDate] Invalid Date object passed. Input was:', dateInput);
+            // console.warn('[constants.js formatDate] Invalid Date object passed. Input was:', dateInput);
             return 'Invalid Date Object';
         }
         d = dateInput;
@@ -105,13 +104,13 @@ function formatDate(dateInput) {
                 let modifiedDateString = dateString.substring(0,10).replace(/-/g, '/') + dateString.substring(10);
                 d = new Date(modifiedDateString + (hasTimeComponent || modifiedDateString.includes('Z') ? '' : 'T00:00:00Z')); // Append Z for UTC if not present
                 if (isNaN(d.getTime())) {
-                    console.warn('[constants.js formatDate] Could not parse date string/number. Input was:', dateInput, 'Attempted parsing:', modifiedDateString);
+                    // console.warn('[constants.js formatDate] Could not parse date string/number. Input was:', dateInput, 'Attempted parsing:', modifiedDateString);
                     return 'Invalid Date String/Number';
                 }
             }
         }
     } else {
-        console.warn('[constants.js formatDate] Invalid dateInput type. Input was:', dateInput, 'Type:', typeof dateInput);
+        // console.warn('[constants.js formatDate] Invalid dateInput type. Input was:', dateInput, 'Type:', typeof dateInput);
         return 'Invalid Date Type';
     }
 
@@ -133,14 +132,14 @@ function formatDateForDisplay(dateInput) {
     if (!dateInput && dateInput !== 0) {
         // It's okay for this to be empty if input is null/undefined, rather than 'N/A'.
         // Let the caller decide how to handle an empty string.
-        console.warn('[constants.js formatDateForDisplay] Received null or undefined dateInput. Input was:', dateInput);
+        // console.warn('[constants.js formatDateForDisplay] Received null or undefined dateInput. Input was:', dateInput);
         return '';
     }
     
     let dateToFormat;
     if (dateInput instanceof Date) {
         if (isNaN(dateInput.getTime())) {
-            console.warn('[constants.js formatDateForDisplay] Invalid Date object. Input:', dateInput);
+            // console.warn('[constants.js formatDateForDisplay] Invalid Date object. Input:', dateInput);
             return 'Invalid Date';
         }
         dateToFormat = dateInput;
@@ -162,7 +161,7 @@ function formatDateForDisplay(dateInput) {
             }
         }
         if (isNaN(dateToFormat.getTime())) {
-            console.warn('[constants.js formatDateForDisplay] Invalid date string resulted in Invalid Date. Original input:', dateInput, 'Parsed as:', dateStringToParse);
+            // console.warn('[constants.js formatDateForDisplay] Invalid date string resulted in Invalid Date. Original input:', dateInput, 'Parsed as:', dateStringToParse);
             return 'Invalid Date';
         }
     }

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Schedule - OLMS</title>
+    <title>View Section Schedule - OLMS</title>
     <link rel="stylesheet" href="../css/style.css">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
@@ -28,11 +28,33 @@
                 <div class="custom-card">
                     <div class="custom-card-header">
                         <i data-lucide="calendar-check"></i>
-                        <h1 class="custom-card-title">My Lab Schedule</h1>
+                        <h1 class="custom-card-title">View Section Lab Schedule</h1>
                     </div>
                     <div class="custom-card-content">
-                        <p class="text-muted-foreground mb-4">Your lab sessions. (Note: Student enrollment into specific course sections is not yet fully implemented. This view shows bookings relevant to you based on future enrollment logic.)</p>
-                        <div id="myScheduleListContainer" class="space-y-4">Loading schedule...</div>
+                        <p class="text-muted-foreground mb-4">
+                            Select a course and section to view its lab schedule. 
+                            (Note: Student enrollment into specific course sections is not yet fully implemented.)
+                        </p>
+
+                        <div class="grid md-grid-cols-3 gap-4 mb-4 items-end">
+                            <div class="form-group">
+                                <label for="studentCourseSelect">Select Course:</label>
+                                <select id="studentCourseSelect" name="studentCourseSelect" class="custom-card-content input">
+                                    <option value="">Loading courses...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="studentSectionSelect">Select Section:</label>
+                                <select id="studentSectionSelect" name="studentSectionSelect" class="custom-card-content input" disabled>
+                                    <option value="">Select a course first</option>
+                                </select>
+                            </div>
+                            <button type="button" id="viewSectionScheduleBtn" class="button button-primary" style="height: fit-content;">View Schedule</button>
+                        </div>
+                        
+                        <div id="myScheduleListContainer" class="space-y-4 mt-6">
+                            <p class="text-muted-foreground text-center">Please select a course and section, then click "View Schedule".</p>
+                        </div>
                     </div>
                 </div>
             </main>
@@ -43,32 +65,91 @@
     <script src="js/dashboard.js"></script>
     <script>
         const scheduleListContainer = document.getElementById('myScheduleListContainer');
+        const studentCourseSelect = document.getElementById('studentCourseSelect');
+        const studentSectionSelect = document.getElementById('studentSectionSelect');
+        const viewSectionScheduleBtn = document.getElementById('viewSectionScheduleBtn');
         const token = localStorage.getItem('token');
 
-        async function loadAndRenderMySchedule() {
-            if (!scheduleListContainer || !window.API_BASE_URL || !token) {
-                if (scheduleListContainer) scheduleListContainer.innerHTML = '<p class="error-message visible">Page setup error or not authenticated.</p>';
+        async function populateStudentCourseDropdown() {
+            if (!studentCourseSelect || !token) {
+                if (scheduleListContainer) scheduleListContainer.innerHTML = '<p class="error-message visible">Course selection dropdown not found or not authenticated.</p>';
                 return;
             }
-            scheduleListContainer.innerHTML = '<p>Loading your schedule...</p>';
+            studentCourseSelect.innerHTML = '<option value="">Loading courses...</option>';
             try {
-                // Students view their schedule by calling /api/bookings/my
-                // The backend for students currently returns an empty array as enrollment isn't implemented.
-                const response = await fetch(`${window.API_BASE_URL}/bookings/my`, { 
+                const response = await fetch(`${window.API_BASE_URL}/courses`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (!response.ok) throw new Error('Failed to fetch courses');
+                const courses = await response.json();
+                
+                studentCourseSelect.innerHTML = '<option value="">Select a Course</option>';
+                if (courses.length > 0) {
+                    courses.forEach(course => {
+                        const option = document.createElement('option');
+                        option.value = course.id;
+                        option.textContent = course.name;
+                        studentCourseSelect.appendChild(option);
+                    });
+                } else {
+                    studentCourseSelect.innerHTML = '<option value="">No courses available</option>';
+                }
+            } catch (error) {
+                console.error("Error populating student course dropdown:", error);
+                studentCourseSelect.innerHTML = '<option value="">Error loading courses</option>';
+                if (scheduleListContainer) scheduleListContainer.innerHTML = `<p class="error-message visible">Error loading courses: ${error.message}</p>`;
+            }
+        }
+
+        async function populateStudentSectionDropdown(courseId) {
+            if (!studentSectionSelect || !token || !courseId) {
+                studentSectionSelect.innerHTML = '<option value="">Select a course first</option>';
+                studentSectionSelect.disabled = true;
+                return;
+            }
+            studentSectionSelect.innerHTML = '<option value="">Loading sections...</option>';
+            studentSectionSelect.disabled = true;
+            try {
+                const response = await fetch(`${window.API_BASE_URL}/sections?course_id=${courseId}`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (!response.ok) throw new Error('Failed to fetch sections');
+                const sections = await response.json();
+
+                studentSectionSelect.innerHTML = '<option value="">Select a Section</option>';
+                if (sections.length > 0) {
+                    sections.forEach(section => {
+                        const option = document.createElement('option');
+                        option.value = section.id;
+                        option.textContent = `${section.section_name} (Faculty: ${section.faculty_name || 'N/A'})`;
+                        studentSectionSelect.appendChild(option);
+                    });
+                    studentSectionSelect.disabled = false;
+                } else {
+                    studentSectionSelect.innerHTML = '<option value="">No sections for this course</option>';
+                }
+            } catch (error) {
+                console.error("Error populating student section dropdown:", error);
+                studentSectionSelect.innerHTML = '<option value="">Error loading sections</option>';
+            }
+        }
+
+        async function loadAndRenderSectionSchedule(sectionId) {
+            if (!scheduleListContainer || !token || !sectionId) {
+                if (scheduleListContainer) scheduleListContainer.innerHTML = '<p class="error-message visible">Please select a section to view its schedule.</p>';
+                return;
+            }
+            scheduleListContainer.innerHTML = '<p>Loading schedule...</p>';
+            try {
+                const response = await fetch(`${window.API_BASE_URL}/bookings?section_id=${sectionId}`, { 
                     headers: { 'Authorization': `Bearer ${token}` } 
                 }); 
                 
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({ msg: `Server error: ${response.status}` }));
-                    // Do not show "Access denied. Admin role required." for students.
-                    // The backend /my route for students should handle their access correctly (even if returning empty list).
-                    throw new Error(errorData.msg || `Failed to fetch your schedule`);
+                    throw new Error(errorData.msg || `Failed to fetch schedule for the selected section`);
                 }
-                const studentBookings = await response.json();
+                const sectionBookings = await response.json();
 
-                if (studentBookings.length > 0) {
+                if (sectionBookings.length > 0) {
                     scheduleListContainer.innerHTML = ''; 
-                    studentBookings.forEach(booking => {
+                    sectionBookings.forEach(booking => {
                         const card = document.createElement('div'); card.className = 'custom-card p-4 border rounded-md shadow-sm mb-3';
                         
                         const timeSlotObj = (window.MOCK_TIME_SLOTS && booking.timeSlotId) 
@@ -78,20 +159,19 @@
                         let slotEndDateTime = null;
                         if (timeSlotObj && booking.date) {
                             const [endHours, endMinutes] = timeSlotObj.endTime.split(':').map(Number);
-                            const bookingDateObj = new Date(String(booking.date).replace(/-/g, '/')); // Ensure correct parsing
+                            const bookingDateObj = new Date(String(booking.date).replace(/-/g, '/'));
                             slotEndDateTime = new Date(bookingDateObj.getFullYear(), bookingDateObj.getMonth(), bookingDateObj.getDate(), endHours, endMinutes);
                         }
                         
                         const isPast = slotEndDateTime ? slotEndDateTime < new Date() : false;
-                        let statusColorClass = isPast ? 'text-gray-500' : 'text-green-600'; // Default to green for booked
-                        if (booking.status !== 'booked') { // If not booked, use a more general color or specific for pending/cancelled if available
-                            statusColorClass = 'text-yellow-600'; // Example for non-booked active statuses
+                        let statusColorClass = isPast ? 'text-gray-500' : 'text-green-600';
+                        if (booking.status !== 'booked') {
+                            statusColorClass = 'text-yellow-600'; 
                         }
-
                         
                         const labDisplay = booking.labName || 'Unknown Lab';
-                        const courseDisplay = booking.courseName || 'N/A';
-                        const sectionDisplay = booking.sectionName || 'N/A';
+                        const courseDisplay = booking.courseName || 'N/A'; // Should be available if section is known
+                        const sectionDisplay = booking.sectionName || 'N/A'; // Should be available
                         const dateDisplay = booking.date ? window.formatDateForDisplay(new Date(booking.date)) : 'N/A';
                         const timeDisplay = timeSlotObj?.displayTime || booking.timeSlotId || 'N/A';
                         const purposeDisplay = booking.purpose || 'N/A';
@@ -106,18 +186,19 @@
                             <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Purpose:</strong> ${purposeDisplay}</p>
                             <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Status:</strong> 
                                 <span class="font-medium ${statusColorClass}">
-                                    ${statusText} ${isPast ? '(Completed)' : ''}
+                                    ${statusText} ${isPast && booking.status === 'booked' ? '(Completed)' : ''}
                                 </span>
                             </p>
+                            <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Booked By:</strong> ${booking.userName || 'N/A'} (Faculty)</p>
                         `;
                         scheduleListContainer.appendChild(card);
                     });
                 } else { 
-                    scheduleListContainer.innerHTML = '<p class="text-muted-foreground">No lab sessions scheduled for you at this time. Student enrollment for specific courses is managed by the administration.</p>'; 
+                    scheduleListContainer.innerHTML = '<p class="text-muted-foreground">No lab sessions scheduled for this section at this time.</p>'; 
                 }
             } catch (error) {
-                console.error("Error in loadAndRenderMySchedule (Student):", error);
-                if (scheduleListContainer) scheduleListContainer.innerHTML = `<p class="error-message visible">Error loading your schedule: ${error.message}</p>`;
+                console.error("Error in loadAndRenderSectionSchedule (Student):", error);
+                if (scheduleListContainer) scheduleListContainer.innerHTML = `<p class="error-message visible">Error loading schedule: ${error.message}</p>`;
             }
             if (window.lucide) window.lucide.createIcons();
         }
@@ -126,7 +207,24 @@
             if (!window.roleGuard(window.USER_ROLES.STUDENT)) return; 
             window.initializeDashboard(); 
             window.setDashboardHomeLink(); 
-            await loadAndRenderMySchedule();
+            await populateStudentCourseDropdown();
+
+            if(studentCourseSelect) {
+                studentCourseSelect.addEventListener('change', (e) => {
+                    populateStudentSectionDropdown(e.target.value);
+                });
+            }
+            if(viewSectionScheduleBtn) {
+                viewSectionScheduleBtn.addEventListener('click', () => {
+                    const selectedSectionId = studentSectionSelect.value;
+                    if (selectedSectionId) {
+                        loadAndRenderSectionSchedule(selectedSectionId);
+                    } else {
+                        if (scheduleListContainer) scheduleListContainer.innerHTML = '<p class="text-muted-foreground text-center">Please select a course and section first.</p>';
+                    }
+                });
+            }
+            if (window.lucide) window.lucide.createIcons();
         });
     </script>
 </body>

@@ -2,8 +2,12 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
+const { auth, isAdmin } = require('../middleware/authMiddleware'); // Import auth and isAdmin
 
-router.get('/', async (req, res) => {
+// @route   GET api/courses
+// @desc    Get all courses
+// @access  Private (Authenticated Users) - Changed from Admin only
+router.get('/', auth, async (req, res) => {
     try {
         const [courses] = await pool.query('SELECT * FROM courses ORDER BY name ASC');
         res.json(courses);
@@ -13,7 +17,10 @@ router.get('/', async (req, res) => {
     }
 });
 
-router.post('/', async (req, res) => {
+// @route   POST api/courses
+// @desc    Create a new course
+// @access  Private (Admin only)
+router.post('/', [auth, isAdmin], async (req, res) => {
     const { name, department } = req.body;
     if (!name) {
         return res.status(400).json({ msg: 'Course name is required' });
@@ -29,7 +36,10 @@ router.post('/', async (req, res) => {
     }
 });
 
-router.put('/:id', async (req, res) => {
+// @route   PUT api/courses/:id
+// @desc    Update a course
+// @access  Private (Admin only)
+router.put('/:id', [auth, isAdmin], async (req, res) => {
     const { name, department } = req.body;
     const { id } = req.params;
     if (!name && department === undefined) {
@@ -53,7 +63,10 @@ router.put('/:id', async (req, res) => {
     }
 });
 
-router.delete('/:id', async (req, res) => {
+// @route   DELETE api/courses/:id
+// @desc    Delete a course
+// @access  Private (Admin only)
+router.delete('/:id', [auth, isAdmin], async (req, res) => {
     const { id } = req.params;
     try {
         const [existing] = await pool.query('SELECT * FROM courses WHERE id = ?', [id]);
@@ -64,6 +77,10 @@ router.delete('/:id', async (req, res) => {
         res.json({ msg: 'Course and its associated sections deleted successfully' });
     } catch (err) {
         console.error('Error deleting course:', err.message);
+        // Handle foreign key constraint error if sections refer to this course
+        if (err.code === 'ER_ROW_IS_REFERENCED_2') {
+            return res.status(400).json({ msg: 'Cannot delete course. It is referenced by sections. Please delete or reassign associated sections first.' });
+        }
         res.status(500).send('Server Error: Could not delete course');
     }
 });

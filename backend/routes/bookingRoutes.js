@@ -20,11 +20,14 @@ function getTimesFromSlotId(timeSlotId) {
 }
 
 // @route   GET api/bookings
-// @desc    Get all bookings (Admin only)
-// @access  Private (Admin)
-router.get('/', [auth, isAdmin], async (req, res) => {
+// @desc    Get all bookings (Admin only) OR bookings for a specific section_id (Authenticated Users)
+// @access  Private (Authenticated)
+router.get('/', auth, async (req, res) => {
+    const { section_id } = req.query;
+    const requestingUserRole = req.user.role;
+
     try {
-        const [allBookings] = await pool.query(`
+        let query = `
             SELECT b.*, l.name as labName, u.fullName as userName, u.role as userRole,
                    s.section_name as sectionName, crs.name as courseName
             FROM bookings b
@@ -32,12 +35,27 @@ router.get('/', [auth, isAdmin], async (req, res) => {
             LEFT JOIN users u ON b.user_id = u.id
             LEFT JOIN sections s ON b.section_id = s.id
             LEFT JOIN courses crs ON s.course_id = crs.id
-            ORDER BY b.date ASC, b.start_time ASC
-        `);
-        res.json(allBookings);
+        `;
+        const queryParams = [];
+
+        if (section_id) {
+            query += ' WHERE b.section_id = ?';
+            queryParams.push(section_id);
+        } else {
+            // If no section_id is provided, only Admin can see all bookings
+            if (requestingUserRole !== USER_ROLES.ADMIN) {
+                return res.status(403).json({ msg: 'Access denied. Admin role required to view all bookings.' });
+            }
+        }
+        
+        query += ' ORDER BY b.date ASC, b.start_time ASC';
+        
+        const [bookingsResult] = await pool.query(query, queryParams);
+        res.json(bookingsResult);
+
     } catch (err) {
-        console.error('Error fetching all bookings for admin:', err.message, err.stack);
-        res.status(500).json({ msg: 'Server Error: Could not fetch all bookings' });
+        console.error('Error fetching bookings:', err.message, err.stack);
+        res.status(500).json({ msg: 'Server Error: Could not fetch bookings' });
     }
 });
 
@@ -64,9 +82,9 @@ router.get('/my', auth, async (req, res) => {
             queryParams.push(userId);
         } else if (userRole === USER_ROLES.STUDENT) {
             // PRD: "Students view schedules for their enrolled sections"
-            // For now, this will be an empty array as student_section_enrollments table is not implemented.
-            // To show something for demo, it previously fetched all 'booked' bookings.
-            // Reverting to PRD intent: should be specific to student, which requires enrollment logic not yet built.
+            // For this iteration, students will select a course/section on the frontend
+            // and the frontend will query GET /api/bookings?section_id=X
+            // This /my endpoint for students will return an empty array as direct enrollment isn't implemented.
             return res.json([]); 
         } else if (userRole === USER_ROLES.ASSISTANT) {
              // Assistants might see all bookings or bookings for labs they are assigned to.
@@ -99,9 +117,6 @@ router.get('/my', auth, async (req, res) => {
 // @desc    Create a new booking or booking request
 // @access  Private (Faculty or Admin)
 router.post('/', auth, async (req, res) => {
-    console.log('[POST /api/bookings] User making request:', JSON.stringify(req.user));
-    console.log('[POST /api/bookings] Request body received:', JSON.stringify(req.body));
-
     const { labId, date, timeSlotId, purpose, equipmentIds, section_id } = req.body;
     const userId = req.user.id;
     const requestedByRole = req.user.role;
@@ -119,8 +134,6 @@ router.post('/', auth, async (req, res) => {
     }
 
     let status = 'booked'; // Default to booked for both Admin and Faculty initial attempt
-    console.log(`[POST /api/bookings] Initial status for ${requestedByRole} role: ${status}`);
-
 
     try {
         // Conflict Check: Check if the lab is booked for the exact same date and overlapping time with status 'booked'
@@ -133,26 +146,19 @@ router.post('/', auth, async (req, res) => {
              ) AND status = 'booked'`,
             [labId, date, endTime, startTime, startTime, endTime] 
         );
-        console.log(`[POST /api/bookings] Conflict check query params: labId=${labId}, date=${date}, endTime=${endTime}, startTime=${startTime}`);
-        console.log(`[POST /api/bookings] Found ${conflictingBookings.length} conflicting 'booked' bookings.`);
-
+        
         let conflictOccurred = conflictingBookings.length > 0;
 
         if (conflictOccurred) {
              if (requestedByRole === USER_ROLES.FACULTY) {
                 status = 'pending-admin-approval'; // Faculty request goes to admin review on conflict
-                // The original purpose is maintained. Admin sees conflict by checking grid.
-                console.log("[POST /api/bookings] Faculty request HAS CONFLICT with a 'booked' slot. Status changed to 'pending-admin-approval'.");
              } else if (requestedByRole === USER_ROLES.ADMIN) {
                 // Admin using the form directly and encountering a conflict
-                console.log("[POST /api/bookings] Admin booking via form HAS CONFLICT with an existing 'booked' slot. Returning 409.");
                 return res.status(409).json({
                     success: false, conflict: true, 
                     message: "This slot is already booked. As Admin, please use the Lab Availability Grid to check availability or manage existing bookings."
                 });
              }
-        } else {
-            console.log("[POST /api/bookings] No conflict with existing 'booked' slots found. Status remains 'booked'.");
         }
 
         const newBooking = {
@@ -161,14 +167,13 @@ router.post('/', auth, async (req, res) => {
             labId: parseInt(labId),
             date,
             timeSlotId,
-            start_time: startTime, // HH:MM:SS from getTimesFromSlotId
-            end_time: endTime,     // HH:MM:SS from getTimesFromSlotId
+            start_time: startTime, 
+            end_time: endTime,     
             purpose: purpose || null,
             equipmentIds: equipmentIds && equipmentIds.length > 0 ? JSON.stringify(equipmentIds) : null,
             status, 
             submittedDate: new Date()
         };
-        console.log('[POST /api/bookings] Preparing to save booking. Data:', JSON.stringify(newBooking));
 
         const [result] = await pool.query('INSERT INTO bookings SET ?', newBooking);
         const [createdBookingResult] = await pool.query(
@@ -183,21 +188,18 @@ router.post('/', auth, async (req, res) => {
         );
 
         if (createdBookingResult.length === 0) {
-            console.error('[POST /api/bookings] Failed to retrieve created booking details after insert.');
             return res.status(500).json({ msg: 'Failed to retrieve created booking details.' });
         }
         
         const responsePayload = { 
             success: true, 
-            conflict: status === 'pending-admin-approval' && conflictOccurred, // True if faculty request resulted in pending status
+            conflict: status === 'pending-admin-approval' && conflictOccurred, 
             message: status === 'booked' ? "Booking created successfully!" : "Booking request submitted for admin approval due to conflict.",
             booking: createdBookingResult[0] 
         };
         
-        const responseStatus = status === 'booked' ? 201 : 202; // 201 for created, 202 for accepted (pending)
-        console.log(`[POST /api/bookings] Booking successful. Responding with status ${responseStatus}:`, JSON.stringify(responsePayload));
+        const responseStatus = status === 'booked' ? 201 : 202; 
         res.status(responseStatus).json(responsePayload);
-
 
     } catch (err) {
         console.error('[POST /api/bookings] Error creating booking:', err.message, err.stack);
@@ -235,7 +237,6 @@ router.put('/:bookingId/status', [auth, isAdmin], async (req, res) => {
         }
         const booking = bookingResult[0];
 
-        // If admin is trying to change status to 'booked', perform a conflict check
         if (newStatus === 'booked') { 
              const [conflictingBookings] = await pool.query(
                 `SELECT * FROM bookings 
@@ -243,7 +244,7 @@ router.put('/:bookingId/status', [auth, isAdmin], async (req, res) => {
                  AND (
                      (start_time < ? AND end_time > ?) OR 
                      (start_time >= ? AND start_time < ?) 
-                 ) AND status = 'booked' AND id != ?`, // Exclude the current booking being updated
+                 ) AND status = 'booked' AND id != ?`, 
                 [booking.labId, booking.date, booking.end_time, booking.start_time, booking.start_time, booking.end_time, bookingId]
             );
             if (conflictingBookings.length > 0) {
@@ -266,7 +267,7 @@ router.put('/:bookingId/status', [auth, isAdmin], async (req, res) => {
         if (updatedBookingResult.length === 0) {
              return res.status(500).json({ msg: 'Failed to retrieve updated booking details.' });
         }
-        res.json(updatedBookingResult[0]); // Send back the updated booking object
+        res.json(updatedBookingResult[0]);
     } catch (err) {
         console.error('Error updating booking status:', err.message, err.stack);
         res.status(500).json({ msg: 'Server Error while updating booking status' });
@@ -328,12 +329,10 @@ router.delete('/:bookingId', auth, async (req, res) => {
         }
         const booking = bookingResult[0];
 
-        // Allow cancellation if user is admin OR if user is the one who made the booking
         if (String(booking.user_id) !== String(userIdFromToken) && userRoleFromToken !== USER_ROLES.ADMIN) {
             return res.status(403).json({ msg: 'Not authorized to cancel this booking' });
         }
 
-        // Instead of deleting, update status to 'cancelled'
         await pool.query('UPDATE bookings SET status = ? WHERE id = ?', ['cancelled', bookingId]);
         res.json({ msg: 'Booking cancelled successfully' });
 
