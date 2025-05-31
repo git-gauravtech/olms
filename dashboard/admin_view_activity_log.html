@@ -1,0 +1,121 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Activity Log - Optimized Lab Management System</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="dashboard-layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                 <a href="admin.html" class="sidebar-header-link" id="dashboardHomeLink">
+                    <i data-lucide="atom"></i>
+                    <span class="sidebar-title">Optimized Lab Management</span>
+                </a>
+            </div>
+            <ul class="sidebar-nav" id="sidebarNav">
+                <!-- Nav items will be populated by JS -->
+            </ul>
+        </aside>
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <div class="main-content-wrapper">
+            <header class="dashboard-header">
+                <button type="button" class="mobile-menu-button" id="mobileMenuButton">
+                    <i data-lucide="menu"></i>
+                </button>
+                <div class="user-nav" id="userNavContainer">
+                    <!-- UserNav will be populated by JS -->
+                </div>
+            </header>
+            <main class="page-content">
+                <div class="custom-card">
+                    <div class="custom-card-header">
+                        <i data-lucide="history"></i>
+                        <h1 class="custom-card-title">System Activity Log (Mock)</h1>
+                    </div>
+                    <div class="custom-card-content">
+                        <p class="text-muted-foreground mb-4">
+                            This page displays mock system activity logs. In a production system, these would be comprehensive records of important events.
+                        </p>
+                        <div id="activityLogContainer" class="space-y-3">
+                           <p>Loading activity logs...</p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="../js/constants.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // console.log('DOM fully loaded and parsed for admin_view_activity_log.html');
+            if (!window.roleGuard(window.USER_ROLES.ADMIN)) return;
+            
+            window.initializeDashboard();
+            window.setDashboardHomeLink(); // Ensure home link in sidebar is correct
+
+            const activityLogContainer = document.getElementById('activityLogContainer');
+            const token = localStorage.getItem('token');
+
+            if (!activityLogContainer || !token || !window.API_BASE_URL) {
+                if(activityLogContainer) activityLogContainer.innerHTML = '<p class="error-message visible">Error: Page or authentication setup incomplete.</p>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${window.API_BASE_URL}/admin/system-activity`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({msg: `Server error: ${response.status}`}));
+                    throw new Error(errorData.msg || 'Failed to fetch activity logs');
+                }
+                const logs = await response.json();
+
+                if (logs && logs.length > 0) {
+                    activityLogContainer.innerHTML = ''; // Clear loading message
+                    const ul = document.createElement('ul');
+                    ul.className = 'list-none p-0';
+                    logs.forEach(log => {
+                        const li = document.createElement('li');
+                        li.className = 'p-3 mb-2 border border-gray-200 rounded-md shadow-sm bg-gray-50';
+                        
+                        const timestamp = new Date(log.timestamp).toLocaleString('en-US', { 
+                            year: 'numeric', month: 'short', day: 'numeric', 
+                            hour: '2-digit', minute: '2-digit', second: '2-digit' 
+                        });
+
+                        li.innerHTML = `
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="font-semibold text-sm text-gray-700">${log.action || 'Unknown Action'}</span>
+                                <span class="text-xs text-gray-500">${timestamp}</span>
+                            </div>
+                            <p class="text-xs text-gray-600"><strong>User:</strong> ${log.user || 'System'}</p>
+                            <p class="text-xs text-gray-600"><strong>Details:</strong> ${log.details || 'No additional details.'}</p>
+                        `;
+                        ul.appendChild(li);
+                    });
+                    activityLogContainer.appendChild(ul);
+                } else {
+                    activityLogContainer.innerHTML = '<p class="text-muted-foreground">No system activity logs found.</p>';
+                }
+
+            } catch (error) {
+                console.error('Error fetching or displaying activity logs:', error);
+                if (activityLogContainer) activityLogContainer.innerHTML = `<p class="error-message visible">Error loading activity logs: ${error.message}</p>`;
+            }
+
+            if (window.lucide) window.lucide.createIcons();
+        });
+    </script>
+</body>
+</html>
+    

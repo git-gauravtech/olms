@@ -199,234 +199,219 @@ const MOCK_TIME_SLOTS_BACKEND_REF = [
 // @access  Private (Admin only)
 router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
     const { algorithmName } = req.params;
-    // console.log(`[Backend] Admin ${req.user.email} triggered algorithm: ${algorithmName}`);
     
     let actualInputForCpp = {}; 
     let simulatedOutputFromCpp = {}; 
     let dbUpdateSummary = "No database changes simulated by algorithm.";
     let successMessage = `Algorithm '${algorithmName}' process initiated.`;
-    let cppExecutablePath = ''; 
+    let cppExecutablePath = ''; // Placeholder, MUST BE UPDATED FOR REAL C++ EXECUTION
 
     try {
         // Simulate fetching data and preparing input common to most algorithms
         // In a real scenario, data fetching would be specific to each algorithm's needs.
-        console.log("[Backend] SIMULATING: Fetching common data like labs, equipment, booking requests, users, timeslots from MySQL...");
-        // const [labsData] = await pool.query("SELECT id, name, capacity, type FROM labs"); // Example, type might not be in labs
-        // const [requestsData] = await pool.query("SELECT id as requestId, userId, labId as preferredLabId, ... FROM bookings WHERE status='pending' OR status='pending-admin-approval'");
-        // const [equipmentData] = await pool.query("SELECT id, name, type, status FROM equipment");
+        // console.log("[Backend] SIMULATING: Fetching common data like labs, equipment, booking requests, users, timeslots from MySQL...");
 
         if (algorithmName === 'run-scheduling') { // Graph Coloring
-            // YOU MUST PROVIDE THIS PATH & ENSURE EXECUTABLE
-            // Example: './cpp_algorithms/scheduler' or 'C:\\path\\to\\scheduler.exe'
-            cppExecutablePath = './cpp_algorithms/scheduler'; // <-- Placeholder, UPDATE THIS
+            cppExecutablePath = './cpp_algorithms/scheduler'; // <-- UPDATE THIS PATH
             successMessage = `Graph Coloring scheduling process initiated.`;
-            console.log("[Backend] Preparing input for C++ Graph Coloring (Scheduling)...");
+            // console.log("[Backend] Preparing input for C++ Graph Coloring (Scheduling)...");
             
-            // CRITICAL CONSTRAINTS FOR C++ GRAPH COLORING (to be enforced by C++):
-            // 1. Faculty Consistency: All lab sessions for a specific course section (e.g., "CS101_SecA") must be assigned to the same faculty member.
-            // 2. Distinct Section Schedules: Different sections of the same course (e.g., "CS101_SecA" vs "CS101_SecB") are separate scheduling entities and must have their own timetables. They can only overlap if using different resources (labs, faculty).
-            // 3. Student Batch Non-Concurrency: Students in a specific batch (e.g., "Batch_A1") cannot attend two different labs simultaneously.
-            // 4. Lab Capacity: Number of students in a batch must not exceed lab capacity.
-            // 5. Resource Availability: Lab must have the type/equipment required by the session.
-            // 6. Faculty Availability: Session must align with the assigned faculty's available time slots.
-
+            // Input: Graph with nodes = lab sessions, edges = conflicts
+            // Here, labSessionRequests *represent* the nodes. The C++ would build the graph.
             actualInputForCpp = {
+                description: "Input for Graph Coloring Algorithm to schedule lab sessions, avoiding time conflicts.",
                 labs: [ 
                     { id: 1, name: "CS Lab 101", capacity: 30, type: "Computer" },
                     { id: 2, name: "Electronics Lab", capacity: 25, type: "Electronics" }
                 ],
+                // These requests represent lab sessions to be scheduled. Conflicts arise from overlapping student batches or faculty.
                 labSessionRequests: [ 
-                    // CS101 Section A (Faculty F10, Batch A1) - needs 2 labs
-                    { requestId: 101, courseSection: "CS101_SecA", facultyId: "F10", studentBatch: "Batch_A1", durationSlots: 1, preferredLabId: 1, requiredLabType: "Computer", requiredEquipment: ["EQ_PC", "EQ_PROJ"] },
-                    { requestId: 102, courseSection: "CS101_SecA", facultyId: "F10", studentBatch: "Batch_A1", durationSlots: 1, preferredLabId: 1, requiredLabType: "Computer", requiredEquipment: ["EQ_PC", "EQ_PROJ"] },
-                    // CS101 Section B (Faculty F11, Batch A2) - needs 1 lab
-                    { requestId: 103, courseSection: "CS101_SecB", facultyId: "F11", studentBatch: "Batch_A2", durationSlots: 1, preferredLabId: 1, requiredLabType: "Computer", requiredEquipment: ["EQ_PC"] },
-                    // EE201 Section A (Faculty F12, Batch B1) - needs 1 lab (2 slots long)
-                    { requestId: 104, courseSection: "EE201_SecA", facultyId: "F12", studentBatch: "Batch_B1", durationSlots: 2, preferredLabId: 2, requiredLabType: "Electronics", requiredEquipment: ["EQ_OSC", "EQ_PSU"] }
+                    { requestId: "S101A", sessionName: "CS101 Sec A - Lab 1", courseSection: "CS101_SecA", facultyId: "F10", studentBatch: "Batch_A1", durationSlots: 1, requiredLabType: "Computer" },
+                    { requestId: "S101B", sessionName: "CS101 Sec A - Lab 2", courseSection: "CS101_SecA", facultyId: "F10", studentBatch: "Batch_A1", durationSlots: 1, requiredLabType: "Computer" },
+                    { requestId: "S102", sessionName: "CS101 Sec B - Lab 1", courseSection: "CS101_SecB", facultyId: "F11", studentBatch: "Batch_A2", durationSlots: 1, requiredLabType: "Computer" },
+                    { requestId: "S201", sessionName: "EE201 Sec A - Lab 1 (2-slot)", courseSection: "EE201_SecA", facultyId: "F12", studentBatch: "Batch_B1", durationSlots: 2, requiredLabType: "Electronics" }
                 ],
-                timeSlots: MOCK_TIME_SLOTS_BACKEND_REF.map(ts => ({id: ts.id, display: ts.displayTime, startTime: ts.startTime, endTime: ts.endTime})), // From constants
-                facultyAvailability: { // Faculty ID maps to array of available timeSlotIds
-                    "F10": ["ts_0900_1000", "ts_1000_1100", "ts_1100_1200", "ts_1400_1500"],
+                timeSlots: MOCK_TIME_SLOTS_BACKEND_REF.map(ts => ({id: ts.id, display: ts.displayTime, startTime: ts.startTime, endTime: ts.endTime})),
+                facultyAvailability: { 
+                    "F10": ["ts_0900_1000", "ts_1000_1100", "ts_1400_1500"],
                     "F11": ["ts_1300_1400", "ts_1400_1500"],
                     "F12": ["ts_0900_1000", "ts_1000_1100", "ts_1600_1700", "ts_1700_1800"],
                 },
-                // Other constraints: studentBatchCapacities, equipmentDetails, etc.
+                // Constraints: studentBatchNonConcurrency (implicit), labCapacity (handled by C++ logic if batch sizes known), facultyConsistency (handled by C++ logic)
             };
-            // console.log("[Backend] Data fetched and prepared for C++ (Graph Coloring Scheduling). First 500 chars of input:", JSON.stringify(actualInputForCpp, null, 2).substring(0, 500) + "...");
-
+            
+            // Output: Assign time slots (colors) so no conflicts occur
             simulatedOutputFromCpp = { 
-                status: "success", // will be overridden if C++ call fails
-                summary: "Generated schedule for 3 course sections.",
-                newlyScheduledBookings: [
-                    // CS101_SecA labs scheduled with F10
-                    { requestId: 101, courseSection: "CS101_SecA", assignedLabId: 1, assignedDate: "2024-09-02", assignedTimeSlotId: "ts_0900_1000", facultyId: "F10", studentBatch: "Batch_A1", purpose: "Scheduled: CS101_SecA (Lab 1)"},
-                    { requestId: 102, courseSection: "CS101_SecA", assignedLabId: 1, assignedDate: "2024-09-03", assignedTimeSlotId: "ts_0900_1000", facultyId: "F10", studentBatch: "Batch_A1", purpose: "Scheduled: CS101_SecA (Lab 2)"},
-                    // CS101_SecB lab scheduled with F11
-                    { requestId: 103, courseSection: "CS101_SecB", assignedLabId: 1, assignedDate: "2024-09-02", assignedTimeSlotId: "ts_1300_1400", facultyId: "F11", studentBatch: "Batch_A2", purpose: "Scheduled: CS101_SecB"},
+                status: "success", 
+                summary: "Generated conflict-free schedule for 3 lab sessions.",
+                // These represent lab sessions assigned to specific time slots.
+                assignedSchedule: [
+                    { sessionRequestId: "S101A", assignedLabId: 1, assignedDate: "2024-09-02", assignedTimeSlotId: "ts_0900_1000", facultyId: "F10", studentBatch: "Batch_A1", notes: "CS101 Sec A - Lab 1 scheduled."},
+                    { sessionRequestId: "S101B", assignedLabId: 1, assignedDate: "2024-09-03", assignedTimeSlotId: "ts_0900_1000", facultyId: "F10", studentBatch: "Batch_A1", notes: "CS101 Sec A - Lab 2 scheduled."},
+                    { sessionRequestId: "S102", assignedLabId: 1, assignedDate: "2024-09-02", assignedTimeSlotId: "ts_1300_1400", facultyId: "F11", studentBatch: "Batch_A2", notes: "CS101 Sec B - Lab 1 scheduled."},
                 ],
-                unscheduledRequests: [ { requestId: 104, reason: "No suitable 2-slot block found for faculty F12 with required lab type electronics, respecting their availability." } ]
+                unscheduledSessions: [ { sessionRequestId: "S201", reason: "No suitable 2-slot block found for faculty F12 in Electronics Lab respecting availability." } ]
             };
-            dbUpdateSummary = `DB Update SIMULATED: ${simulatedOutputFromCpp.newlyScheduledBookings?.length || 0} sessions would be booked/updated in 'bookings' table. ${simulatedOutputFromCpp.unscheduledRequests?.length || 0} requests marked as unscheduled. Critical constraints like faculty consistency per section, distinct section schedules, student batch non-concurrency, lab capacity, resource availability, and faculty availability were conceptually applied.`;
+            dbUpdateSummary = `DB Update SIMULATED (Graph Coloring): ${simulatedOutputFromCpp.assignedSchedule?.length || 0} sessions would be booked/updated in 'bookings' table. ${simulatedOutputFromCpp.unscheduledSessions?.length || 0} requests/sessions marked as unscheduled.`;
             
         } else if (algorithmName === 'run-resource-allocation') { // 0/1 Knapsack
-            cppExecutablePath = './cpp_algorithms/knapsack_allocator'; // <-- Placeholder, UPDATE THIS
+            cppExecutablePath = './cpp_algorithms/knapsack_allocator'; // <-- UPDATE THIS PATH
             successMessage = `0/1 Knapsack resource allocation process initiated.`;
-            console.log("[Backend] Preparing input for C++ 0/1 Knapsack (Resource Allocation)...");
+            // console.log("[Backend] Preparing input for C++ 0/1 Knapsack (Resource Allocation)...");
             
-            console.log("[Backend] SIMULATING: Fetching scarce equipment types (e.g., 'AdvancedOscilloscopeType') and their available units (e.g., SELECT COUNT(*) as availableUnits FROM equipment WHERE type = 'AdvancedOscilloscopeType' AND status='available').");
-            console.log("[Backend] SIMULATING: Fetching booked/pending lab sessions that need these scarce resources, including their priority/value and quantity of each type needed (e.g., a session needs 2 units of 'AdvancedOscilloscopeType').");
-            
+            // Input: List of booking requests needing equipment + total equipment available
             actualInputForCpp = {
+                description: "Input for 0/1 Knapsack Algorithm to allocate scarce lab equipment.",
                 scarceResources: [ 
-                    // availableUnits would be derived from: SELECT COUNT(*) FROM equipment WHERE type = 'AdvancedOscilloscopeType' AND status = 'available'
-                    { resourceType: "AdvancedOscilloscopeType", availableUnits: 3 }, 
-                    { resourceType: "SpectrometerXYZType", availableUnits: 1 }  
+                    { resourceType: "AdvancedOscilloscope", availableUnits: 3, weightPerUnit: 1 }, 
+                    { resourceType: "SpectrometerXYZ", availableUnits: 1, weightPerUnit: 1 }  
                 ],
-                // sessionRequests represent bookings that need these scarce resources
-                // 'priorityValue' would be determined by system logic (e.g., course level, research impact)
-                // 'needs.resourceType' should match a type from scarceResources
-                // 'needs.units' is the quantity of that type required by the session
-                sessionRequests: [ 
-                    { sessionId: 201, courseSection: "EE301_LabA", priorityValue: 10, needs: [{ resourceType: "AdvancedOscilloscopeType", units: 2 }] },
-                    { sessionId: 202, courseSection: "PHY400_Research", priorityValue: 12, needs: [{ resourceType: "SpectrometerXYZType", units: 1 }, { resourceType: "AdvancedOscilloscopeType", units: 1 }] },
-                    { sessionId: 203, courseSection: "EE301_LabB", priorityValue: 8, needs: [{ resourceType: "AdvancedOscilloscopeType", units: 2 }] }
+                // Booking requests needing these scarce resources, with a priority/value.
+                bookingRequests: [ 
+                    { bookingId: 201, courseSection: "EE301_LabA", priorityValue: 10, needs: [{ resourceType: "AdvancedOscilloscope", units: 2 }] }, // value/weight = 10/2
+                    { bookingId: 202, courseSection: "PHY400_Research", priorityValue: 12, needs: [{ resourceType: "SpectrometerXYZ", units: 1 }, { resourceType: "AdvancedOscilloscope", units: 1 }] }, // value/weight = 12/(1+1)
+                    { bookingId: 203, courseSection: "EE301_LabB", priorityValue: 8, needs: [{ resourceType: "AdvancedOscilloscope", units: 2 }] } // value/weight = 8/2
                 ]
             };
-            // console.log("[Backend] Input prepared for C++ (Knapsack):", JSON.stringify(actualInputForCpp, null, 2));
             
+            // Output: Optimal subset of bookings to allocate equipment
             simulatedOutputFromCpp = {
                 status: "success",
-                summary: "Optimally allocated scarce resources to 2 sessions.",
-                allocatedSessions: [ 
-                    // C++ would decide which sessions get resources to maximize total priorityValue within availableUnits
-                    { sessionId: 202, allocatedResources: [{ resourceType: "SpectrometerXYZType", units: 1, assignedInstanceIds: ["SPEC_001"] }, { resourceType: "AdvancedOscilloscopeType", units: 1, assignedInstanceIds: ["SCOPE_003"] }] },
-                    { sessionId: 201, allocatedResources: [{ resourceType: "AdvancedOscilloscopeType", units: 2, assignedInstanceIds: ["SCOPE_001", "SCOPE_002"] }] }
+                summary: "Optimally allocated scarce resources to 2 booking requests.",
+                // This shows which bookings received which equipment.
+                resourceAllocations: [ 
+                    { bookingId: 202, allocatedResources: [{ resourceType: "SpectrometerXYZ", unitsAllocated: 1, specificInstanceIds: ["SPEC_001"] }, { resourceType: "AdvancedOscilloscope", unitsAllocated: 1, specificInstanceIds: ["SCOPE_ADV_003"] }] },
+                    { bookingId: 201, allocatedResources: [{ resourceType: "AdvancedOscilloscope", unitsAllocated: 2, specificInstanceIds: ["SCOPE_ADV_001", "SCOPE_ADV_002"] }] }
                 ],
-                unallocatedSessions: [ 
-                    { sessionId: 203, reason: "Insufficient AdvancedOscilloscopeType units after higher priority allocations." }
+                unallocatedRequests: [ 
+                    { bookingId: 203, reason: "Insufficient AdvancedOscilloscope units after higher priority/value allocations." }
                 ]
             };
-            dbUpdateSummary = `DB Update SIMULATED: For ${simulatedOutputFromCpp.allocatedSessions?.length || 0} sessions, specific equipment instances (IDs like 'SPEC_001') would be found from 'equipment' table and their IDs stored in 'bookings.equipmentIds'. ${simulatedOutputFromCpp.unallocatedSessions?.length || 0} sessions could not be fully resourced and might be flagged or rescheduled.`;
+            dbUpdateSummary = `DB Update SIMULATED (Knapsack): For ${simulatedOutputFromCpp.resourceAllocations?.length || 0} bookings, specific equipment instances (IDs like 'SPEC_001') would be assigned. ${simulatedOutputFromCpp.unallocatedRequests?.length || 0} bookings could not be fully resourced.`;
 
         } else if (algorithmName === 'optimize-lab-usage') { // Greedy Algorithm
-             cppExecutablePath = './cpp_algorithms/greedy_filler'; // <-- Placeholder, UPDATE THIS
+             cppExecutablePath = './cpp_algorithms/greedy_filler'; // <-- UPDATE THIS PATH
              successMessage = `Greedy lab usage optimization process initiated.`;
-            console.log("[Backend] Preparing input for C++ Greedy Algorithm (Optimize Lab Usage/Fill Gaps)...");
-            console.log("[Backend] SIMULATING: Fetching current lab schedule from \`bookings\` to identify empty slots. Fetching high-priority pending requests from \`bookings\`. Fetching lab details from \`labs\`.");
+            // console.log("[Backend] Preparing input for C++ Greedy Algorithm (Optimize Lab Usage/Fill Gaps)...");
+
+            // Input: Free slots in schedule + list of small bookings or tasks
             actualInputForCpp = {
-                // emptyTimeSlots: derived from labs and bookings, showing where no 'booked' sessions exist
-                emptyTimeSlots: [ 
+                description: "Input for Greedy Algorithm to fill free lab slots efficiently.",
+                // These are identified empty slots in the schedule.
+                freeTimeSlots: [ 
                     { labId: 1, labName: "CS Lab 101", date: "2024-09-05", timeSlotId: "ts_0900_1000", capacity: 30, type: "Computer" }, 
                     { labId: 3, labName: "Physics Lab Alpha", date: "2024-09-05", timeSlotId: "ts_1100_1200", capacity: 25, type: "Physics" }
                 ],
-                // pendingRequests: from 'bookings' table with status 'pending' or similar, with a 'priority' score
-                pendingRequests: [ 
-                    { reqId: 301, courseSection: "BIO101_Makeup", priority: 100, durationSlots: 1, requiredLabType: "Any", requiredCapacity: 15, facultyId: "F15", studentBatch: "Batch_G1" },
-                    { reqId: 302, courseSection: "CS_Club_Practice", priority: 90, durationSlots: 1, requiredLabType: "Computer", requiredCapacity: 20, facultyId: "F16", studentBatch: "Batch_G2" }
-                ],
-                labs: [ // Lab details for matching
-                     { id: 1, name: "CS Lab 101", capacity: 30, type: "Computer" },
-                     { id: 3, name: "Physics Lab Alpha", capacity: 25, type: "Physics" }
+                // These are pending bookings/tasks that could fill the gaps, with a priority.
+                pendingBookingsOrTasks: [ 
+                    { taskId: "T301", taskName: "BIO101 Makeup Lab", priority: 100, durationSlots: 1, requiredLabType: "Any", requiredCapacity: 15, facultyId: "F15" },
+                    { taskId: "T302", taskName: "CS Club Practice", priority: 90, durationSlots: 1, requiredLabType: "Computer", requiredCapacity: 20, facultyId: "F16" }
                 ]
             };
-            // console.log("[Backend] Input prepared for C++ (Greedy Slot Filling):", JSON.stringify(actualInputForCpp, null, 2));
             
+            // Output: Assignments maximizing lab utilization
             simulatedOutputFromCpp = {
                 status: "success",
                 summary: "Filled 1 empty slot using Greedy approach by prioritizing highest value requests.",
-                filledSlots: [ 
-                    // C++ Greedy algorithm would pick best request for available slots
-                    { requestId: 301, assignedLabId: 1, assignedDate: "2024-09-05", assignedTimeSlotId: "ts_0900_1000", filledByCourse: "BIO101_Makeup", facultyId: "F15", studentBatch: "Batch_G1" }
+                // Shows which tasks were assigned to which free slots.
+                filledSlotsAssignments: [ 
+                    { taskId: "T301", assignedLabId: 1, assignedDate: "2024-09-05", assignedTimeSlotId: "ts_0900_1000", notes: "BIO101 Makeup Lab assigned to CS Lab 101." }
                 ],
-                remainingPendingRequests: [302] // reqId 302 might not have fit or had lower priority
+                remainingPendingBookingsOrTasks: [ { taskId: "T302", reason: "No suitable slot or lower priority."} ]
             };
-            dbUpdateSummary = `DB Update SIMULATED: For ${simulatedOutputFromCpp.filledSlots?.length || 0} filled slots, new booking records would be created in 'bookings' table with status 'booked'. The corresponding original requests (if any) would be updated or removed.`;
+            dbUpdateSummary = `DB Update SIMULATED (Greedy): For ${simulatedOutputFromCpp.filledSlotsAssignments?.length || 0} filled slots, new booking records would be created/updated.`;
 
         } else if (algorithmName === 'assign-nearest-labs') { // Dijkstra's
-            cppExecutablePath = './cpp_algorithms/dijkstra_planner'; // <-- Placeholder, UPDATE THIS
+            cppExecutablePath = './cpp_algorithms/dijkstra_planner'; // <-- UPDATE THIS PATH
             successMessage = `Dijkstra's nearest lab assignment process initiated.`;
-            console.log("[Backend] Preparing input for C++ Dijkstra's Algorithm (Assign Nearest Labs)...");
-            console.log("[Backend] SIMULATING: Fetching campus graph (nodes=locations, edges=paths with distances/times) from DB or config. Fetching user's department location (source node from user profile or form). Fetching list of currently available labs from \`labs\` and \`bookings\` that meet basic criteria (type, capacity).");
+            // console.log("[Backend] Preparing input for C++ Dijkstra's Algorithm (Assign Nearest Labs)...");
+
+            // Input: Graph representing building/floor layout with weighted edges (distances)
             actualInputForCpp = {
-                // campusGraph: Nodes are locations, edges are paths with weights (distance/time)
-                campusGraph: { 
-                    nodes: [ {id: "CS_Dept_Loc"}, {id: "Junction1"}, {id: "Lab101_Loc"}, {id: "Lab102_Loc"}, {id: "Physics_Dept_Loc"}, {id: "Lab205_Loc"} ], 
+                description: "Input for Dijkstra's Algorithm to find nearest available labs.",
+                // Nodes are locations, edges are paths with weights (distance/time).
+                campusLayoutGraph: { 
+                    nodes: [ {id: "CS_Dept_Entrance"}, {id: "Corridor_Junction1"}, {id: "Lab101_Door"}, {id: "Lab102_Door"}, {id: "Physics_Dept_Wing"}, {id: "Lab205_Door"} ], 
                     edges: [ 
-                        {from: "CS_Dept_Loc", to: "Junction1", weight: 50}, {from: "Junction1", to: "Lab101_Loc", weight: 30}, 
-                        {from: "Junction1", to: "Lab102_Loc", weight: 70}, {from: "Physics_Dept_Loc", to: "Junction1", weight: 60},
-                        {from: "Physics_Dept_Loc", to: "Lab205_Loc", weight: 20}
+                        {from: "CS_Dept_Entrance", to: "Corridor_Junction1", distance: 50}, 
+                        {from: "Corridor_Junction1", to: "Lab101_Door", distance: 30}, 
+                        {from: "Corridor_Junction1", to: "Lab102_Door", distance: 70}, 
+                        {from: "Physics_Dept_Wing", to: "Corridor_Junction1", distance: 60},
+                        {from: "Physics_Dept_Wing", to: "Lab205_Door", distance: 20}
                     ]
                 },
-                sourceLocationNodeId: "CS_Dept_Loc", // e.g., User's department location
-                // targetLabLocations: Available labs (meeting type/capacity needs) mapped to graph nodes
-                targetLabLocations: [ 
-                    {labDbId: 1, name: "CS Lab 101", locationNodeId: "Lab101_Loc"}, // labDbId refers to ID in `labs` table
-                    {labDbId: 2, name: "CS Lab 102", locationNodeId: "Lab102_Loc"},
-                    {labDbId: 5, name: "Physics Lab Beta (overflow)", locationNodeId: "Lab205_Loc"}
+                // User's current or department location.
+                sourceLocationNodeId: "CS_Dept_Entrance", 
+                // Available labs (meeting type/capacity needs) mapped to graph nodes.
+                targetAvailableLabs: [ 
+                    {labDatabaseId: 1, name: "CS Lab 101", locationNodeId: "Lab101_Door"}, 
+                    {labDatabaseId: 2, name: "CS Lab 102", locationNodeId: "Lab102_Door"},
+                    {labDatabaseId: 5, name: "Physics Lab Beta (Overflow)", locationNodeId: "Lab205_Door"}
                 ] 
             };
-            // console.log("[Backend] Input prepared for C++ (Dijkstra):", JSON.stringify(actualInputForCpp, null, 2).substring(0,500)+"...");
             
+            // Output: Nearest available lab for booking requests
             simulatedOutputFromCpp = {
                 status: "success",
-                summary: "Found nearest labs from source 'CS_Dept_Loc'.",
-                // C++ Dijkstra would output shortest paths to all target labs
-                shortestPaths: [ 
-                    { labDbId: 1, name: "CS Lab 101", distance: 80, path: ["CS_Dept_Loc", "Junction1", "Lab101_Loc"] },
-                    { labDbId: 2, name: "CS Lab 102", distance: 120, path: ["CS_Dept_Loc", "Junction1", "Lab102_Loc"] },
-                    { labDbId: 5, name: "Physics Lab Beta (overflow)", distance: 130, path: ["CS_Dept_Loc", "Junction1", "Physics_Dept_Loc", "Lab205_Loc"] } // Path might be more complex in reality
+                summary: "Found nearest available labs from source 'CS_Dept_Entrance'.",
+                // Shortest paths to all target labs, with distances.
+                nearestLabSuggestions: [ 
+                    { labDatabaseId: 1, name: "CS Lab 101", distance: 80, path: ["CS_Dept_Entrance", "Corridor_Junction1", "Lab101_Door"] },
+                    { labDatabaseId: 2, name: "CS Lab 102", distance: 120, path: ["CS_Dept_Entrance", "Corridor_Junction1", "Lab102_Door"] },
+                    // Corrected path logic if it has to go through another department wing node conceptually
+                    { labDatabaseId: 5, name: "Physics Lab Beta (Overflow)", distance: 130, path: ["CS_Dept_Entrance", "Corridor_Junction1", "Physics_Dept_Wing", "Lab205_Door"] }
                 ],
-                recommendation: { labDbId: 1, name: "CS Lab 101" } // e.g., the closest one
+                // The top recommendation.
+                primaryRecommendation: { labDatabaseId: 1, name: "CS Lab 101", distance: 80 } 
             };
-            dbUpdateSummary = `Result SIMULATED: Nearest suitable lab is ${simulatedOutputFromCpp.recommendation?.name} (Distance: ${simulatedOutputFromCpp.shortestPaths?.find(p => p.labDbId === simulatedOutputFromCpp.recommendation?.labDbId)?.distance}). This information can be used by the booking system to suggest or prioritize labs for a user. No direct DB update to \`bookings\` typically, but could influence which labId is chosen for a new booking.`;
+            dbUpdateSummary = `Result SIMULATED (Dijkstra's): Nearest suitable lab is ${simulatedOutputFromCpp.primaryRecommendation?.name}. This information can be used by the booking system to suggest or prioritize labs. No direct DB update typically, but could influence labId for a new booking.`;
         } else {
             return res.status(400).json({ success: false, msg: `Algorithm '${algorithmName}' is not recognized.` });
         }
 
         // --- Common C++ Process Execution Logic (Fully Scaffolded for each algorithm) ---
-        // console.log(`[Backend] Attempting to spawn C++ process: ${cppExecutablePath}. Ensure this executable exists and has execution permissions.`);
         
         await new Promise((resolve, reject) => {
-            const cppProcess = spawn(cppExecutablePath, []); // No command-line args passed in this example, input via stdin
+            const cppProcess = spawn(cppExecutablePath, []); 
 
             let cppOutput = '';
             let cppErrorOutput = '';
 
-            cppProcess.on('error', (err) => { // This event fires if spawn itself fails (e.g., file not found, permissions)
+            cppProcess.on('error', (err) => { 
                 console.error(`[Backend] Failed to start C++ process for ${algorithmName}. Error: ${err.message}. Path: '${cppExecutablePath}'`);
                 dbUpdateSummary = `Failed to start C++ process (path: '${cppExecutablePath}' not found or not executable). Check backend console.`;
                 simulatedOutputFromCpp.status = "error_spawning_cpp";
-                simulatedOutputFromCpp.summary = dbUpdateSummary;
-                resolve(); // Resolve the promise to allow the main function to send a response
+                simulatedOutputFromCpp.summary = `Failed to start C++ process for ${algorithmName}. Error: ${err.message}. Path: '${cppExecutablePath}'. This is a simulation; the C++ program was not actually run.`;
+                resolve(); 
             });
 
-            // Check if the process was actually spawned. If 'error' event fired, cppProcess.pid might be undefined.
             if (!cppProcess.pid && !cppProcess.killed) { 
-                // This might be redundant if the 'error' event handler reliably resolves.
-                // If the 'error' event didn't fire but pid is still null, it's a problem.
-                // However, the 'error' event is usually the primary way to catch spawn failures.
-                // For now, we let the 'error' event handler handle resolution.
-                // console.warn(`[Backend] C++ process for ${algorithmName} may not have spawned correctly (no PID and not killed).`);
-                return; // Exit the promise callback early if spawn clearly failed and error event should have handled.
+                // This path might be taken if 'error' event fired and resolved, then code continues.
+                // If status is already "error_spawning_cpp", we don't need to do anything more.
+                if (simulatedOutputFromCpp.status !== "error_spawning_cpp") {
+                     // This state is unusual if 'error' event didn't fire.
+                    console.warn(`[Backend] C++ process for ${algorithmName} may not have spawned correctly (no PID) and no 'error' event handled it yet.`);
+                    simulatedOutputFromCpp.status = "error_spawning_cpp_unknown";
+                    simulatedOutputFromCpp.summary = `C++ process for ${algorithmName} did not spawn correctly (no PID).`;
+                    dbUpdateSummary = `C++ process failed to spawn. No DB changes.`;
+                    resolve();
+                }
+                return; 
             }
             
-            // Only attempt to write to stdin if process seems to have started
             if (cppProcess.stdin) {
                  cppProcess.stdin.write(JSON.stringify(actualInputForCpp));
                  cppProcess.stdin.end();
             } else {
-                 // This state (no stdin) after a successful-looking spawn is unusual unless 'error' event fired.
-                 // If 'error' handler already resolved, we don't want to resolve again.
-                 // For safety, if we reach here and stdin isn't available, and assuming 'error' didn't fire:
-                 if (simulatedOutputFromCpp.status !== "error_spawning_cpp") { // Check if error handler already set this
-                    console.warn(`[Backend] C++ process stdin not available for ${algorithmName}. Process might have failed to start without an 'error' event or it closed prematurely.`);
+                 if (simulatedOutputFromCpp.status !== "error_spawning_cpp") {
+                    console.warn(`[Backend] C++ process stdin not available for ${algorithmName}.`);
                     simulatedOutputFromCpp.status = "error_spawning_cpp_stdin";
-                    simulatedOutputFromCpp.summary = "Failed to get stdin for C++ process. It might have closed prematurely.";
+                    simulatedOutputFromCpp.summary = "Failed to get stdin for C++ process. It might have closed prematurely or failed to start properly.";
+                    dbUpdateSummary = `C++ process stdin unavailable. No DB changes.`;
                     resolve();
                  }
-                 return; // Stop further processing in promise
+                 return; 
             }
-
 
             if(cppProcess.stdout) {
                 cppProcess.stdout.on('data', (data) => { cppOutput += data.toString(); });
@@ -436,53 +421,36 @@ router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
             }
             
             cppProcess.on('close', (code) => {
-                // console.log(`[Backend] C++ process for ${algorithmName} exited with code ${code}`);
+                if (simulatedOutputFromCpp.status && simulatedOutputFromCpp.status.startsWith("error_spawning")) {
+                    // If spawn error already handled, just resolve.
+                    resolve();
+                    return;
+                }
+
                 if (cppErrorOutput) { console.error(`[Backend] C++ process for ${algorithmName} emitted errors to stderr (see above).`); }
 
-                // IMPORTANT: For this comprehensive simulation, we will use the `simulatedOutputFromCpp`
-                // that was defined earlier based on the algorithm type, BUT we will update its status
-                // based on the C++ process outcome if the process actually ran.
-                // In a REAL integration, you would primarily parse `cppOutput` here.
-
-                if (code === 0 && cppOutput.trim() !== '') { // C++ ran and gave output
-                    console.log(`[Backend] C++ process for ${algorithmName} ran successfully and produced output. In a real scenario, this output would be parsed. Using predefined simulation for result structure.`);
-                    // In a real scenario:
-                    // try {
-                    //     const actualOutputFromCppProgram = JSON.parse(cppOutput);
-                    //     console.log("[Backend] Parsed output from C++:", JSON.stringify(actualOutputFromCppProgram, null, 2));
-                    //     // Then, you'd merge or use actualOutputFromCppProgram to create/update simulatedOutputFromCpp
-                    //     // For now, we assume simulatedOutputFromCpp's structure is what we expect.
-                    //     simulatedOutputFromCpp = { ...simulatedOutputFromCpp, ...actualOutputFromCppProgram, status: "success_cpp_executed" }; 
-                    //     dbUpdateSummary = `DB Update: Based on ACTUAL C++ output for ${algorithmName}.`; // Update this based on actual logic
-                    // } catch (parseError) {
-                    //     console.error(`[Backend] Error parsing C++ output for ${algorithmName}:`, parseError, "Raw C++ output:", cppOutput);
-                    //     simulatedOutputFromCpp.status = "error_parsing_cpp_output";
-                    //     simulatedOutputFromCpp.summary = `C++ process ran, but output was not valid JSON. Details: ${parseError.message}. Raw C++ output (first 500 chars): ${cppOutput.substring(0,500)}...`;
-                    // }
-                    // For simulation, we retain the structure of simulatedOutputFromCpp but confirm it ran.
+                if (code === 0 && cppOutput.trim() !== '') { 
+                    // console.log(`[Backend] C++ process for ${algorithmName} ran successfully and produced output. Using predefined simulation for result structure.`);
+                    // In a real scenario, you'd parse cppOutput here.
+                    // For simulation, we retain the structure of simulatedOutputFromCpp but confirm it conceptually ran.
                     if(simulatedOutputFromCpp.status === "success") simulatedOutputFromCpp.status = "success_cpp_executed_simulated_result";
-
-                } else if (code !== 0) { // C++ process ran but exited with an error code
+                } else if (code !== 0) { 
                     simulatedOutputFromCpp.status = "error_cpp_exit_code";
-                    simulatedOutputFromCpp.summary = `C++ process for ${algorithmName} failed with exit code ${code}. Stderr: ${cppErrorOutput || 'No stderr output'}. Stdout: ${cppOutput || 'No stdout output'}.`;
+                    simulatedOutputFromCpp.summary = `C++ process for ${algorithmName} failed with exit code ${code}. Stderr: ${cppErrorOutput || 'No stderr output'}. Stdout: ${cppOutput || 'No stdout output'}. This is a simulation; the C++ program was not actually run or it malfunctioned.`;
                     dbUpdateSummary = `C++ process failed. No DB changes.`;
-                } else { // code === 0 but cppOutput is empty, or spawn failed earlier
-                    if (simulatedOutputFromCpp.status !== "error_spawning_cpp" && simulatedOutputFromCpp.status !== "error_spawning_cpp_stdin" ) { // If not already set by spawn error
-                         simulatedOutputFromCpp.status = "success_cpp_no_output";
-                         simulatedOutputFromCpp.summary = `C++ process for ${algorithmName} ran successfully but produced no output or empty output. Using predefined simulation for result structure.`;
-                         dbUpdateSummary = `C++ ran but no output. Using predefined simulation for DB update summary.`;
-                    }
+                } else { 
+                    simulatedOutputFromCpp.status = "success_cpp_no_output";
+                    simulatedOutputFromCpp.summary = `C++ process for ${algorithmName} ran (exit code 0) but produced no stdout output. Using predefined simulation for result structure. This is part of a simulation; the C++ program might be a stub or not designed to output JSON for this interaction.`;
+                     if(simulatedOutputFromCpp.status === "success") simulatedOutputFromCpp.status = "success_cpp_executed_simulated_result"; // Assume success if code is 0, even if no output for some stubs
                 }
                 resolve(); 
             });
         }); 
 
-        // After the promise for spawn resolves (either success, spawn error, or C++ error)
-        // Ensure headers are not already sent (e.g., by an early error response)
         if (!res.headersSent) { 
             res.json({
-                success: true, // API call itself succeeded, outcome of C++ is in simulatedOutputFromCpp.status
-                message: successMessage, // Initial message, might be overridden by specific C++ outcome in simulatedOutputFromCpp.summary
+                success: true, 
+                message: successMessage, 
                 algorithm: algorithmName,
                 simulatedInputSentToCpp: actualInputForCpp, 
                 simulatedOutputReceivedFromCpp: simulatedOutputFromCpp, 
@@ -490,18 +458,18 @@ router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
             });
         }
 
-    } catch (error) { // Catch general errors in the route handler itself (e.g., DB query errors before spawn)
+    } catch (error) { 
         console.error(`[Backend] General error in algorithm trigger for ${algorithmName}:`, error.message, error.stack);
         if (!res.headersSent) {
             res.status(500).json({ 
                 success: false, 
                 message: `Server error during ${algorithmName} processing. Details: ${error.message}`,
                 algorithm: algorithmName,
-                simulatedInputSentToCpp: actualInputForCpp, // Might be partially populated or {}
-                simulatedOutputReceivedFromCpp: { // Provide a default error structure
+                simulatedInputSentToCpp: actualInputForCpp, 
+                simulatedOutputReceivedFromCpp: { 
                     status: "error_server_handler",
                     summary: `Server error before C++ execution: ${error.message}`,
-                    ...simulatedOutputFromCpp // Include any predefined structure if available
+                    ...simulatedOutputFromCpp 
                 },
                 simulatedDatabaseUpdateSummary: dbUpdateSummary || `Error occurred before DB simulation: ${error.message}` 
             });
@@ -510,18 +478,25 @@ router.post('/algorithms/:algorithmName', [auth, isAdmin], async (req, res) => {
 });
 
 // --- System Activity Log (Mock) ---
+// @route   GET api/admin/system-activity
+// @desc    Get mock system activity logs
+// @access  Private (Admin only)
 router.get('/system-activity', [auth, isAdmin], (req, res) => {
     // In a real application, this would query a logs table or log files.
     const mockLogs = [
+        { timestamp: new Date(Date.now() - 7200000).toISOString(), user: 'admin@example.com', action: 'User Created', details: 'Created new faculty account for faculty_new@example.com' },
         { timestamp: new Date(Date.now() - 3600000).toISOString(), user: 'admin@example.com', action: 'Logged in', details: 'Successful login from IP 192.168.1.10' },
+        { timestamp: new Date(Date.now() - 2400000).toISOString(), user: 'faculty@example.com', action: 'Booking Conflict - Admin Review', details: 'Faculty attempted to book CS Lab 101 for CS101_SecA on 2024-09-10, 10:00 AM; slot was taken. Request pending admin approval.' },
         { timestamp: new Date(Date.now() - 1800000).toISOString(), user: 'admin@example.com', action: 'Lab Updated', details: 'Updated capacity for CS Lab 101 to 35' },
+        { timestamp: new Date(Date.now() - 900000).toISOString(), user: 'assistant@example.com', action: 'Seat Status Updated', details: 'Marked seat #5 in Electronics Lab as "not-working".' },
         { timestamp: new Date(Date.now() - 600000).toISOString(), user: 'faculty@example.com', action: 'Booking Created', details: 'Booked CS Lab 101 for CS101_SecA on 2024-09-10, 10:00 AM' },
-        { timestamp: new Date().toISOString(), user: 'admin@example.com', action: 'Algorithm Triggered (Simulated)', details: 'Ran run-scheduling algorithm.' }
+        { timestamp: new Date(Date.now() - 300000).toISOString(), user: 'admin@example.com', action: 'Algorithm Triggered (Simulated)', details: 'Ran run-scheduling (Graph Coloring) algorithm.' },
+        { timestamp: new Date().toISOString(), user: 'admin@example.com', action: 'Viewed System Activity', details: 'Accessed the system activity log.' }
     ];
-    res.json(mockLogs);
+    res.json(mockLogs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))); // Sort newest first
 });
 
 
 module.exports = router;
-
+    
     
