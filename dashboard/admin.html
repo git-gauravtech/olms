@@ -17,20 +17,15 @@
                     <span class="sidebar-title">Optimized Lab Management</span>
                 </a>
             </div>
-            <ul class="sidebar-nav" id="sidebarNav">
-                <!-- Nav items will be populated by JS -->
-            </ul>
+            <ul class="sidebar-nav" id="sidebarNav"></ul>
         </aside>
         <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
         <div class="main-content-wrapper">
             <header class="dashboard-header">
                 <button type="button" class="mobile-menu-button" id="mobileMenuButton">
                     <i data-lucide="menu"></i>
                 </button>
-                <div class="user-nav" id="userNavContainer">
-                    <!-- UserNav will be populated by JS -->
-                </div>
+                <div class="user-nav" id="userNavContainer"></div>
             </header>
             <main class="page-content">
                 <div class="custom-card">
@@ -40,57 +35,37 @@
                     </div>
                     <div class="custom-card-content">
                         <p class="text-lg text-muted-foreground mb-4">
-                            Welcome, Admin! This is your central control panel for the Optimized Lab Management System.
-                        </p>
-                        <p class="text-muted-foreground">
-                            From here, you can oversee all aspects of the lab management system.
+                            Welcome, Admin! This is your central control panel.
                         </p>
                     </div>
                 </div>
-
-                <div class="grid md-grid-cols-2 lg-grid-cols-3 gap-6 mt-8" id="featureCardsContainer">
-                    <!-- Feature cards will be populated by JS -->
-                </div>
+                <div class="grid md-grid-cols-2 lg-grid-cols-3 gap-6 mt-8" id="featureCardsContainer"></div>
             </main>
         </div>
     </div>
-
     <script src="../js/constants.js"></script>
     <script src="../js/utils.js"></script>
     <script src="js/dashboard.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // console.log('DOM fully loaded and parsed for admin.html');
-            if (!window.roleGuard(window.USER_ROLES.ADMIN)) {
-                return;
-            }
-            
+            if (!window.roleGuard(window.USER_ROLES.ADMIN)) return;
             window.initializeDashboard();
-
             const featureCardsContainer = document.getElementById('featureCardsContainer');
             const adminFeatures = [
-                { title: "Manage Labs", description: "Configure lab details, capacities, room assignments, and locations.", icon: "settings-2", href: "admin_manage_labs.html", label: "Go to Lab Management" },
-                { title: "Manage Equipment", description: "Oversee laboratory equipment, inventory, status, and assignments.", icon: "wrench", href: "admin_manage_equipment.html", label: "Go to Equipment Management" },
-                { title: "Faculty Requests", description: "Review and manage requests needing admin approval from Faculty.", icon: "user-check", href: "admin_faculty_requests.html", label: "View Faculty Requests" },
-                { title: "User Management", description: "Manage user accounts, roles, and permissions.", icon: "users", href: "admin_manage_users.html", label: "Manage Users" },
-                { title: "Lab Availability", description: "View current lab schedules and slot availability.", icon: "flask-conical", href: "labs.html", label: "View Lab Grid" },
-                { title: "Run Optimization Algorithms", description: "Trigger DAA algorithms for scheduling and resource allocation.", icon: "cpu", href: "admin_run_algorithms.html", label: "Run Algorithms" },
-                { title: "View System Activity Log", description: "Review mock system activity like logins and major actions.", icon: "history", href: "admin_view_activity_log.html", label: "View Activity Log" }
+                { title: "Manage Labs", description: "Configure lab details and capacities.", icon: "settings-2", href: "admin_manage_labs.html", label: "Manage Labs" },
+                { title: "Manage Equipment", description: "Oversee lab equipment inventory.", icon: "wrench", href: "admin_manage_equipment.html", label: "Manage Equipment" },
+                { title: "Manage Courses", description: "Define courses offered.", icon: "book-open", href: "admin_manage_courses.html", label: "Manage Courses" },
+                { title: "Manage Sections", description: "Define sections for courses.", icon: "users-2", href: "admin_manage_sections.html", label: "Manage Sections" },
+                { title: "Faculty Requests", description: "Review booking requests.", icon: "user-check", href: "admin_faculty_requests.html", label: "View Requests" },
+                { title: "User Management", description: "Manage user accounts and roles.", icon: "users", href: "admin_manage_users.html", label: "Manage Users" },
+                { title: "Lab Availability", description: "View lab schedules.", icon: "flask-conical", href: "labs.html", label: "View Lab Grid" },
+                { title: "Run Algorithms", description: "Trigger DAA optimizations.", icon: "cpu", href: "admin_run_algorithms.html", label: "Run Algorithms" },
+                { title: "View System Activity Log", description: "Review system activity.", icon: "history", href: "admin_view_activity_log.html", label: "View Activity" }
             ];
-
             if (featureCardsContainer) {
-                adminFeatures.forEach(feature => {
-                    featureCardsContainer.appendChild(createFeatureCard(feature));
-                });
-            } else {
-                console.error("featureCardsContainer not found on admin.html");
+                adminFeatures.forEach(feature => featureCardsContainer.appendChild(createFeatureCard(feature)));
             }
-
-             if (window.lucide) {
-                window.lucide.createIcons();
-            } else {
-                console.warn("Lucide library not found on admin dashboard.");
-            }
+            if (window.lucide) window.lucide.createIcons();
         });
     </script>
 </body>

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Book a Lab Slot - Optimized Lab Management System</title>
+    <title>Book a Lab Slot - OLMS</title>
     <link rel="stylesheet" href="../css/style.css">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
@@ -13,24 +13,16 @@
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                  <a href="#" class="sidebar-header-link" id="dashboardHomeLink">
-                    <i data-lucide="atom"></i>
-                    <span class="sidebar-title">Optimized Lab Management</span>
+                    <i data-lucide="atom"></i><span class="sidebar-title">OLMS</span>
                 </a>
             </div>
-            <ul class="sidebar-nav" id="sidebarNav">
-                <!-- Nav items will be populated by JS -->
-            </ul>
+            <ul class="sidebar-nav" id="sidebarNav"></ul>
         </aside>
         <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
         <div class="main-content-wrapper">
             <header class="dashboard-header">
-                <button type="button" class="mobile-menu-button" id="mobileMenuButton">
-                    <i data-lucide="menu"></i>
-                </button>
-                <div class="user-nav" id="userNavContainer">
-                    <!-- UserNav will be populated by JS -->
-                </div>
+                <button type="button" class="mobile-menu-button" id="mobileMenuButton"><i data-lucide="menu"></i></button>
+                <div class="user-nav" id="userNavContainer"></div>
             </header>
             <main class="page-content">
                 <div class="custom-card">
@@ -40,12 +32,26 @@
                     </div>
                     <form id="bookingForm" class="custom-card-content">
                         <p class="text-muted-foreground mb-6">
-                            Fill in the details below to book a lab slot. Availability will be checked upon submission.
+                            Fill in the details below to book a lab slot.
                         </p>
+                        <div class="form-group">
+                            <label for="courseSelect">Select Course</label>
+                            <select id="courseSelect" name="courseSelect" required>
+                                <option value="">Loading courses...</option>
+                            </select>
+                            <p class="error-message" id="courseSelectError"></p>
+                        </div>
+                        <div class="form-group">
+                            <label for="sectionSelect">Select Section</label>
+                            <select id="sectionSelect" name="sectionSelect" required disabled>
+                                <option value="">Select a course first</option>
+                            </select>
+                            <p class="error-message" id="sectionSelectError"></p>
+                        </div>
                         <div class="form-group">
                             <label for="labId">Select Lab</label>
                             <select id="labId" name="labId" required>
-                                <!-- Options populated by JS -->
+                                <option value="">Loading labs...</option>
                             </select>
                             <p class="error-message" id="labIdError"></p>
                         </div>
@@ -57,32 +63,24 @@
                         <div class="form-group">
                             <label for="timeSlotId">Time Slot</label>
                             <select id="timeSlotId" name="timeSlotId" required>
-                                <!-- Options populated by JS -->
+                                <option value="">Select time slot</option>
                             </select>
                             <p class="error-message" id="timeSlotIdError"></p>
                         </div>
                         <div class="form-group">
-                            <label for="purpose">Purpose of Booking</label>
-                            <textarea id="purpose" name="purpose" rows="3" required placeholder="e.g., Course CS101 Lab, Research Project X"></textarea>
+                            <label for="purpose">Purpose of Booking (Optional)</label>
+                            <textarea id="purpose" name="purpose" rows="3" placeholder="e.g., Mid-term lab exam, Weekly practical session"></textarea>
                             <p class="error-message" id="purposeError"></p>
                         </div>
-                        <div class="form-group" id="batchIdentifierGroup" style="display:none;">
-                            <label for="batchIdentifier">Course Section / Batch Identifier</label>
-                            <input type="text" id="batchIdentifier" name="batchIdentifier" placeholder="e.g., CS101_SecA, PHY202_Batch1">
-                            <p class="error-message" id="batchIdentifierError"></p>
-                        </div>
-
                         <div class="form-group">
                             <label>Required Equipment (Optional)</label>
                             <div id="equipmentCheckboxes" class="grid sm-grid-cols-2 gap-2">
-                                <!-- Checkboxes populated by JS -->
+                                <p class="text-sm text-muted-foreground">Loading equipment...</p>
                             </div>
                         </div>
-                         <p id="formSubmissionMessage" class="error-message mb-2"></p> <!-- For general errors or success -->
-
+                        <p id="formSubmissionMessage" class="error-message mb-2"></p>
                     </form>
                     <div class="custom-card-footer">
-                        <!-- "Check Availability First" button removed to rely on backend conflict resolution -->
                         <button type="submit" form="bookingForm" class="button button-primary">
                             <i data-lucide="send" class="mr-2"></i>Submit Booking Request
                         </button>
@@ -91,22 +89,19 @@
             </main>
         </div>
     </div>
-
     <script src="../js/constants.js"></script>
     <script src="../js/utils.js"></script>
     <script src="js/dashboard.js"></script>
     <script src="js/booking_form.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('DOM fully loaded and parsed for book_slot.html');
-            // Booking slots is for Faculty 
-            if (!roleGuard([USER_ROLES.FACULTY, USER_ROLES.ADMIN])) return; // Admins can also book
-            
+            if (!roleGuard([USER_ROLES.FACULTY, USER_ROLES.ADMIN])) return;
             initializeDashboard();
             setDashboardHomeLink();
-            initializeBookingForm(); // From booking_form.js
+            initializeBookingForm();
             if (window.lucide) window.lucide.createIcons();
         });
     </script>
 </body>
 </html>
+    

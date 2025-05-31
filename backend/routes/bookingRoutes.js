@@ -4,139 +4,173 @@ const router = express.Router();
 const pool = require('../config/db');
 const { auth, isAdmin, USER_ROLES } = require('../middleware/authMiddleware');
 
-// @route   GET api/bookings
-// @desc    Get all bookings (Admin view - with filters if implemented on frontend)
-// @access  Private (Admin only)
+const MOCK_TIME_SLOTS_BACKEND = [
+  { id: 'ts_0800_0900', startTime: '08:00:00', endTime: '09:00:00' }, { id: 'ts_0900_1000', startTime: '09:00:00', endTime: '10:00:00' },
+  { id: 'ts_1000_1100', startTime: '10:00:00', endTime: '11:00:00' }, { id: 'ts_1100_1200', startTime: '11:00:00', endTime: '12:00:00' },
+  { id: 'ts_1200_1300', startTime: '12:00:00', endTime: '13:00:00' }, { id: 'ts_1300_1400', startTime: '13:00:00', endTime: '14:00:00' },
+  { id: 'ts_1400_1500', startTime: '14:00:00', endTime: '15:00:00' }, { id: 'ts_1500_1600', startTime: '15:00:00', endTime: '16:00:00' },
+  { id: 'ts_1600_1700', startTime: '16:00:00', endTime: '17:00:00' }, { id: 'ts_1700_1800', startTime: '17:00:00', endTime: '18:00:00' },
+];
+function getTimesFromSlotId(timeSlotId) {
+    const slot = MOCK_TIME_SLOTS_BACKEND.find(ts => ts.id === timeSlotId);
+    return slot ? { startTime: slot.startTime, endTime: slot.endTime } : { startTime: null, endTime: null };
+}
+
 router.get('/', [auth, isAdmin], async (req, res) => {
     try {
         const [allBookings] = await pool.query(`
-            SELECT b.*, l.name as labName, u.fullName as userName
+            SELECT b.*, l.name as labName, u.fullName as userName, 
+                   s.section_name as sectionName, crs.name as courseName
             FROM bookings b
             LEFT JOIN labs l ON b.labId = l.id
-            LEFT JOIN users u ON b.userId = u.id
-            ORDER BY b.date ASC, b.timeSlotId ASC
+            LEFT JOIN users u ON b.user_id = u.id
+            LEFT JOIN sections s ON b.section_id = s.id
+            LEFT JOIN courses crs ON s.course_id = crs.id
+            ORDER BY b.date ASC, b.start_time ASC
         `);
         res.json(allBookings);
     } catch (err) {
-        console.error('Error fetching all bookings:', err.message, err.stack);
+        console.error('Error fetching all bookings for admin:', err.message, err.stack);
         res.status(500).json({ msg: 'Server Error: Could not fetch all bookings' });
     }
 });
 
-// @route   GET api/bookings/my
-// @desc    Get bookings for the currently logged-in user
-// @access  Private
 router.get('/my', auth, async (req, res) => {
+    const userId = req.user.id;
+    const userRole = req.user.role;
+    let query;
+    const queryParams = [];
+
     try {
-        const [myBookings] = await pool.query(`
-            SELECT b.*, l.name as labName 
-            FROM bookings b
-            LEFT JOIN labs l ON b.labId = l.id
-            WHERE b.userId = ?
-            ORDER BY b.date DESC, b.timeSlotId ASC
-        `, [req.user.id]);
+        if (userRole === USER_ROLES.FACULTY || userRole === USER_ROLES.ADMIN) {
+            query = `
+                SELECT b.*, l.name as labName, s.section_name as sectionName, crs.name as courseName
+                FROM bookings b
+                LEFT JOIN labs l ON b.labId = l.id
+                LEFT JOIN sections s ON b.section_id = s.id
+                LEFT JOIN courses crs ON s.course_id = crs.id
+                WHERE b.user_id = ? 
+                ORDER BY b.date DESC, b.start_time ASC
+            `;
+            queryParams.push(userId);
+        } else if (userRole === USER_ROLES.STUDENT) {
+            // PRD: "Students view schedules for their enrolled sections"
+            // For now, this will be an empty array as student_section_enrollments table is not implemented.
+            // In a full system, this would join with a student_enrollments table.
+            return res.json([]); 
+        } else if (userRole === USER_ROLES.ASSISTANT) {
+             // Assistants might see all bookings or bookings for labs they are assigned to (if such concept exists)
+             // For now, similar to students for simplicity, or provide all 'booked' status for visibility.
+             // As per PRD "view lab availability" - implies they can see the schedule.
+             query = `
+                SELECT b.*, l.name as labName, u.fullName as bookedByUserName, 
+                       s.section_name as sectionName, crs.name as courseName
+                FROM bookings b
+                LEFT JOIN labs l ON b.labId = l.id
+                LEFT JOIN users u ON b.user_id = u.id
+                LEFT JOIN sections s ON b.section_id = s.id
+                LEFT JOIN courses crs ON s.course_id = crs.id
+                WHERE b.status = 'booked' OR b.status = 'pending-admin-approval' OR b.status = 'approved-by-admin'
+                ORDER BY b.date DESC, b.start_time ASC
+            `;
+        } else {
+            return res.status(403).json({ msg: "User role not authorized for this view." });
+        }
+
+        const [myBookings] = await pool.query(query, queryParams);
         res.json(myBookings);
     } catch (err) {
-        console.error('Error fetching user bookings:', err.message, err.stack);
-        res.status(500).json({ msg: 'Server Error: Could not fetch user bookings' });
+        console.error(`Error fetching bookings for ${userRole}:`, err.message, err.stack);
+        res.status(500).json({ msg: `Server Error: Could not fetch bookings for ${userRole}` });
     }
 });
 
-// @route   POST api/bookings
-// @desc    Create a new booking or booking request
-// @access  Private (Faculty, or Admin booking on behalf of someone)
 router.post('/', auth, async (req, res) => {
     console.log('[POST /api/bookings] Request received. User:', JSON.stringify(req.user));
     console.log('[POST /api/bookings] Request body:', JSON.stringify(req.body));
 
-    const { labId, date, timeSlotId, purpose, equipmentIds, batchIdentifier } = req.body;
+    const { labId, date, timeSlotId, purpose, equipmentIds, section_id } = req.body;
     const userId = req.user.id;
     const requestedByRole = req.user.role;
 
-    if (!labId || !date || !timeSlotId || !purpose) {
-        console.error('[POST /api/bookings] Validation Error: Missing required fields.');
-        return res.status(400).json({ msg: 'Please provide all required booking fields (lab, date, time, purpose)' });
+    if (!labId || !date || !timeSlotId || !section_id) {
+        return res.status(400).json({ msg: 'Lab, Date, Time Slot, and Section are required fields.' });
+    }
+    if (requestedByRole !== USER_ROLES.FACULTY && requestedByRole !== USER_ROLES.ADMIN) {
+        return res.status(403).json({ msg: 'Only Faculty or Admin can create bookings.' });
+    }
+    
+    const { startTime, endTime } = getTimesFromSlotId(timeSlotId);
+    if (!startTime || !endTime) {
+        return res.status(400).json({ msg: 'Invalid timeSlotId provided.' });
     }
 
-    let status;
-    if (requestedByRole === USER_ROLES.ASSISTANT) {
-        // This case should ideally not be reached if frontend prevents Assistants from booking
-        console.warn('[POST /api/bookings] Assistant attempted booking via general endpoint. Rejecting.');
-        return res.status(403).json({ msg: 'Assistants cannot create bookings through this general endpoint.' });
-    } else if (requestedByRole === USER_ROLES.FACULTY || requestedByRole === USER_ROLES.ADMIN) {
-        status = 'booked'; // Faculty and Admin bookings are attempted as auto-approved
-    } else {
-        console.error(`[POST /api/bookings] Unauthorized role attempted booking: ${requestedByRole}`);
-        return res.status(403).json({ msg: 'Your role is not authorized to create bookings directly.' });
-    }
+    let status = 'pending-admin-approval'; // Default for faculty, admin can override by updating status later or direct book.
 
     try {
-        // Conflict Check
-        console.log(`[POST /api/bookings] Checking for conflicts: labId=${labId}, date=${date}, timeSlotId=${timeSlotId}`);
+        // Conflict Check: Check if the lab is booked for the exact same date and overlapping time
         const [conflictingBookings] = await pool.query(
-            'SELECT * FROM bookings WHERE labId = ? AND date = ? AND timeSlotId = ? AND status = ?',
-            [parseInt(labId), date, timeSlotId, 'booked']
+            `SELECT * FROM bookings 
+             WHERE labId = ? AND date = ? 
+             AND (
+                 (start_time < ? AND end_time > ?) OR 
+                 (start_time >= ? AND start_time < ?) 
+             ) AND status = 'booked'`,
+            [labId, date, endTime, startTime, startTime, endTime] 
         );
-        console.log(`[POST /api/bookings] Found ${conflictingBookings.length} conflicting bookings.`);
+        console.log(`[POST /api/bookings] Found ${conflictingBookings.length} conflicting 'booked' bookings.`);
 
         if (conflictingBookings.length > 0) {
-            if (requestedByRole === USER_ROLES.FACULTY) {
-                status = 'pending-admin-approval'; // Change status for admin review
-                const facultyPurpose = `${purpose} (Conflict - Needs Review)`;
-                const newBookingPendingAdmin = {
-                    labId: parseInt(labId),
-                    userId,
-                    date,
-                    timeSlotId,
-                    purpose: facultyPurpose,
-                    equipmentIds: equipmentIds && equipmentIds.length > 0 ? JSON.stringify(equipmentIds) : null,
-                    status,
-                    requestedByRole,
-                    batchIdentifier: batchIdentifier || null,
-                    submittedDate: new Date()
-                };
-                console.log('[POST /api/bookings] Faculty conflict. Saving as pending-admin-approval. Data:', JSON.stringify(newBookingPendingAdmin));
-                const [pendingResult] = await pool.query('INSERT INTO bookings SET ?', newBookingPendingAdmin);
-                const [createdPendingBooking] = await pool.query(
-                    `SELECT b.*, l.name as labName, u.fullName as userName
-                     FROM bookings b
-                     LEFT JOIN labs l ON b.labId = l.id
-                     LEFT JOIN users u ON b.userId = u.id
-                     WHERE b.id = ?`, [pendingResult.insertId]
-                );
-                console.log('[POST /api/bookings] Responding 202 for faculty conflict.');
-                return res.status(202).json({ 
-                    success: false, 
-                    conflict: true, 
-                    message: "This slot is already booked. Your request has been submitted for admin review. Simulated alternatives: Lab B at 3 PM, Lab C at 4 PM.",
-                    booking: createdPendingBooking[0]
+            // If faculty request conflicts, it stays as pending-admin-approval
+            // If Admin is booking and there's a conflict, they should be aware.
+            // For this PRD, a faculty request that conflicts goes to admin.
+             if (requestedByRole === USER_ROLES.FACULTY) {
+                status = 'pending-admin-approval';
+                console.log("[POST /api/bookings] Faculty request has conflict. Status set to 'pending-admin-approval'.");
+             } else if (requestedByRole === USER_ROLES.ADMIN) {
+                // Admin booking: if conflict, maybe they want to override or be warned.
+                // For now, let it also be 'pending-admin-approval' or allow admin to approve directly.
+                // The PRD suggests Admin approves their own implicitly if no conflict.
+                // If Admin directly books and it conflicts, it's a problem.
+                // For simplicity, if an Admin uses this form and it conflicts, it should also be flagged.
+                // Better for Admin to use the Grid to see availability.
+                return res.status(409).json({
+                    success: false, conflict: true, 
+                    message: "This slot is already booked. As Admin, please use the Lab Availability Grid to check availability or manage existing bookings."
                 });
-            } else if (requestedByRole === USER_ROLES.ADMIN) {
-                console.log('[POST /api/bookings] Admin conflict. Responding 409.');
-                return res.status(409).json({ msg: 'This slot is already booked. As Admin, please choose another slot, or cancel the existing booking if override is intended.'});
-            }
+             }
+        } else {
+            // No conflict, can be auto-approved if PRD allows for direct faculty booking
+            // PRD 4.2: "If no conflict -> booking is auto-approved"
+            status = 'booked'; // Auto-approve if no conflict
+            console.log("[POST /api/bookings] No conflict. Status set to 'booked'.");
         }
 
+
         const newBooking = {
+            user_id: userId, 
+            section_id: parseInt(section_id),
             labId: parseInt(labId),
-            userId,
             date,
             timeSlotId,
-            purpose,
+            start_time: startTime,
+            end_time: endTime,
+            purpose: purpose || null,
             equipmentIds: equipmentIds && equipmentIds.length > 0 ? JSON.stringify(equipmentIds) : null,
             status, 
-            requestedByRole, 
-            batchIdentifier: batchIdentifier || null,
             submittedDate: new Date()
         };
-        console.log('[POST /api/bookings] No conflict or resolved. Proceeding to save booking. Data:', JSON.stringify(newBooking));
+        console.log('[POST /api/bookings] Preparing to save booking. Data:', JSON.stringify(newBooking));
 
         const [result] = await pool.query('INSERT INTO bookings SET ?', newBooking);
         const [createdBookingResult] = await pool.query(
-            `SELECT b.*, l.name as labName, u.fullName as userName
+            `SELECT b.*, l.name as labName, u.fullName as userName, 
+                    s.section_name as sectionName, crs.name as courseName
              FROM bookings b
              LEFT JOIN labs l ON b.labId = l.id
-             LEFT JOIN users u ON b.userId = u.id
+             LEFT JOIN users u ON b.user_id = u.id
+             LEFT JOIN sections s ON b.section_id = s.id
+             LEFT JOIN courses crs ON s.course_id = crs.id
              WHERE b.id = ?`, [result.insertId]
         );
 
@@ -144,35 +178,41 @@ router.post('/', auth, async (req, res) => {
             console.error('[POST /api/bookings] Failed to retrieve created booking details after insert.');
             return res.status(500).json({ msg: 'Failed to retrieve created booking details.' });
         }
-        console.log('[POST /api/bookings] Booking successful. Responding 201 with booking:', JSON.stringify(createdBookingResult[0]));
-        res.status(201).json(createdBookingResult[0]);
+        
+        const responsePayload = { 
+            success: true, 
+            conflict: status === 'pending-admin-approval' && conflictingBookings.length > 0,
+            message: status === 'booked' ? "Booking created successfully!" : "Booking request submitted for admin approval due to conflict.",
+            booking: createdBookingResult[0] 
+        };
+        
+        console.log('[POST /api/bookings] Booking successful. Responding with:', JSON.stringify(responsePayload));
+        res.status(status === 'booked' ? 201 : 202).json(responsePayload);
+
 
     } catch (err) {
         console.error('[POST /api/bookings] Error creating booking:', err.message, err.stack);
-        if (err.code === 'ER_NO_REFERENCED_ROW_2' || err.sqlState === '23000') {
-            if (err.sqlMessage && err.sqlMessage.toLowerCase().includes('foreign key constraint fails')) {
+        if (err.code === 'ER_NO_REFERENCED_ROW_2') {
+            if (err.sqlMessage && err.sqlMessage.toLowerCase().includes('foreign key constraint')) {
                  if (err.sqlMessage.includes('labId')) return res.status(400).json({ msg: 'Invalid Lab ID. The specified lab does not exist.' });
-                 if (err.sqlMessage.includes('userId')) return res.status(400).json({ msg: 'Invalid User ID. The specified user does not exist.' });
+                 if (err.sqlMessage.includes('user_id')) return res.status(400).json({ msg: 'Invalid User ID. The specified user does not exist.' });
+                 if (err.sqlMessage.includes('section_id')) return res.status(400).json({ msg: 'Invalid Section ID. The specified section does not exist.' });
             }
-            return res.status(400).json({ msg: 'Invalid labId or userId reference.' });
+            return res.status(400).json({ msg: 'Invalid labId, userId, or sectionId reference.' });
         }
         res.status(500).json({ msg: 'Server Error while creating booking' });
     }
 });
 
-
-// @route   PUT api/bookings/:bookingId/status
-// @desc    Update booking status (e.g., approve/reject by Admin)
-// @access  Private (Admin only)
 router.put('/:bookingId/status', [auth, isAdmin], async (req, res) => {
-    const { status } = req.body; 
+    const { status: newStatus } = req.body; 
     const { bookingId } = req.params;
 
-    if (!status) {
+    if (!newStatus) {
         return res.status(400).json({ msg: 'Status is required' });
     }
-    const allowedStatuses = ['pending', 'booked', 'rejected', 'cancelled', 'pending-admin-approval', 'approved-by-admin', 'rejected-by-admin', 'under-review']; 
-    if (!allowedStatuses.includes(status)) {
+    const allowedStatuses = ['pending', 'booked', 'rejected', 'cancelled', 'pending-admin-approval', 'approved-by-admin', 'rejected-by-admin']; 
+    if (!allowedStatuses.includes(newStatus)) {
         return res.status(400).json({ msg: 'Invalid status value provided.' });
     }
 
@@ -183,24 +223,31 @@ router.put('/:bookingId/status', [auth, isAdmin], async (req, res) => {
         }
         const booking = bookingResult[0];
 
-        // If Admin is approving a 'pending-admin-approval' or 'pending' to 'booked'
-        if (status === 'booked' && (booking.status === 'pending-admin-approval' || booking.status === 'approved-by-admin' || booking.status === 'pending')) {
+        if (newStatus === 'booked') { 
              const [conflictingBookings] = await pool.query(
-                'SELECT * FROM bookings WHERE labId = ? AND date = ? AND timeSlotId = ? AND status = ? AND id != ?',
-                [booking.labId, booking.date, booking.timeSlotId, 'booked', bookingId]
+                `SELECT * FROM bookings 
+                 WHERE labId = ? AND date = ? 
+                 AND (
+                     (start_time < ? AND end_time > ?) OR 
+                     (start_time >= ? AND start_time < ?) 
+                 ) AND status = 'booked' AND id != ?`,
+                [booking.labId, booking.date, booking.end_time, booking.start_time, booking.start_time, booking.end_time, bookingId]
             );
             if (conflictingBookings.length > 0) {
-                return res.status(409).json({ msg: 'Cannot approve: This slot is already booked by another user. Please resolve the conflict.' });
+                return res.status(409).json({ msg: 'Cannot approve to "booked": This slot is already booked by another user. Please resolve the conflict.' });
             }
         }
 
-        await pool.query('UPDATE bookings SET status = ? WHERE id = ?', [status, bookingId]);
+        await pool.query('UPDATE bookings SET status = ? WHERE id = ?', [newStatus, bookingId]);
 
         const [updatedBookingResult] = await pool.query(
-            `SELECT b.*, l.name as labName, u.fullName as userName
+            `SELECT b.*, l.name as labName, u.fullName as userName, 
+                    s.section_name as sectionName, crs.name as courseName
              FROM bookings b
              LEFT JOIN labs l ON b.labId = l.id
-             LEFT JOIN users u ON b.userId = u.id
+             LEFT JOIN users u ON b.user_id = u.id
+             LEFT JOIN sections s ON b.section_id = s.id
+             LEFT JOIN courses crs ON s.course_id = crs.id
              WHERE b.id = ?`, [bookingId]
         );
         if (updatedBookingResult.length === 0) {
@@ -213,9 +260,6 @@ router.put('/:bookingId/status', [auth, isAdmin], async (req, res) => {
     }
 });
 
-// @route   PUT api/bookings/:bookingId/purpose
-// @desc    Update booking purpose (Admin only)
-// @access  Private (Admin only)
 router.put('/:bookingId/purpose', [auth, isAdmin], async (req, res) => {
     const { purpose } = req.body;
     const { bookingId } = req.params;
@@ -233,10 +277,13 @@ router.put('/:bookingId/purpose', [auth, isAdmin], async (req, res) => {
         await pool.query('UPDATE bookings SET purpose = ? WHERE id = ?', [purpose.trim(), bookingId]);
 
         const [updatedBookingResult] = await pool.query(
-            `SELECT b.*, l.name as labName, u.fullName as userName
+            `SELECT b.*, l.name as labName, u.fullName as userName, 
+                    s.section_name as sectionName, crs.name as courseName
              FROM bookings b
              LEFT JOIN labs l ON b.labId = l.id
-             LEFT JOIN users u ON b.userId = u.id
+             LEFT JOIN users u ON b.user_id = u.id
+             LEFT JOIN sections s ON b.section_id = s.id
+             LEFT JOIN courses crs ON s.course_id = crs.id
              WHERE b.id = ?`, [bookingId]
         );
         if (updatedBookingResult.length === 0) {
@@ -250,10 +297,6 @@ router.put('/:bookingId/purpose', [auth, isAdmin], async (req, res) => {
     }
 });
 
-
-// @route   DELETE api/bookings/:bookingId
-// @desc    Cancel/delete a booking (changes status to 'cancelled')
-// @access  Private (Owner or Admin)
 router.delete('/:bookingId', auth, async (req, res) => {
     const { bookingId } = req.params;
     const userIdFromToken = req.user.id;
@@ -266,14 +309,11 @@ router.delete('/:bookingId', auth, async (req, res) => {
         }
         const booking = bookingResult[0];
 
-        // Allow user to cancel their own booking, or Admin to cancel any booking
-        if (String(booking.userId) !== String(userIdFromToken) && userRoleFromToken !== USER_ROLES.ADMIN) {
+        if (String(booking.user_id) !== String(userIdFromToken) && userRoleFromToken !== USER_ROLES.ADMIN) {
             return res.status(403).json({ msg: 'Not authorized to cancel this booking' });
         }
 
-        // Instead of deleting, change status to 'cancelled'
         await pool.query('UPDATE bookings SET status = ? WHERE id = ?', ['cancelled', bookingId]);
-
         res.json({ msg: 'Booking cancelled successfully' });
 
     } catch (err) {
@@ -282,7 +322,5 @@ router.delete('/:bookingId', auth, async (req, res) => {
     }
 });
 
-
 module.exports = router;
-
     

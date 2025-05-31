@@ -1,0 +1,85 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Courses - OLMS</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="dashboard-layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <a href="admin.html" class="sidebar-header-link">
+                    <i data-lucide="atom"></i> <span class="sidebar-title">OLMS</span>
+                </a>
+            </div>
+            <ul class="sidebar-nav" id="sidebarNav"></ul>
+        </aside>
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+        <div class="main-content-wrapper">
+            <header class="dashboard-header">
+                <button class="mobile-menu-button" id="mobileMenuButton" type="button"><i data-lucide="menu"></i></button>
+                <div class="user-nav" id="userNavContainer"></div>
+            </header>
+            <main class="page-content">
+                <div class="custom-card">
+                    <div class="custom-card-header">
+                        <i data-lucide="book-open"></i>
+                        <h1 class="custom-card-title">Manage Courses</h1>
+                    </div>
+                    <div class="custom-card-content">
+                        <button type="button" id="openAddCourseModalBtn" class="button button-primary mb-4">
+                            <i data-lucide="plus-circle" class="mr-2"></i> Add New Course
+                        </button>
+                        <div id="coursesListContainer" class="mt-4">Loading courses...</div>
+                    </div>
+                </div>
+                <div id="courseModal" class="dialog-overlay">
+                    <div class="dialog-content" style="max-width: 500px;">
+                        <form id="courseForm">
+                            <div class="dialog-header">
+                                <h2 id="courseModalTitle" class="dialog-title">Add New Course</h2>
+                                <button type="button" class="dialog-close-button" id="closeCourseModalBtn" aria-label="Close"><i data-lucide="x"></i></button>
+                            </div>
+                            <div class="dialog-body">
+                                <input type="hidden" id="courseId" name="courseId">
+                                <div class="form-group">
+                                    <label for="courseName">Course Name</label>
+                                    <input type="text" id="courseName" name="courseName" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="courseDepartment">Department (Optional)</label>
+                                    <select id="courseDepartment" name="courseDepartment">
+                                        <option value="">Select Department</option>
+                                    </select>
+                                </div>
+                                <p id="courseFormMessage" class="error-message" style="margin-bottom: 1rem;"></p>
+                            </div>
+                            <div class="dialog-footer">
+                                <button type="button" class="button button-secondary" id="cancelCourseModalBtn">Cancel</button>
+                                <button type="submit" class="button button-primary">Save Course</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    <script src="../js/constants.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/admin_management.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!window.roleGuard(window.USER_ROLES.ADMIN)) return;
+            window.initializeDashboard();
+            window.initializeCourseManagementPage();
+            if (window.lucide) window.lucide.createIcons();
+        });
+    </script>
+</body>
+</html>
+    

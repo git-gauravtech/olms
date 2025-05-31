@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Schedule - Optimized Lab Management System</title>
+    <title>My Schedule - OLMS</title>
     <link rel="stylesheet" href="../css/style.css">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
@@ -13,24 +13,16 @@
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                  <a href="#" class="sidebar-header-link" id="dashboardHomeLink">
-                    <i data-lucide="atom"></i>
-                    <span class="sidebar-title">Optimized Lab Management System</span>
+                    <i data-lucide="atom"></i><span class="sidebar-title">OLMS</span>
                 </a>
             </div>
-            <ul class="sidebar-nav" id="sidebarNav">
-                <!-- Nav items will be populated by JS -->
-            </ul>
+            <ul class="sidebar-nav" id="sidebarNav"></ul>
         </aside>
         <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
         <div class="main-content-wrapper">
             <header class="dashboard-header">
-                <button type="button" class="mobile-menu-button" id="mobileMenuButton">
-                    <i data-lucide="menu"></i>
-                </button>
-                <div class="user-nav" id="userNavContainer">
-                    <!-- UserNav will be populated by JS -->
-                </div>
+                <button type="button" class="mobile-menu-button" id="mobileMenuButton"><i data-lucide="menu"></i></button>
+                <div class="user-nav" id="userNavContainer"></div>
             </header>
             <main class="page-content">
                 <div class="custom-card">
@@ -39,144 +31,75 @@
                         <h1 class="custom-card-title">My Lab Schedule</h1>
                     </div>
                     <div class="custom-card-content">
-                        <p class="text-muted-foreground mb-4">
-                            Here are your upcoming and past lab sessions.
-                        </p>
-                        <div id="myScheduleListContainer" class="space-y-4">
-                            <p>Loading your schedule...</p>
-                        </div>
+                        <p class="text-muted-foreground mb-4">Your lab sessions. (Student enrollment into sections is not yet implemented; showing all booked labs for demo).</p>
+                        <div id="myScheduleListContainer" class="space-y-4">Loading schedule...</div>
                     </div>
                 </div>
             </main>
         </div>
     </div>
-
     <script src="../js/constants.js"></script>
     <script src="../js/utils.js"></script>
     <script src="js/dashboard.js"></script>
     <script>
-        console.log('DOM fully loaded and parsed for student_my_bookings.html');
         const scheduleListContainer = document.getElementById('myScheduleListContainer');
         const token = localStorage.getItem('token');
 
         async function loadAndRenderMySchedule() {
             if (!scheduleListContainer || !window.API_BASE_URL || !token) {
                 if (scheduleListContainer) scheduleListContainer.innerHTML = '<p class="error-message visible">Page setup error or not authenticated.</p>';
-                console.error("loadAndRenderMySchedule: Missing critical elements or token.");
                 return;
             }
             scheduleListContainer.innerHTML = '<p>Loading your schedule...</p>';
-
             try {
-                const response = await fetch(`${window.API_BASE_URL}/bookings/my`, {
-                     headers: { 'Authorization': `Bearer ${token}` }
-                });
-                 if (!response.ok) {
+                // Students view their schedule. For now, this will show all 'booked' as enrollment isn't done.
+                // The /my endpoint for students currently returns empty array.
+                // To show something, we fetch all bookings and filter for 'booked' on client-side for demo.
+                // In a real system, /my for students would filter by their enrolled sections.
+                const response = await fetch(`${window.API_BASE_URL}/bookings`, { headers: { 'Authorization': `Bearer ${token}` } }); // Fetch all for Admin/Student demo
+                if (!response.ok) {
                     const errorData = await response.json().catch(() => ({ msg: `Server error: ${response.status}` }));
-                    throw new Error(errorData.msg || `Failed to fetch your schedule`);
+                    throw new Error(errorData.msg || `Failed to fetch schedule`);
                 }
-                const userBookings = await response.json();
+                const allBookings = await response.json();
+                const studentBookings = allBookings.filter(b => b.status === 'booked'); // Simplified for demo
 
-                if (userBookings.length > 0) {
+                if (studentBookings.length > 0) {
                     scheduleListContainer.innerHTML = ''; 
-                    userBookings.forEach(booking => {
-                        const card = document.createElement('div');
-                        card.className = 'custom-card p-4 border rounded-md shadow-sm mb-3';
-                        
-                        let equipmentNames = 'None';
-                        if (booking.equipmentIds && String(booking.equipmentIds).length > 2) {
-                            try {
-                                const eqIds = JSON.parse(booking.equipmentIds);
-                                if (Array.isArray(eqIds) && eqIds.length > 0) {
-                                     equipmentNames = `IDs: ${eqIds.join(', ')}`;
-                                }
-                            } catch (e) { 
-                                console.warn("Could not parse equipmentIds for booking:", booking.id, booking.equipmentIds, e);
-                                equipmentNames = String(booking.equipmentIds);
-                            }
-                        }
-                        
+                    studentBookings.forEach(booking => {
+                        const card = document.createElement('div'); card.className = 'custom-card p-4 border rounded-md shadow-sm mb-3';
                         const timeSlotObj = (window.MOCK_TIME_SLOTS && booking.timeSlotId) ? window.MOCK_TIME_SLOTS.find(ts => ts.id === booking.timeSlotId) : null;
                         const slotDateTime = timeSlotObj ? new Date(booking.date + 'T' + timeSlotObj.startTime) : new Date(booking.date);
                         const isPast = slotDateTime < new Date();
-
-
-                        let statusColorClass = 'text-gray-600';
-                        if (booking.status === 'booked') statusColorClass = isPast ? 'text-gray-500' : 'text-green-600';
-                        else if (booking.status === 'pending' || booking.status === 'pending-admin-approval') statusColorClass = 'text-yellow-600';
-                        else if (['rejected', 'cancelled', 'rejected-by-admin'].includes(booking.status)) statusColorClass = 'text-red-600';
-
-                        const batchInfo = booking.batchIdentifier ? `<p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Course Section/Batch:</strong> ${booking.batchIdentifier}</p>` : '';
-
+                        let statusColorClass = isPast ? 'text-gray-500' : 'text-green-600';
+                        const sectionInfo = booking.sectionName ? `<p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Course Section:</strong> ${booking.courseName || 'N/A'} - ${booking.sectionName}</p>` : '';
 
                         card.innerHTML = `
                             <h3 class="text-lg font-semibold mb-1 ${isPast ? 'text-gray-500' : ''}">${booking.labName || 'Unknown Lab'}</h3>
-                            ${batchInfo}
-                            <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Date:</strong> ${booking.date ? window.formatDate(new Date(booking.date)) : 'N/A'}</p>
+                            ${sectionInfo}
+                            <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Date:</strong> ${booking.date ? window.formatDateForDisplay(new Date(booking.date)) : 'N/A'}</p>
                             <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Time:</strong> ${timeSlotObj?.displayTime || booking.timeSlotId || 'N/A'}</p>
                             <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Purpose:</strong> ${booking.purpose || 'N/A'}</p>
                             <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Status:</strong> 
                                 <span class="font-medium ${statusColorClass}">
-                                    ${booking.status ? booking.status.toUpperCase().replace(/-/g,' ') : 'N/A'} ${isPast && booking.status === 'booked' ? '(Completed)' : ''}
+                                    ${booking.status ? booking.status.toUpperCase().replace(/-/g,' ') : 'N/A'} ${isPast ? '(Completed)' : ''}
                                 </span>
                             </p>
-                            <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Equipment:</strong> ${equipmentNames}</p>
-                            ${ (window.getCurrentUserRole() === window.USER_ROLES.ASSISTANT && (booking.status === 'booked' || booking.status === 'pending')) ? `<button type="button" class="button button-outline button-sm mt-2" onclick="cancelOwnBooking('${booking.id}')">Cancel Booking/Request</button>` : ''}
                         `;
                         scheduleListContainer.appendChild(card);
                     });
-                } else {
-                    scheduleListContainer.innerHTML = '<p class="text-muted-foreground">You have no scheduled lab sessions or pending requests.</p>';
-                }
+                } else { scheduleListContainer.innerHTML = '<p class="text-muted-foreground">No lab sessions scheduled for you at this time.</p>'; }
             } catch (error) {
-                console.error("Error rendering student/assistant schedule:", error.message, error.stack);
                 if (scheduleListContainer) scheduleListContainer.innerHTML = `<p class="error-message visible">Error loading your schedule: ${error.message}</p>`;
             }
-
             if (window.lucide) window.lucide.createIcons();
         }
         
         document.addEventListener('DOMContentLoaded', async () => {
-            console.log('DOM fully loaded and parsed for student_my_bookings.html');
-            const currentUserRole = window.getCurrentUserRole();
             if (!window.roleGuard([window.USER_ROLES.STUDENT, window.USER_ROLES.ASSISTANT])) return; 
-            
-            window.initializeDashboard();
-            window.setDashboardHomeLink();
-            await loadAndRenderMySchedule();
+            window.initializeDashboard(); window.setDashboardHomeLink(); await loadAndRenderMySchedule();
         });
-        
-        async function cancelOwnBooking(bookingId) { 
-            if (!token) {
-                alert("Authentication error.");
-                return;
-            }
-            const currentUserRole = window.getCurrentUserRole();
-            if (currentUserRole !== window.USER_ROLES.ASSISTANT) {
-                // alert("Only Assistants can cancel their requests from this page."); // Student cannot cancel from here
-                return;
-            }
-
-            if (confirm('Are you sure you want to cancel this booking/request?')) {
-                try {
-                    const response = await fetch(`${window.API_BASE_URL}/bookings/${bookingId}`, {
-                        method: 'DELETE', 
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
-                    const result = await response.json();
-                    if (response.ok) {
-                        alert(result.msg || 'Booking/Request cancelled successfully.');
-                        await loadAndRenderMySchedule(); 
-                    } else {
-                        const errorMsg = result.msg || `Server error: ${response.status}`;
-                        alert(`Failed to cancel: ${errorMsg}`);
-                    }
-                } catch (error) {
-                    console.error("Error cancelling own booking:", error.message, error.stack);
-                    alert(`An error occurred during cancellation: ${error.message}`);
-                }
-            }
-        }
     </script>
 </body>
 </html>
+    
