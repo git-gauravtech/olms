@@ -31,7 +31,7 @@
                         <h1 class="custom-card-title">Manage Faculty Requests</h1>
                     </div>
                     <div class="custom-card-content">
-                        <p class="text-muted-foreground mb-4">Review booking requests from Faculty needing admin approval.</p>
+                        <p class="text-muted-foreground mb-4">Review booking requests from Faculty needing admin approval (typically due to conflicts).</p>
                         <div id="facultyRequestsListContainer" class="space-y-4">Loading...</div>
                     </div>
                 </div>
@@ -49,6 +49,7 @@
         async function loadAndRenderFacultyRequests() {
             if (!facultyRequestsListContainer) { console.error("[AFR] facultyRequestsListContainer not found."); return; }
             if (!window.API_BASE_URL) { facultyRequestsListContainer.innerHTML = '<p class="error-message visible">API URL not configured.</p>'; return; }
+            token = localStorage.getItem('token'); // Refresh token in case it changed (though unlikely in SPA context)
             if (!token) { facultyRequestsListContainer.innerHTML = '<p class="error-message visible">Not authenticated.</p>'; return; }
 
             // console.log("[admin_faculty_requests.html] Fetching faculty requests...");
@@ -66,7 +67,11 @@
                     facultyRequestsListContainer.innerHTML = ''; 
                     ALL_FACULTY_REQUESTS_CACHE.forEach(request => {
                         const card = document.createElement('div'); card.className = 'custom-card p-4 border rounded-md shadow-sm mb-3';
-                        const requestTitle = `${request.courseName || 'N/A'} - ${request.sectionName || 'N/A'} (Lab: ${request.labName || 'Unknown Lab'})`;
+                        
+                        const courseDisplay = request.courseName || 'N/A';
+                        const sectionDisplay = request.sectionName || 'N/A';
+                        const labDisplay = request.labName || 'Unknown Lab';
+                        const requestTitle = `${courseDisplay} - ${sectionDisplay} (Lab: ${labDisplay})`;
                         
                         const timeSlotDisplay = (window.MOCK_TIME_SLOTS && request.timeSlotId) 
                             ? (window.MOCK_TIME_SLOTS.find(ts => ts.id === request.timeSlotId)?.displayTime || request.timeSlotId) 
@@ -74,15 +79,19 @@
                         
                         const submittedDateDisplay = request.submittedDate ? window.formatDateForDisplay(new Date(request.submittedDate)) : 'N/A';
                         const requestedDateDisplay = request.date ? window.formatDateForDisplay(new Date(request.date)) : 'N/A';
+                        const facultyNameDisplay = request.userName || 'N/A';
+                        const facultyEmailDisplay = request.userEmail || 'N/A';
+                        const purposeDisplay = request.purpose || 'N/A';
+                        const statusDisplay = request.status ? request.status.toUpperCase().replace(/-/g, ' ') : 'N/A';
 
                         card.innerHTML = `
                             <h3 class="text-lg font-semibold mb-1">${requestTitle}</h3>
-                            <p class="text-sm text-muted-foreground"><strong>Faculty:</strong> ${request.userName || 'N/A'} (${request.userEmail || 'N/A'})</p>
-                            <p class="text-sm text-muted-foreground"><strong>Purpose:</strong> ${request.purpose || 'N/A'}</p>
-                            <p class="text-sm text-muted-foreground"><strong>Submitted:</strong> ${submittedDateDisplay}</p>
+                            <p class="text-sm text-muted-foreground"><strong>Faculty:</strong> ${facultyNameDisplay} (${facultyEmailDisplay})</p>
+                            <p class="text-sm text-muted-foreground"><strong>Purpose:</strong> ${purposeDisplay}</p>
+                            <p class="text-sm text-muted-foreground"><strong>Submitted On:</strong> ${submittedDateDisplay}</p>
                             <p class="text-sm text-muted-foreground"><strong>Requested Date:</strong> ${requestedDateDisplay}</p>
                             <p class="text-sm text-muted-foreground"><strong>Requested Time:</strong> ${timeSlotDisplay}</p>
-                            <p class="text-sm text-muted-foreground"><strong>Status:</strong> <span class="font-medium text-yellow-600">${request.status ? request.status.toUpperCase().replace(/-/g, ' ') : 'N/A'}</span></p>
+                            <p class="text-sm text-muted-foreground"><strong>Status:</strong> <span class="font-medium text-yellow-600">${statusDisplay}</span></p>
                             <div class="mt-3 flex gap-2">
                                 <button type="button" class="button button-primary button-sm" onclick="handleFacultyRequest('${request.id}', 'booked')">Approve (Book Slot)</button>
                                 <button type="button" class="button button-outline button-sm" onclick="handleFacultyRequest('${request.id}', 'approved-by-admin')">Mark Approved (No Conflict Check)</button>
@@ -93,13 +102,14 @@
                     });
                 } else { facultyRequestsListContainer.innerHTML = '<p class="text-muted-foreground">No pending faculty requests.</p>'; }
             } catch (error) {
+                console.error("Error in loadAndRenderFacultyRequests:", error);
                 if (facultyRequestsListContainer) facultyRequestsListContainer.innerHTML = `<p class="error-message visible">Error loading requests: ${error.message}</p>`;
             }
             if (window.lucide) window.lucide.createIcons();
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
-            token = localStorage.getItem('token');
+            token = localStorage.getItem('token'); // Initialize token here
             if (!window.roleGuard(window.USER_ROLES.ADMIN)) return;
             window.initializeDashboard(); 
             window.setDashboardHomeLink(); 
@@ -107,12 +117,13 @@
         });
 
         async function handleFacultyRequest(bookingId, newStatus) {
-            const actionText = newStatus.includes('approve') || newStatus.includes('book') ? 'approve' : (newStatus.includes('reject') ? 'update' : 'process');
+            const actionText = newStatus.includes('approve') || newStatus.includes('book') ? 'approve' : (newStatus.includes('reject') ? 'reject' : 'process');
             // console.log(`[admin_faculty_requests.html] Admin action: ${actionText} for bookingId: ${bookingId} to newStatus: ${newStatus}`);
-            if (!confirm(`Are you sure you want to ${actionText} this request? (ID: ${bookingId}, New Status: ${newStatus})`)) return;
-            if (!token) { alert('Not authenticated.'); return; }
+            if (!confirm(`Are you sure you want to ${actionText} this request? (ID: ${bookingId}, New Status: ${newStatus.toUpperCase().replace(/-/g, ' ')})`)) return;
             
-            const submitButton = event.target; // Get the button that was clicked
+            if (!token) { alert('Authentication error: Token missing.'); return; }
+            
+            const submitButton = event.target; 
             const originalButtonHtml = submitButton.innerHTML;
             submitButton.disabled = true;
             submitButton.innerHTML = `<i data-lucide="loader-2" style="animation: spin 1s linear infinite; display: inline-block; margin-right: 0.5rem;"></i> Processing...`;
@@ -128,24 +139,26 @@
 
                 if (response.ok) { 
                     alert(result.msg || `Request status updated to ${newStatus.toUpperCase().replace(/-/g, ' ')}.`); 
-                    await loadAndRenderFacultyRequests(); // Refresh the list
+                    await loadAndRenderFacultyRequests(); 
                 } else { 
-                    if (response.status === 409 && newStatus === 'booked') { // Specifically handle conflict on approval
+                    if (response.status === 409 && newStatus === 'booked') { 
                         alert(result.msg || `Could not approve: The slot is now conflicting with another booking. Please check the lab grid.`);
                     } else {
                         alert(result.msg || `Failed to update status: ${response.status}.`); 
                     }
                 }
             } catch (error) { 
+                console.error("Error in handleFacultyRequest:", error);
                 alert(`Error updating status: ${error.message}`); 
             } finally {
-                if(submitButton) { // Check if submitButton still exists / is valid
+                if(submitButton) { 
                     submitButton.disabled = false;
                     submitButton.innerHTML = originalButtonHtml;
-                    if(window.lucide) window.lucide.createIcons(); // Re-render icons for the button
+                    if(window.lucide) window.lucide.createIcons(); 
                 }
             }
         }
     </script>
 </body>
 </html>
+    

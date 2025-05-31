@@ -31,7 +31,7 @@
                         <h1 class="custom-card-title">My Lab Schedule</h1>
                     </div>
                     <div class="custom-card-content">
-                        <p class="text-muted-foreground mb-4">Your lab sessions. (Student enrollment into sections is not yet implemented; showing all booked labs for demo).</p>
+                        <p class="text-muted-foreground mb-4">Your lab sessions. (Note: Student enrollment into specific course sections is not yet fully implemented; this view currently shows all 'booked' lab sessions as a demonstration).</p>
                         <div id="myScheduleListContainer" class="space-y-4">Loading schedule...</div>
                     </div>
                 </div>
@@ -52,11 +52,10 @@
             }
             scheduleListContainer.innerHTML = '<p>Loading your schedule...</p>';
             try {
-                // Students view their schedule. For now, this will show all 'booked' as enrollment isn't done.
-                // The /my endpoint for students currently returns empty array.
-                // To show something, we fetch all bookings and filter for 'booked' on client-side for demo.
-                // In a real system, /my for students would filter by their enrolled sections.
-                const response = await fetch(`${window.API_BASE_URL}/bookings`, { headers: { 'Authorization': `Bearer ${token}` } }); // Fetch all for Admin/Student demo
+                // Students view their schedule. The /api/bookings/my for students currently returns empty.
+                // For demo, we fetch all admin-viewable bookings and filter for 'booked' on client-side.
+                // In a real system, /api/bookings/my for students would be implemented to filter by their enrolled sections.
+                const response = await fetch(`${window.API_BASE_URL}/bookings`, { headers: { 'Authorization': `Bearer ${token}` } }); 
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({ msg: `Server error: ${response.status}` }));
                     throw new Error(errorData.msg || `Failed to fetch schedule`);
@@ -68,21 +67,39 @@
                     scheduleListContainer.innerHTML = ''; 
                     studentBookings.forEach(booking => {
                         const card = document.createElement('div'); card.className = 'custom-card p-4 border rounded-md shadow-sm mb-3';
-                        const timeSlotObj = (window.MOCK_TIME_SLOTS && booking.timeSlotId) ? window.MOCK_TIME_SLOTS.find(ts => ts.id === booking.timeSlotId) : null;
-                        const slotDateTime = timeSlotObj ? new Date(booking.date + 'T' + timeSlotObj.startTime) : new Date(booking.date);
-                        const isPast = slotDateTime < new Date();
+                        
+                        const timeSlotObj = (window.MOCK_TIME_SLOTS && booking.timeSlotId) 
+                            ? window.MOCK_TIME_SLOTS.find(ts => ts.id === booking.timeSlotId) 
+                            : null;
+                        
+                        let slotEndDateTime = null;
+                        if (timeSlotObj && booking.date) {
+                            const [endHours, endMinutes] = timeSlotObj.endTime.split(':').map(Number);
+                            const bookingDateObj = new Date(String(booking.date).replace(/-/g, '/')); // Ensure correct parsing
+                            slotEndDateTime = new Date(bookingDateObj.getFullYear(), bookingDateObj.getMonth(), bookingDateObj.getDate(), endHours, endMinutes);
+                        }
+                        
+                        const isPast = slotEndDateTime ? slotEndDateTime < new Date() : false;
                         let statusColorClass = isPast ? 'text-gray-500' : 'text-green-600';
-                        const sectionInfo = booking.sectionName ? `<p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Course Section:</strong> ${booking.courseName || 'N/A'} - ${booking.sectionName}</p>` : '';
+                        
+                        const labDisplay = booking.labName || 'Unknown Lab';
+                        const courseDisplay = booking.courseName || 'N/A';
+                        const sectionDisplay = booking.sectionName || 'N/A';
+                        const dateDisplay = booking.date ? window.formatDateForDisplay(new Date(booking.date)) : 'N/A';
+                        const timeDisplay = timeSlotObj?.displayTime || booking.timeSlotId || 'N/A';
+                        const purposeDisplay = booking.purpose || 'N/A';
+                        const statusText = booking.status ? booking.status.toUpperCase().replace(/-/g,' ') : 'N/A';
 
                         card.innerHTML = `
-                            <h3 class="text-lg font-semibold mb-1 ${isPast ? 'text-gray-500' : ''}">${booking.labName || 'Unknown Lab'}</h3>
-                            ${sectionInfo}
-                            <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Date:</strong> ${booking.date ? window.formatDateForDisplay(new Date(booking.date)) : 'N/A'}</p>
-                            <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Time:</strong> ${timeSlotObj?.displayTime || booking.timeSlotId || 'N/A'}</p>
-                            <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Purpose:</strong> ${booking.purpose || 'N/A'}</p>
+                            <h3 class="text-lg font-semibold mb-1 ${isPast ? 'text-gray-500' : ''}">${labDisplay}</h3>
+                            <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Course:</strong> ${courseDisplay}</p>
+                            <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Section:</strong> ${sectionDisplay}</p>
+                            <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Date:</strong> ${dateDisplay}</p>
+                            <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Time:</strong> ${timeDisplay}</p>
+                            <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Purpose:</strong> ${purposeDisplay}</p>
                             <p class="text-sm ${isPast ? 'text-gray-400' : 'text-muted-foreground'}"><strong>Status:</strong> 
                                 <span class="font-medium ${statusColorClass}">
-                                    ${booking.status ? booking.status.toUpperCase().replace(/-/g,' ') : 'N/A'} ${isPast ? '(Completed)' : ''}
+                                    ${statusText} ${isPast ? '(Completed)' : ''}
                                 </span>
                             </p>
                         `;
@@ -90,6 +107,7 @@
                     });
                 } else { scheduleListContainer.innerHTML = '<p class="text-muted-foreground">No lab sessions scheduled for you at this time.</p>'; }
             } catch (error) {
+                console.error("Error in loadAndRenderMySchedule (Student):", error);
                 if (scheduleListContainer) scheduleListContainer.innerHTML = `<p class="error-message visible">Error loading your schedule: ${error.message}</p>`;
             }
             if (window.lucide) window.lucide.createIcons();
@@ -97,7 +115,9 @@
         
         document.addEventListener('DOMContentLoaded', async () => {
             if (!window.roleGuard([window.USER_ROLES.STUDENT, window.USER_ROLES.ASSISTANT])) return; 
-            window.initializeDashboard(); window.setDashboardHomeLink(); await loadAndRenderMySchedule();
+            window.initializeDashboard(); 
+            window.setDashboardHomeLink(); 
+            await loadAndRenderMySchedule();
         });
     </script>
 </body>
