@@ -51,6 +51,7 @@
             if (!window.API_BASE_URL) { facultyRequestsListContainer.innerHTML = '<p class="error-message visible">API URL not configured.</p>'; return; }
             if (!token) { facultyRequestsListContainer.innerHTML = '<p class="error-message visible">Not authenticated.</p>'; return; }
 
+            // console.log("[admin_faculty_requests.html] Fetching faculty requests...");
             facultyRequestsListContainer.innerHTML = '<p>Loading Faculty requests...</p>';
             try {
                 const response = await fetch(`${window.API_BASE_URL}/admin/requests/faculty`, { headers: { 'Authorization': `Bearer ${token}` } });
@@ -59,14 +60,21 @@
                     throw new Error(errorData.msg || `Failed to fetch faculty requests`);
                 }
                 ALL_FACULTY_REQUESTS_CACHE = await response.json();
+                // console.log("[admin_faculty_requests.html] Fetched Faculty Requests (raw data):", ALL_FACULTY_REQUESTS_CACHE);
+
                 if (ALL_FACULTY_REQUESTS_CACHE.length > 0) {
                     facultyRequestsListContainer.innerHTML = ''; 
                     ALL_FACULTY_REQUESTS_CACHE.forEach(request => {
                         const card = document.createElement('div'); card.className = 'custom-card p-4 border rounded-md shadow-sm mb-3';
                         const requestTitle = `${request.courseName || 'N/A'} - ${request.sectionName || 'N/A'} (Lab: ${request.labName || 'Unknown Lab'})`;
-                        const timeSlotDisplay = (window.MOCK_TIME_SLOTS && request.timeSlotId) ? (window.MOCK_TIME_SLOTS.find(ts => ts.id === request.timeSlotId)?.displayTime || request.timeSlotId) : (request.timeSlotId || 'N/A');
+                        
+                        const timeSlotDisplay = (window.MOCK_TIME_SLOTS && request.timeSlotId) 
+                            ? (window.MOCK_TIME_SLOTS.find(ts => ts.id === request.timeSlotId)?.displayTime || request.timeSlotId) 
+                            : (request.timeSlotId || 'N/A');
+                        
                         const submittedDateDisplay = request.submittedDate ? window.formatDateForDisplay(new Date(request.submittedDate)) : 'N/A';
                         const requestedDateDisplay = request.date ? window.formatDateForDisplay(new Date(request.date)) : 'N/A';
+
                         card.innerHTML = `
                             <h3 class="text-lg font-semibold mb-1">${requestTitle}</h3>
                             <p class="text-sm text-muted-foreground"><strong>Faculty:</strong> ${request.userName || 'N/A'} (${request.userEmail || 'N/A'})</p>
@@ -93,23 +101,51 @@
         document.addEventListener('DOMContentLoaded', async () => {
             token = localStorage.getItem('token');
             if (!window.roleGuard(window.USER_ROLES.ADMIN)) return;
-            window.initializeDashboard(); window.setDashboardHomeLink(); await loadAndRenderFacultyRequests();
+            window.initializeDashboard(); 
+            window.setDashboardHomeLink(); 
+            await loadAndRenderFacultyRequests();
         });
 
         async function handleFacultyRequest(bookingId, newStatus) {
-            const actionText = newStatus.includes('approve') || newStatus.includes('book') ? 'approve' : (newStatus.includes('reject') ? 'reject' : 'update');
+            const actionText = newStatus.includes('approve') || newStatus.includes('book') ? 'approve' : (newStatus.includes('reject') ? 'update' : 'process');
+            // console.log(`[admin_faculty_requests.html] Admin action: ${actionText} for bookingId: ${bookingId} to newStatus: ${newStatus}`);
             if (!confirm(`Are you sure you want to ${actionText} this request? (ID: ${bookingId}, New Status: ${newStatus})`)) return;
             if (!token) { alert('Not authenticated.'); return; }
+            
+            const submitButton = event.target; // Get the button that was clicked
+            const originalButtonHtml = submitButton.innerHTML;
+            submitButton.disabled = true;
+            submitButton.innerHTML = `<i data-lucide="loader-2" style="animation: spin 1s linear infinite; display: inline-block; margin-right: 0.5rem;"></i> Processing...`;
+            if(window.lucide) window.lucide.createIcons();
+
             try {
                 const response = await fetch(`${window.API_BASE_URL}/bookings/${bookingId}/status`, {
-                    method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ status: newStatus })
+                    method: 'PUT', 
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, 
+                    body: JSON.stringify({ status: newStatus })
                 });
                 const result = await response.json();
-                if (response.ok) { alert(result.msg || `Request status updated to ${newStatus.toUpperCase().replace(/-/g, ' ')}.`); await loadAndRenderFacultyRequests(); } 
-                else { alert(result.msg || `Failed to update status: ${response.status}.`); }
-            } catch (error) { alert(`Error updating status: ${error.message}`); }
+
+                if (response.ok) { 
+                    alert(result.msg || `Request status updated to ${newStatus.toUpperCase().replace(/-/g, ' ')}.`); 
+                    await loadAndRenderFacultyRequests(); // Refresh the list
+                } else { 
+                    if (response.status === 409 && newStatus === 'booked') { // Specifically handle conflict on approval
+                        alert(result.msg || `Could not approve: The slot is now conflicting with another booking. Please check the lab grid.`);
+                    } else {
+                        alert(result.msg || `Failed to update status: ${response.status}.`); 
+                    }
+                }
+            } catch (error) { 
+                alert(`Error updating status: ${error.message}`); 
+            } finally {
+                if(submitButton) { // Check if submitButton still exists / is valid
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = originalButtonHtml;
+                    if(window.lucide) window.lucide.createIcons(); // Re-render icons for the button
+                }
+            }
         }
     </script>
 </body>
 </html>
-    
