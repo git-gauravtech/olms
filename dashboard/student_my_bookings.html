@@ -31,7 +31,7 @@
                         <h1 class="custom-card-title">My Lab Schedule</h1>
                     </div>
                     <div class="custom-card-content">
-                        <p class="text-muted-foreground mb-4">Your lab sessions. (Note: Student enrollment into specific course sections is not yet fully implemented; this view currently shows all 'booked' lab sessions as a demonstration).</p>
+                        <p class="text-muted-foreground mb-4">Your lab sessions. (Note: Student enrollment into specific course sections is not yet fully implemented. This view shows bookings relevant to you based on future enrollment logic.)</p>
                         <div id="myScheduleListContainer" class="space-y-4">Loading schedule...</div>
                     </div>
                 </div>
@@ -52,16 +52,19 @@
             }
             scheduleListContainer.innerHTML = '<p>Loading your schedule...</p>';
             try {
-                // Students view their schedule. The /api/bookings/my for students currently returns empty.
-                // For demo, we fetch all admin-viewable bookings and filter for 'booked' on client-side.
-                // In a real system, /api/bookings/my for students would be implemented to filter by their enrolled sections.
-                const response = await fetch(`${window.API_BASE_URL}/bookings`, { headers: { 'Authorization': `Bearer ${token}` } }); 
+                // Students view their schedule by calling /api/bookings/my
+                // The backend for students currently returns an empty array as enrollment isn't implemented.
+                const response = await fetch(`${window.API_BASE_URL}/bookings/my`, { 
+                    headers: { 'Authorization': `Bearer ${token}` } 
+                }); 
+                
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({ msg: `Server error: ${response.status}` }));
-                    throw new Error(errorData.msg || `Failed to fetch schedule`);
+                    // Do not show "Access denied. Admin role required." for students.
+                    // The backend /my route for students should handle their access correctly (even if returning empty list).
+                    throw new Error(errorData.msg || `Failed to fetch your schedule`);
                 }
-                const allBookings = await response.json();
-                const studentBookings = allBookings.filter(b => b.status === 'booked'); // Simplified for demo
+                const studentBookings = await response.json();
 
                 if (studentBookings.length > 0) {
                     scheduleListContainer.innerHTML = ''; 
@@ -80,7 +83,11 @@
                         }
                         
                         const isPast = slotEndDateTime ? slotEndDateTime < new Date() : false;
-                        let statusColorClass = isPast ? 'text-gray-500' : 'text-green-600';
+                        let statusColorClass = isPast ? 'text-gray-500' : 'text-green-600'; // Default to green for booked
+                        if (booking.status !== 'booked') { // If not booked, use a more general color or specific for pending/cancelled if available
+                            statusColorClass = 'text-yellow-600'; // Example for non-booked active statuses
+                        }
+
                         
                         const labDisplay = booking.labName || 'Unknown Lab';
                         const courseDisplay = booking.courseName || 'N/A';
@@ -105,7 +112,9 @@
                         `;
                         scheduleListContainer.appendChild(card);
                     });
-                } else { scheduleListContainer.innerHTML = '<p class="text-muted-foreground">No lab sessions scheduled for you at this time.</p>'; }
+                } else { 
+                    scheduleListContainer.innerHTML = '<p class="text-muted-foreground">No lab sessions scheduled for you at this time. Student enrollment for specific courses is managed by the administration.</p>'; 
+                }
             } catch (error) {
                 console.error("Error in loadAndRenderMySchedule (Student):", error);
                 if (scheduleListContainer) scheduleListContainer.innerHTML = `<p class="error-message visible">Error loading your schedule: ${error.message}</p>`;
@@ -114,7 +123,7 @@
         }
         
         document.addEventListener('DOMContentLoaded', async () => {
-            if (!window.roleGuard([window.USER_ROLES.STUDENT, window.USER_ROLES.ASSISTANT])) return; 
+            if (!window.roleGuard(window.USER_ROLES.STUDENT)) return; 
             window.initializeDashboard(); 
             window.setDashboardHomeLink(); 
             await loadAndRenderMySchedule();

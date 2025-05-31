@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Courses - OLMS</title>
+    <title>Manage Academic Structure - OLMS</title>
     <link rel="stylesheet" href="../css/style.css">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
@@ -28,15 +28,34 @@
                 <div class="custom-card">
                     <div class="custom-card-header">
                         <i data-lucide="book-open"></i>
-                        <h1 class="custom-card-title">Manage Courses</h1>
+                        <h1 class="custom-card-title">Manage Academic Structure</h1>
                     </div>
                     <div class="custom-card-content">
+                        <p class="text-muted-foreground mb-4">
+                            Define academic courses and their respective sections. This forms the basis for lab scheduling.
+                        </p>
+                        
+                        <h2 class="text-xl font-semibold mb-3 mt-6">Manage Courses</h2>
+                        <p class="text-muted-foreground mb-3">Create, view, edit, or delete academic courses offered by the institution.</p>
                         <button type="button" id="openAddCourseModalBtn" class="button button-primary mb-4">
                             <i data-lucide="plus-circle" class="mr-2"></i> Add New Course
                         </button>
                         <div id="coursesListContainer" class="mt-4">Loading courses...</div>
+
+                        <hr class="my-8 border-gray-300">
+
+                        <h2 class="text-xl font-semibold mb-3">Manage Sections</h2>
+                        <p class="text-muted-foreground mb-3">
+                            Define sections for each course, assign faculty, and specify semester/year. 
+                            You can manage detailed section information via the dedicated sections page.
+                        </p>
+                        <a href="admin_manage_sections.html" class="button button-primary">
+                            <i data-lucide="users-2" class="mr-2"></i> Go to Manage Sections Page
+                        </a>
                     </div>
                 </div>
+                
+                <!-- Course Modal -->
                 <div id="courseModal" class="dialog-overlay">
                     <div class="dialog-content" style="max-width: 500px;">
                         <form id="courseForm">
@@ -76,7 +95,8 @@
         document.addEventListener('DOMContentLoaded', () => {
             if (!window.roleGuard(window.USER_ROLES.ADMIN)) return;
             window.initializeDashboard();
-            window.initializeCourseManagementPage();
+            // This page now primarily handles courses. Section management is linked.
+            window.initializeCourseManagementPage(); 
             if (window.lucide) window.lucide.createIcons();
         });
     </script>

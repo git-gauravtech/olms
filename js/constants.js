@@ -1,5 +1,4 @@
 
-
 // --- API Configuration ---
 // Base URL for all backend API calls.
 const API_BASE_URL_CONST = '/api'; 
@@ -24,15 +23,14 @@ const USER_ROLE_VALUES_CONST = Object.values(USER_ROLES_OBJ);
 const NAV_LINKS_OBJ = {
   [USER_ROLES_OBJ.ADMIN]: [
     { href: 'admin.html', label: 'Admin Dashboard', icon: 'layout-dashboard' },
+    { href: 'admin_academic_structure.html', label: 'Academic Structure', icon: 'book-open' }, // Merged Courses & Sections
     { href: 'admin_manage_labs.html', label: 'Manage Labs', icon: 'settings-2' },
     { href: 'admin_manage_equipment.html', label: 'Manage Equipment', icon: 'wrench' },
-    { href: 'admin_manage_courses.html', label: 'Manage Courses', icon: 'book-open' },
-    { href: 'admin_manage_sections.html', label: 'Manage Sections', icon: 'users-2' },
     { href: 'admin_faculty_requests.html', label: 'Faculty Requests', icon: 'user-check' },
     { href: 'admin_manage_users.html', label: 'User Management', icon: 'users' },
     { href: 'labs.html', label: 'Lab Availability', icon: 'flask-conical' },
     { href: 'admin_run_algorithms.html', label: 'Run Optimization Algorithms', icon: 'cpu' },
-    { href: 'admin_view_activity_log.html', label: 'System Activity Log', icon: 'history' },
+    // System Activity Log removed
   ],
   [USER_ROLES_OBJ.FACULTY]: [
     { href: 'faculty.html', label: 'Faculty Dashboard', icon: 'layout-dashboard' },
@@ -43,7 +41,7 @@ const NAV_LINKS_OBJ = {
   [USER_ROLES_OBJ.STUDENT]: [
     { href: 'student.html', label: 'Student Dashboard', icon: 'layout-dashboard' },
     { href: 'student_my_bookings.html', label: 'My Schedule', icon: 'calendar-check' },
-    { href: 'labs.html', label: 'View Lab Availability', icon: 'flask-conical' },
+    // Lab Availability removed for students
   ],
   [USER_ROLES_OBJ.ASSISTANT]: [
     { href: 'assistant.html', label: 'Assistant Dashboard', icon: 'layout-dashboard' },
@@ -92,16 +90,20 @@ function formatDate(dateInput) {
         d = dateInput;
     } else if (typeof dateInput === 'string' || typeof dateInput === 'number') {
         let dateString = String(dateInput);
+        // Check if it's already YYYY-MM-DD and has no time component. If so, interpret as UTC.
         const hasTimeComponent = /T| \d{2}:/.test(dateString);
 
         if (/^\d{4}-\d{2}-\d{2}/.test(dateString) && !hasTimeComponent) {
+             // It's a date-only string like "2024-03-15". Create UTC date to avoid timezone shifts.
              const [year, month, day] = dateString.substring(0,10).split('-').map(Number);
              d = new Date(Date.UTC(year, month - 1, day));
         } else {
+             // It's a datetime string or timestamp, parse as is.
              d = new Date(dateString); 
              if (isNaN(d.getTime())) {
+                // Attempt to re-parse if initial parsing failed, common with YYYY-MM-DD HH:MM:SS
                 let modifiedDateString = dateString.substring(0,10).replace(/-/g, '/') + dateString.substring(10);
-                d = new Date(modifiedDateString + (hasTimeComponent || modifiedDateString.includes('Z') ? '' : 'T00:00:00Z'));
+                d = new Date(modifiedDateString + (hasTimeComponent || modifiedDateString.includes('Z') ? '' : 'T00:00:00Z')); // Append Z for UTC if not present
                 if (isNaN(d.getTime())) {
                     console.warn('[constants.js formatDate] Could not parse date string/number. Input was:', dateInput, 'Attempted parsing:', modifiedDateString);
                     return 'Invalid Date String/Number';
@@ -129,6 +131,8 @@ function formatDate(dateInput) {
  */
 function formatDateForDisplay(dateInput) {
     if (!dateInput && dateInput !== 0) {
+        // It's okay for this to be empty if input is null/undefined, rather than 'N/A'.
+        // Let the caller decide how to handle an empty string.
         console.warn('[constants.js formatDateForDisplay] Received null or undefined dateInput. Input was:', dateInput);
         return '';
     }
@@ -141,14 +145,19 @@ function formatDateForDisplay(dateInput) {
         }
         dateToFormat = dateInput;
     } else {
+        // Attempt to parse the string.
+        // If it's just YYYY-MM-DD, treat it as UTC to avoid timezone issues for display.
         let dateStringToParse = String(dateInput);
-        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStringToParse)) { 
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStringToParse)) { // Check if it's only YYYY-MM-DD
             const [year, month, day] = dateStringToParse.split('-').map(Number);
             dateToFormat = new Date(Date.UTC(year, month - 1, day));
         } else {
+            // If it includes time or 'Z', parse normally.
+            // Replace '-' with '/' in date part for broader compatibility if not ISO8601 with 'T'.
             if (dateStringToParse.includes('T')) {
                  dateToFormat = new Date(dateStringToParse);
             } else {
+                 // For 'YYYY-MM-DD HH:MM:SS' or similar, replace date hyphens.
                  dateToFormat = new Date(dateStringToParse.replace(/-/g, '/'));
             }
         }
@@ -158,10 +167,14 @@ function formatDateForDisplay(dateInput) {
         }
     }
     
+    // Display in a user-friendly format.
+    // If the original input was a date-only string and we created a UTC date, specify UTC timezone for toLocaleDateString
+    // to prevent it from shifting to the local timezone for display.
     return dateToFormat.toLocaleDateString('en-US', { 
         month: 'short', 
         day: 'numeric', 
         year: 'numeric',
+        // Check if the dateToFormat object was created as UTC at midnight (common for date-only strings)
         timeZone: dateToFormat.toISOString().endsWith('00:00:00.000Z') && /^\d{4}-\d{2}-\d{2}$/.test(String(dateInput)) ? 'UTC' : undefined 
     });
 };

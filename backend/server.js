@@ -52,8 +52,13 @@ app.use('/api/sections', auth, sectionRoutes); // Section management routes (Adm
 app.use('/api/admin', auth, isAdmin, adminRoutes); // Admin-specific routes (user management, DAA triggers, etc.)
 
 // --- Frontend Page Serving ---
-// Serve the main login page
-app.get(['/', '/index.html'], (req, res) => {
+// Serve the new landing page at the root
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'landing.html'));
+});
+
+// Serve the login page (previously index.html)
+app.get('/index.html', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'index.html'));
 });
 // Serve other auth-related static HTML pages

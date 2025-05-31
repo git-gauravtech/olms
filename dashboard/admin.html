@@ -52,15 +52,14 @@
             window.initializeDashboard();
             const featureCardsContainer = document.getElementById('featureCardsContainer');
             const adminFeatures = [
+                { title: "Academic Structure", description: "Manage courses and their sections.", icon: "book-open", href: "admin_academic_structure.html", label: "Manage Structure" },
                 { title: "Manage Labs", description: "Configure lab details and capacities.", icon: "settings-2", href: "admin_manage_labs.html", label: "Manage Labs" },
                 { title: "Manage Equipment", description: "Oversee lab equipment inventory.", icon: "wrench", href: "admin_manage_equipment.html", label: "Manage Equipment" },
-                { title: "Manage Courses", description: "Define courses offered.", icon: "book-open", href: "admin_manage_courses.html", label: "Manage Courses" },
-                { title: "Manage Sections", description: "Define sections for courses.", icon: "users-2", href: "admin_manage_sections.html", label: "Manage Sections" },
                 { title: "Faculty Requests", description: "Review booking requests.", icon: "user-check", href: "admin_faculty_requests.html", label: "View Requests" },
                 { title: "User Management", description: "Manage user accounts and roles.", icon: "users", href: "admin_manage_users.html", label: "Manage Users" },
                 { title: "Lab Availability", description: "View lab schedules.", icon: "flask-conical", href: "labs.html", label: "View Lab Grid" },
-                { title: "Run Algorithms", description: "Trigger DAA optimizations.", icon: "cpu", href: "admin_run_algorithms.html", label: "Run Algorithms" },
-                { title: "View System Activity Log", description: "Review system activity.", icon: "history", href: "admin_view_activity_log.html", label: "View Activity" }
+                { title: "Run Algorithms", description: "Trigger DAA optimizations.", icon: "cpu", href: "admin_run_algorithms.html", label: "Run Algorithms" }
+                // System Activity Log card removed
             ];
             if (featureCardsContainer) {
                 adminFeatures.forEach(feature => featureCardsContainer.appendChild(createFeatureCard(feature)));
