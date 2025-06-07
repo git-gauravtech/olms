@@ -1,17 +1,96 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Book Slot</title>
+    <title>Manual Lab Booking - LabLink</title>
     <link rel="stylesheet" href="../css/style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-    <h1>Book a Lab Slot</h1>
-    <p>Content for booking a lab slot will be added here.</p>
+    <div class="dashboard-layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <a href="admin.html" class="sidebar-header-link">
+                    <i data-lucide="atom"></i> <span class="sidebar-title">LabLink</span>
+                </a>
+            </div>
+            <ul class="sidebar-nav">
+                <li><a href="admin.html"><i data-lucide="layout-dashboard"></i> Admin Dashboard</a></li>
+                <li><a href="admin_manage_courses.html"><i data-lucide="book-open"></i> Manage Courses</a></li>
+                <li><a href="admin_manage_sections.html"><i data-lucide="users-2"></i> Manage Sections</a></li>
+                <li><a href="admin_manage_labs.html"><i data-lucide="flask-conical"></i> Manage Labs</a></li>
+                <li><a href="admin_manage_equipment.html"><i data-lucide="wrench"></i> Manage Equipment</a></li>
+                <li><a href="admin_manage_users.html"><i data-lucide="users"></i> Manage Users</a></li>
+                <li><a href="labs.html"><i data-lucide="microscope"></i> Lab Availability</a></li>
+                <li><a href="book_slot.html" class="active"><i data-lucide="calendar-plus"></i> Manual Bookings</a></li>
+                <li><a href="admin_faculty_requests.html"><i data-lucide="mail-question"></i> Faculty Requests</a></li>
+                <li><a href="admin_run_algorithms.html"><i data-lucide="cpu"></i> Scheduling Algo</a></li>
+            </ul>
+        </aside>
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <div class="main-content-wrapper">
+            <header class="dashboard-header">
+                <h1 class="dashboard-page-title">Manual Lab Slot Booking/Modification</h1>
+                <div class="user-nav">
+                    <span id="userNameDisplay">Admin User</span>
+                    <a href="#" id="logoutLinkNav" class="button button-small button-outline">Logout</a>
+                </div>
+            </header>
+            <main class="page-content">
+                <div class="custom-card">
+                    <div class="custom-card-header">
+                        <i data-lucide="calendar-plus"></i>
+                        <h2 class="custom-card-title">Book or Modify Lab Slots</h2>
+                    </div>
+                    <div class="custom-card-content">
+                        <p class="text-muted-foreground mb-4">
+                            This section will allow administrators to manually create, view, edit, or cancel lab bookings.
+                        </p>
+                        <p><strong>Feature Under Development.</strong></p>
+                        
+                        <div id="manualBookingFormContainer" class="mt-4">
+                            <p>A form for selecting lab, section, date/time, and purpose will be implemented here. Existing bookings could also be listed for modification/cancellation.</p>
+                        </div>
+                        <div id="manualBookingMessage" class="form-message mt-4" style="display:none;"></div>
+
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
     <script src="../js/constants.js"></script>
-    <script src="../js/utils.js"></script>
-    <script src="js/dashboard.js"></script>
-    <script src="js/booking_form.js"></script>
-</body>
+    <script src="../js/utils.js"></script> 
+    <script src="../js/auth.js"></script> 
+    <!-- <script src="js/booking_form.js"></script> -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const userInfo = JSON.parse(localStorage.getItem(window.USER_INFO_KEY));
+            if (!userInfo || userInfo.role !== window.USER_ROLES.ADMIN) {
+                // Allow faculty to access if they also have booking rights? For now, admin only for this page.
+                alert('Access Denied: Admins only for manual booking page.');
+                window.location.href = '../index.html';
+                return;
+            }
+            
+            const userNameDisplay = document.getElementById('userNameDisplay');
+            if (userNameDisplay && userInfo && userInfo.fullName) {
+                userNameDisplay.textContent = userInfo.fullName;
+            }
+
+            const logoutLinkNav = document.getElementById('logoutLinkNav');
+            if (logoutLinkNav) {
+                logoutLinkNav.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (typeof logout === 'function') logout();
+                });
+            }
+            
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
+        });
+    </script></body>
 </html>

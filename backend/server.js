@@ -19,19 +19,20 @@ require('./config/db');
 
 // Routes
 const authRoutes = require('./routes/authRoutes');
-const courseRoutes = require('./routes/courseRoutes'); // New
-const sectionRoutes = require('./routes/sectionRoutes'); // New
-const bookingRoutes = require('./routes/bookingRoutes'); // Existing
+const courseRoutes = require('./routes/courseRoutes');
+const sectionRoutes = require('./routes/sectionRoutes');
+const bookingRoutes = require('./routes/bookingRoutes');
+const labRoutes = require('./routes/labRoutes'); // New lab routes
 // Add other routes here as they are created
 // const userRoutes = require('./routes/userRoutes');
-// const labRoutes = require('./routes/labRoutes');
+
 
 app.use('/api/auth', authRoutes);
-app.use('/api/courses', courseRoutes); // New
-app.use('/api/sections', sectionRoutes); // New
-app.use('/api/bookings', bookingRoutes); // Existing
+app.use('/api/courses', courseRoutes);
+app.use('/api/sections', sectionRoutes);
+app.use('/api/bookings', bookingRoutes);
+app.use('/api/labs', labRoutes); // Use lab routes
 // app.use('/api/users', userRoutes);
-// app.use('/api/labs', labRoutes);
 
 
 // Basic error handling middleware (example)

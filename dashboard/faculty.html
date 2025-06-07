@@ -9,44 +9,77 @@
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-    <div class="dashboard-container">
-        <header class="dashboard-header">
-            <h1><i data-lucide="user-check" class="header-icon"></i> Faculty Dashboard</h1>
-            <nav>
-                <a href="#" id="logoutLinkFaculty">Logout</a>
-            </nav>
-        </header>
-        <main class="dashboard-content">
-            <p id="welcomeMessageFaculty">Welcome, Faculty! View your timetable and manage lab requests.</p>
-            
-            <h2 class="mt-4">Your Actions:</h2>
-            <ul class="management-links">
-                <li><a href="faculty_my_bookings.html"><i data-lucide="calendar-days"></i> View My Bookings & Request Labs</a></li>
-                <!-- More faculty-specific links can be added here -->
+    <div class="dashboard-layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <a href="faculty.html" class="sidebar-header-link">
+                    <i data-lucide="atom"></i> <span class="sidebar-title">LabLink</span>
+                </a>
+            </div>
+            <ul class="sidebar-nav">
+                <li><a href="faculty.html" class="active"><i data-lucide="layout-dashboard"></i> Faculty Dashboard</a></li>
+                <li><a href="faculty_my_bookings.html"><i data-lucide="calendar-days"></i> My Schedule</a></li>
+                <!-- Add more faculty links here -->
             </ul>
-        </main>
+        </aside>
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <div class="main-content-wrapper">
+            <header class="dashboard-header">
+                <h1 class="dashboard-page-title"><i data-lucide="user-check" class="header-icon"></i> Faculty Dashboard</h1>
+                <div class="user-nav">
+                    <span id="userNameDisplay">Faculty User</span>
+                    <a href="#" id="logoutLinkNav" class="button button-small button-outline">Logout</a>
+                </div>
+            </header>
+            <main class="page-content">
+                 <div class="custom-card">
+                    <div class="custom-card-header">
+                        <i data-lucide="activity"></i>
+                        <h2 id="welcomeMessageFaculty" class="custom-card-title">Welcome, Faculty!</h2>
+                    </div>
+                    <div class="custom-card-content">
+                        <p class="text-muted-foreground mb-4">
+                            View your teaching schedule, manage lab session details, and request changes if needed.
+                        </p>
+                        <h3 class="text-xl font-semibold mb-3 mt-6">Your Actions:</h3>
+                        <ul class="management-links">
+                            <li><a href="faculty_my_bookings.html"><i data-lucide="calendar-days"></i> View My Schedule & Lab Bookings</a></li>
+                            <li><a href="#" class="disabled-link"><i data-lucide="edit-3"></i> Request Lab/Time Change (Coming Soon)</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </main>
+        </div>
     </div>
     <script src="../js/constants.js"></script>
     <script src="../js/auth.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const logoutLink = document.getElementById('logoutLinkFaculty');
-            if (logoutLink) {
-                logoutLink.addEventListener('click', (e) => {
+            const userInfo = JSON.parse(localStorage.getItem(window.USER_INFO_KEY));
+            if (!userInfo || userInfo.role !== window.USER_ROLES.FACULTY) {
+                alert('Access Denied: Faculty only.');
+                window.location.href = '../index.html';
+                return;
+            }
+            
+            const userNameDisplay = document.getElementById('userNameDisplay');
+            if (userNameDisplay && userInfo && userInfo.fullName) {
+                userNameDisplay.textContent = userInfo.fullName;
+            }
+            const welcomeMsg = document.getElementById('welcomeMessageFaculty');
+            if (welcomeMsg && userInfo && userInfo.fullName) {
+                welcomeMsg.textContent = `Welcome, ${userInfo.fullName}!`;
+            }
+
+            const logoutLinkNav = document.getElementById('logoutLinkNav');
+            if (logoutLinkNav) {
+                logoutLinkNav.addEventListener('click', (e) => {
                     e.preventDefault();
-                    if (typeof logout === 'function') {
-                        logout();
-                    }
+                    if (typeof logout === 'function') logout();
                 });
             }
             
-            const userInfo = JSON.parse(localStorage.getItem(window.USER_INFO_KEY));
-            if (userInfo && userInfo.fullName) {
-                 const welcomeMsg = document.getElementById('welcomeMessageFaculty');
-                if (welcomeMsg) {
-                    welcomeMsg.textContent = `Welcome, ${userInfo.fullName}! View your timetable and manage lab requests.`;
-                }
-            }
             if (window.lucide) {
                 window.lucide.createIcons();
             }

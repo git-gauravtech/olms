@@ -1,17 +1,159 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Labs</title>
+    <title>Manage Labs - LabLink</title>
     <link rel="stylesheet" href="../css/style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-    <h1>Manage Labs</h1>
-    <p>Content for managing labs will be added here.</p>
+    <div class="dashboard-layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <a href="admin.html" class="sidebar-header-link">
+                    <i data-lucide="atom"></i> <span class="sidebar-title">LabLink</span>
+                </a>
+            </div>
+            <ul class="sidebar-nav">
+                <li><a href="admin.html"><i data-lucide="layout-dashboard"></i> Admin Dashboard</a></li>
+                <li><a href="admin_manage_courses.html"><i data-lucide="book-open"></i> Manage Courses</a></li>
+                <li><a href="admin_manage_sections.html"><i data-lucide="users-2"></i> Manage Sections</a></li>
+                <li><a href="admin_manage_labs.html" class="active"><i data-lucide="flask-conical"></i> Manage Labs</a></li>
+                <li><a href="admin_manage_equipment.html"><i data-lucide="wrench"></i> Manage Equipment</a></li>
+                <li><a href="admin_manage_users.html"><i data-lucide="users"></i> Manage Users</a></li>
+                <li><a href="labs.html"><i data-lucide="microscope"></i> Lab Availability</a></li>
+                <li><a href="book_slot.html"><i data-lucide="calendar-plus"></i> Manual Bookings</a></li>
+                <li><a href="admin_faculty_requests.html"><i data-lucide="mail-question"></i> Faculty Requests</a></li>
+                <li><a href="admin_run_algorithms.html"><i data-lucide="cpu"></i> Scheduling Algo</a></li>
+            </ul>
+        </aside>
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <div class="main-content-wrapper">
+            <header class="dashboard-header">
+                <h1 class="dashboard-page-title">Manage Labs</h1>
+                <div class="user-nav">
+                    <span id="userNameDisplay">Admin User</span>
+                    <a href="#" id="logoutLinkNav" class="button button-small button-outline">Logout</a>
+                </div>
+            </header>
+            <main class="page-content">
+                <div class="custom-card">
+                    <div class="custom-card-header">
+                        <i data-lucide="flask-conical"></i>
+                        <h2 class="custom-card-title">Manage Laboratory Facilities</h2>
+                    </div>
+                    <div class="custom-card-content">
+                        <p class="text-muted-foreground mb-4">
+                            Define and manage lab spaces, their capacities, types, and availability.
+                        </p>
+                        
+                        <button type="button" id="openAddLabModalBtn" class="button button-primary mb-4">
+                            <i data-lucide="plus-circle" class="mr-2"></i> Add New Lab
+                        </button>
+                        
+                        <div id="labsTableContainer" class="mt-4 table-container">
+                            <p>Loading labs...</p>
+                        </div>
+                        <div id="labsPageMessage" class="form-message mt-4" style="display:none;"></div>
+                    </div>
+                </div>
+                
+                <!-- Lab Modal -->
+                <div id="labModal" class="dialog-overlay" style="display:none;">
+                    <div class="dialog-content" style="max-width: 550px;">
+                        <form id="labForm">
+                            <div class="dialog-header">
+                                <h3 id="labModalTitle" class="dialog-title">Add New Lab</h3>
+                                <button type="button" class="dialog-close-button" id="closeLabModalBtn" aria-label="Close"><i data-lucide="x"></i></button>
+                            </div>
+                            <div class="dialog-body">
+                                <input type="hidden" id="labId" name="labId">
+                                <div class="form-group">
+                                    <label for="labName">Lab Name <span class="required">*</span></label>
+                                    <input type="text" id="labName" name="name" class="form-control" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="labRoomNumber">Room Number/Identifier</label>
+                                    <input type="text" id="labRoomNumber" name="room_number" class="form-control">
+                                </div>
+                                <div class="form-group">
+                                    <label for="labCapacity">Capacity (Seats) <span class="required">*</span></label>
+                                    <input type="number" id="labCapacity" name="capacity" class="form-control" required min="1">
+                                </div>
+                                <div class="form-group">
+                                    <label for="labType">Lab Type</label>
+                                    <select id="labType" name="type" class="form-control">
+                                        <option value="">Select Type (Optional)</option>
+                                        <option value="Computer Lab">Computer Lab</option>
+                                        <option value="Physics Lab">Physics Lab</option>
+                                        <option value="Chemistry Lab">Chemistry Lab</option>
+                                        <option value="Biology Lab">Biology Lab</option>
+                                        <option value="Electronics Lab">Electronics Lab</option>
+                                        <option value="Workshop">Workshop</option>
+                                        <option value="General Purpose">General Purpose</option>
+                                        <option value="Research Lab">Research Lab</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                 <div class="form-group">
+                                    <label for="labIsAvailable">Is Available</label>
+                                    <select id="labIsAvailable" name="is_available" class="form-control">
+                                        <option value="1">Yes</option>
+                                        <option value="0">No (Temporarily Disabled)</option>
+                                    </select>
+                                </div>
+                                <p id="labFormMessage" class="form-message error" style="display:none; margin-bottom: 1rem;"></p>
+                            </div>
+                            <div class="dialog-footer">
+                                <button type="button" class="button button-secondary" id="cancelLabModalBtn">Cancel</button>
+                                <button type="submit" id="saveLabBtn" class="button button-primary">Save Lab</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
     <script src="../js/constants.js"></script>
-    <script src="../js/utils.js"></script>
-    <script src="js/dashboard.js"></script>
+    <script src="../js/utils.js"></script> 
+    <script src="../js/auth.js"></script> 
     <script src="js/admin_management.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const userInfo = JSON.parse(localStorage.getItem(window.USER_INFO_KEY));
+            if (!userInfo || userInfo.role !== window.USER_ROLES.ADMIN) {
+                alert('Access Denied: Admins only.');
+                window.location.href = '../index.html';
+                return;
+            }
+            
+            const userNameDisplay = document.getElementById('userNameDisplay');
+            if (userNameDisplay && userInfo && userInfo.fullName) {
+                userNameDisplay.textContent = userInfo.fullName;
+            }
+
+            const logoutLinkNav = document.getElementById('logoutLinkNav');
+            if (logoutLinkNav) {
+                logoutLinkNav.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (typeof logout === 'function') logout();
+                });
+            }
+            
+            if (typeof initializeLabManagementPage === 'function') {
+                initializeLabManagementPage();
+            } else {
+                console.error('initializeLabManagementPage function not found.');
+                const labsTableContainer = document.getElementById('labsTableContainer');
+                if(labsTableContainer) labsTableContainer.innerHTML = '<p>Error initializing page. Admin management script not fully loaded.</p>';
+            }
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
+        });
+    </script>
 </body>
 </html>

@@ -1,16 +1,103 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Bookings</title>
+    <title>My Bookings - LabLink</title>
     <link rel="stylesheet" href="../css/style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-    <h1>My Lab Bookings</h1>
-    <p>Content for viewing faculty bookings will be added here.</p>
+    <div class="dashboard-layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <a href="faculty.html" class="sidebar-header-link">
+                    <i data-lucide="atom"></i> <span class="sidebar-title">LabLink</span>
+                </a>
+            </div>
+            <ul class="sidebar-nav">
+                <li><a href="faculty.html"><i data-lucide="layout-dashboard"></i> Faculty Dashboard</a></li>
+                <li><a href="faculty_my_bookings.html" class="active"><i data-lucide="calendar-days"></i> My Schedule</a></li>
+                <!-- Add more faculty links here: e.g., Request Lab Change -->
+            </ul>
+        </aside>
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <div class="main-content-wrapper">
+            <header class="dashboard-header">
+                <h1 class="dashboard-page-title">My Lab Schedule & Bookings</h1>
+                <div class="user-nav">
+                    <span id="userNameDisplay">Faculty User</span>
+                    <a href="#" id="logoutLinkNav" class="button button-small button-outline">Logout</a>
+                </div>
+            </header>
+            <main class="page-content">
+                <div class="custom-card">
+                    <div class="custom-card-header">
+                        <i data-lucide="calendar-check"></i>
+                        <h2 class="custom-card-title">Your Scheduled Lab Sessions</h2>
+                    </div>
+                    <div class="custom-card-content">
+                        <p class="text-muted-foreground mb-4">
+                            This page displays lab sessions and bookings assigned to you.
+                        </p>
+                        
+                        <div id="facultyBookingsContainer" class="mt-4 table-container">
+                            <p>Loading your bookings...</p>
+                        </div>
+                        <div id="facultyBookingsMessage" class="form-message mt-4" style="display:none;"></div>
+                        
+                        <hr class="my-8 border-gray-300">
+                        <h3 class="text-xl font-semibold mb-3 mt-6">Request Lab/Time Change</h3>
+                        <p class="text-muted-foreground mb-3">
+                            Need to request a change for one of your scheduled labs? (This feature is under development)
+                        </p>
+                        <button type="button" class="button button-outline" disabled>
+                            <i data-lucide="edit-3" class="mr-2"></i> Request Change (Coming Soon)
+                        </button>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
     <script src="../js/constants.js"></script>
     <script src="../js/utils.js"></script>
-    <script src="js/dashboard.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="js/faculty_dashboard.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const userInfo = JSON.parse(localStorage.getItem(window.USER_INFO_KEY));
+            if (!userInfo || userInfo.role !== window.USER_ROLES.FACULTY) {
+                alert('Access Denied: Faculty only.');
+                window.location.href = '../index.html'; // or to a generic dashboard
+                return;
+            }
+            
+            const userNameDisplay = document.getElementById('userNameDisplay');
+            if (userNameDisplay && userInfo && userInfo.fullName) {
+                userNameDisplay.textContent = userInfo.fullName;
+            }
+
+            const logoutLinkNav = document.getElementById('logoutLinkNav');
+            if (logoutLinkNav) {
+                logoutLinkNav.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (typeof logout === 'function') logout();
+                });
+            }
+            
+            if (typeof initializeFacultyBookingsPage === 'function') {
+                initializeFacultyBookingsPage();
+            } else {
+                console.error('initializeFacultyBookingsPage function not found.');
+                document.getElementById('facultyBookingsContainer').innerHTML = '<p>Error initializing page.</p>';
+            }
+
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
+        });
+    </script>
 </body>
 </html>

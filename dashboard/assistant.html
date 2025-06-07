@@ -6,34 +6,87 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Assistant Dashboard - LabLink</title>
     <link rel="stylesheet" href="../css/style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-    <div class="dashboard-container">
-        <header class="dashboard-header">
-            <h1>Assistant Dashboard</h1>
-            <nav>
-                <a href="#" id="logoutLinkAssistant">Logout</a>
-            </nav>
-        </header>
-        <main class="dashboard-content">
-            <p>Welcome, Assistant! View your assigned timetable and manage lab resources.</p>
-            <!-- Assistant specific content will go here -->
-        </main>
+    <div class="dashboard-layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <a href="assistant.html" class="sidebar-header-link">
+                    <i data-lucide="atom"></i> <span class="sidebar-title">LabLink</span>
+                </a>
+            </div>
+            <ul class="sidebar-nav">
+                <li><a href="assistant.html" class="active"><i data-lucide="layout-dashboard"></i> Assistant Dashboard</a></li>
+                <li><a href="#"><i data-lucide="calendar-days"></i> My Assigned Schedule (Coming Soon)</a></li>
+                <li><a href="assistant_update_seat_status.html"><i data-lucide="edit"></i> Update Lab Status (Placeholder)</a></li>
+            </ul>
+        </aside>
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <div class="main-content-wrapper">
+            <header class="dashboard-header">
+                <h1 class="dashboard-page-title"><i data-lucide="user-cog" class="header-icon"></i> Assistant Dashboard</h1>
+                <div class="user-nav">
+                    <span id="userNameDisplay">Assistant User</span>
+                    <a href="#" id="logoutLinkNav" class="button button-small button-outline">Logout</a>
+                </div>
+            </header>
+            <main class="page-content">
+                 <div class="custom-card">
+                    <div class="custom-card-header">
+                        <i data-lucide="activity"></i>
+                        <h2 id="welcomeMessageAssistant" class="custom-card-title">Welcome, Assistant!</h2>
+                    </div>
+                    <div class="custom-card-content">
+                        <p class="text-muted-foreground mb-4">
+                            View your assigned lab duties and manage lab resources as needed.
+                        </p>
+                        <h3 class="text-xl font-semibold mb-3 mt-6">Your Tasks:</h3>
+                         <ul class="management-links">
+                            <li><a href="#" class="disabled-link"><i data-lucide="calendar-days"></i> View My Assigned Schedule (Coming Soon)</a></li>
+                            <li><a href="assistant_update_seat_status.html"><i data-lucide="edit"></i> Update Lab Seat/Equipment Status (Placeholder)</a></li>
+                        </ul>
+                        <p class="mt-4 text-sm text-muted-foreground">
+                            Your detailed schedule and specific functionalities for lab status updates will be available here soon.
+                        </p>
+                    </div>
+                </div>
+            </main>
+        </div>
     </div>
     <script src="../js/constants.js"></script>
     <script src="../js/auth.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const logoutLink = document.getElementById('logoutLinkAssistant');
-            if (logoutLink) {
-                logoutLink.addEventListener('click', (e) => {
+            const userInfo = JSON.parse(localStorage.getItem(window.USER_INFO_KEY));
+            if (!userInfo || userInfo.role !== window.USER_ROLES.ASSISTANT) {
+                alert('Access Denied: Assistants only.');
+                window.location.href = '../index.html';
+                return;
+            }
+            
+            const userNameDisplay = document.getElementById('userNameDisplay');
+            if (userNameDisplay && userInfo && userInfo.fullName) {
+                userNameDisplay.textContent = userInfo.fullName;
+            }
+             const welcomeMsg = document.getElementById('welcomeMessageAssistant');
+            if (welcomeMsg && userInfo && userInfo.fullName) {
+                welcomeMsg.textContent = `Welcome, ${userInfo.fullName}!`;
+            }
+
+
+            const logoutLinkNav = document.getElementById('logoutLinkNav');
+            if (logoutLinkNav) {
+                logoutLinkNav.addEventListener('click', (e) => {
                     e.preventDefault();
-                    if (typeof logout === 'function') {
-                        logout();
-                    }
+                    if (typeof logout === 'function') logout();
                 });
             }
-            // Add any assistant specific dashboard initialization here
+            
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
         });
     </script>
 </body>
