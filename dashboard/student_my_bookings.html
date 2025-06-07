@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,10 +8,58 @@
     <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
-    <h1>View Section Lab Schedule</h1>
-    <p>Content for student viewing section schedule will be added here.</p>
+    <div class="dashboard-container">
+        <header class="dashboard-header">
+            <h1>View Section Lab Schedule</h1>
+            <nav>
+                <a href="student.html">Student Dashboard</a>
+                <a href="../index.html" id="logoutLinkStudentBookings">Logout</a>
+            </nav>
+        </header>
+        <main class="dashboard-content">
+            <div class="auth-card">
+                <p>Select a course and section to view its lab schedule.</p>
+                
+                <div class="form-group">
+                    <label for="studentCourseSelect">Select Course:</label>
+                    <select id="studentCourseSelect" name="studentCourseSelect">
+                        <option value="">Loading courses...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="studentSectionSelect">Select Section:</label>
+                    <select id="studentSectionSelect" name="studentSectionSelect" disabled>
+                        <option value="">Select a course first</option>
+                    </select>
+                </div>
+
+                <button id="viewSectionScheduleBtn" class="button" disabled>View Schedule</button>
+
+                <div id="studentScheduleContainer" class="schedule-container mt-4">
+                    <!-- Schedule will be displayed here -->
+                </div>
+                <div id="studentScheduleMessage" class="form-message" style="display:none;"></div>
+            </div>
+        </main>
+    </div>
+
     <script src="../js/constants.js"></script>
-    <script src="../js/utils.js"></script>
+    <script src="../js/utils.js"></script> <!-- Assuming utils.js might contain fetchWithAuth or similar -->
     <script src="js/dashboard.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof initializeStudentSchedulePage === 'function') {
+                initializeStudentSchedulePage();
+            }
+            const logoutLink = document.getElementById('logoutLinkStudentBookings');
+            if (logoutLink && typeof logout === 'function') {
+                logoutLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    logout();
+                });
+            }
+        });
+    </script>
 </body>
 </html>

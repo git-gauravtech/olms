@@ -19,11 +19,17 @@ require('./config/db');
 
 // Routes
 const authRoutes = require('./routes/authRoutes');
+const courseRoutes = require('./routes/courseRoutes'); // New
+const sectionRoutes = require('./routes/sectionRoutes'); // New
+const bookingRoutes = require('./routes/bookingRoutes'); // Existing
 // Add other routes here as they are created
 // const userRoutes = require('./routes/userRoutes');
 // const labRoutes = require('./routes/labRoutes');
 
 app.use('/api/auth', authRoutes);
+app.use('/api/courses', courseRoutes); // New
+app.use('/api/sections', sectionRoutes); // New
+app.use('/api/bookings', bookingRoutes); // Existing
 // app.use('/api/users', userRoutes);
 // app.use('/api/labs', labRoutes);
 

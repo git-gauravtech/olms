@@ -8,12 +8,14 @@ body {
     min-height: 100vh;
     margin: 0;
     color: #333;
+    line-height: 1.6;
 }
 
-.auth-container {
+.auth-container, .dashboard-container {
     width: 100%;
-    max-width: 450px;
+    max-width: 600px; /* Increased max-width for dashboard elements */
     padding: 20px;
+    margin: auto; /* Center it on the page */
 }
 
 .auth-card {
@@ -23,9 +25,10 @@ body {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.auth-card h2 {
+.auth-card h2, .dashboard-header h1 {
     text-align: center;
     color: #007BFF; /* Primary color */
+    margin-top: 0;
     margin-bottom: 25px;
     font-size: 24px;
 }
@@ -83,8 +86,13 @@ body {
     transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
     width: 100%;
 }
+.button:disabled {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    cursor: not-allowed;
+}
 
-.button:hover {
+.button:hover:not(:disabled) {
     background-color: #0069d9;
     border-color: #0062cc;
 }
@@ -94,7 +102,7 @@ body {
     border-color: #007BFF;
 }
 
-.button-primary:hover {
+.button-primary:hover:not(:disabled) {
     background-color: #0056b3;
     border-color: #0056b3;
 }
@@ -138,6 +146,7 @@ body {
     margin-bottom: 15px;
     border-radius: 4px;
     font-size: 14px;
+    text-align: center;
 }
 
 .form-message.success {
@@ -150,4 +159,72 @@ body {
     background-color: #f8d7da;
     color: #721c24;
     border: 1px solid #f5c6cb;
+}
+.form-message.info {
+    background-color: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+/* Dashboard specific styles */
+.dashboard-header {
+    background-color: #007BFF;
+    color: white;
+    padding: 15px 20px;
+    border-radius: 8px 8px 0 0; /* Match card rounding */
+    margin-bottom: 0; /* Remove default margin if h1 is inside */
+}
+.dashboard-header h1 {
+    margin: 0;
+    font-size: 22px;
+    color: white; /* Ensure h1 color is white */
+    text-align: left;
+}
+.dashboard-header nav {
+    float: right;
+    margin-top: -28px; /* Adjust as needed to align with h1 */
+}
+.dashboard-header nav a {
+    color: white;
+    text-decoration: none;
+    margin-left: 15px;
+}
+.dashboard-header nav a:hover {
+    text-decoration: underline;
+}
+
+.dashboard-content {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 0 0 8px 8px; /* Match card rounding */
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1); /* Optional: if header doesn't have shadow */
+}
+
+.mt-4 {
+    margin-top: 1.5rem; /* ShadCN like margin top */
+}
+
+.schedule-container {
+    margin-top: 20px;
+    border: 1px solid #e0e0e0;
+    padding: 15px;
+    border-radius: 4px;
+    background-color: #f9f9f9;
+}
+
+.schedule-list {
+    list-style-type: none;
+    padding: 0;
+}
+
+.schedule-item {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+.schedule-item strong {
+    color: #0056b3;
 }
