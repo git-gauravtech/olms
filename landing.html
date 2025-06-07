@@ -1,16 +1,51 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome</title>
+    <title>Welcome to LabLink</title>
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+        }
+        .landing-container {
+            background-color: #fff;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            max-width: 500px;
+        }
+        .landing-container h1 {
+            color: #007BFF;
+            margin-bottom: 20px;
+        }
+        .landing-container p {
+            font-size: 1.1em;
+            margin-bottom: 30px;
+            color: #495057;
+        }
+        .landing-actions a {
+            margin: 0 10px;
+            padding: 12px 25px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Landing Page</h1>
-    <p>Content for the landing page will be added here.</p>
-    <a href="index.html">Login</a>
-    <a href="signup.html">Sign Up</a>
+    <div class="landing-container">
+        <h1>Welcome to LabLink</h1>
+        <p>Your Optimized Lab Management System for seamless scheduling and resource allocation.</p>
+        <div class="landing-actions">
+            <a href="index.html" class="button button-primary">Login</a>
+            <a href="signup.html" class="button">Sign Up</a>
+        </div>
+    </div>
     <script src="js/constants.js"></script>
     <script src="js/utils.js"></script>
 </body>

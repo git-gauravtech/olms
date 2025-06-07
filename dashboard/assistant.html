@@ -1,16 +1,40 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Assistant Dashboard</title>
+    <title>Assistant Dashboard - LabLink</title>
     <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
-    <h1>Assistant Dashboard</h1>
-    <p>Assistant dashboard content will be added here.</p>
+    <div class="dashboard-container">
+        <header class="dashboard-header">
+            <h1>Assistant Dashboard</h1>
+            <nav>
+                <a href="#" id="logoutLinkAssistant">Logout</a>
+            </nav>
+        </header>
+        <main class="dashboard-content">
+            <p>Welcome, Assistant! View your assigned timetable and manage lab resources.</p>
+            <!-- Assistant specific content will go here -->
+        </main>
+    </div>
     <script src="../js/constants.js"></script>
-    <script src="../js/utils.js"></script>
-    <script src="js/dashboard.js"></script>
+    <script src="../js/auth.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const logoutLink = document.getElementById('logoutLinkAssistant');
+            if (logoutLink) {
+                logoutLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (typeof logout === 'function') {
+                        logout();
+                    }
+                });
+            }
+            // Add any assistant specific dashboard initialization here
+        });
+    </script>
 </body>
 </html>

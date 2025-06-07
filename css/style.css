@@ -13,10 +13,15 @@ body {
 
 .auth-container, .dashboard-container {
     width: 100%;
-    max-width: 600px; /* Increased max-width for dashboard elements */
+    max-width: 450px; /* Standardized max-width for auth forms */
     padding: 20px;
     margin: auto; /* Center it on the page */
 }
+/* Wider container for dashboards */
+.dashboard-container {
+    max-width: 800px; 
+}
+
 
 .auth-card {
     background-color: #fff;
@@ -85,6 +90,7 @@ body {
     border-radius: 4px;
     transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
     width: 100%;
+    box-sizing: border-box;
 }
 .button:disabled {
     background-color: #6c757d;
@@ -173,6 +179,9 @@ body {
     padding: 15px 20px;
     border-radius: 8px 8px 0 0; /* Match card rounding */
     margin-bottom: 0; /* Remove default margin if h1 is inside */
+    display: flex; /* Use flexbox for alignment */
+    justify-content: space-between; /* Space between title and nav */
+    align-items: center; /* Vertically align items */
 }
 .dashboard-header h1 {
     margin: 0;
@@ -180,14 +189,11 @@ body {
     color: white; /* Ensure h1 color is white */
     text-align: left;
 }
-.dashboard-header nav {
-    float: right;
-    margin-top: -28px; /* Adjust as needed to align with h1 */
-}
 .dashboard-header nav a {
     color: white;
     text-decoration: none;
     margin-left: 15px;
+    font-size: 0.9em;
 }
 .dashboard-header nav a:hover {
     text-decoration: underline;
@@ -198,6 +204,7 @@ body {
     padding: 20px;
     border-radius: 0 0 8px 8px; /* Match card rounding */
     box-shadow: 0 4px 6px rgba(0,0,0,0.1); /* Optional: if header doesn't have shadow */
+    min-height: 200px; /* Give some default height */
 }
 
 .mt-4 {
