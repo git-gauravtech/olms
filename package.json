@@ -1,17 +1,15 @@
 
 {
-  "name": "olms-main",
-  "version": "0.1.0",
-  "private": true,
-  "description": "Optimized Lab Management System - Frontend",
+  "name": "lablink-frontend",
+  "version": "1.0.0",
+  "description": "Frontend for Optimized Lab Management System (HTML, CSS, JS)",
   "scripts": {
-    "start": "cd backend && npm run dev",
-    "dev": "cd backend && npm run dev",
-    "frontend-only": "npx live-server --port=9002 --open=index.html"
+    "start": "echo \"To serve static files, consider using a tool like 'live-server' or a simple Express static server.\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "dependencies": {
-    "lucide-static": "^0.395.0"
-  },
+  "keywords": ["lab", "management", "frontend"],
+  "author": "",
+  "license": "ISC",
   "devDependencies": {
     "live-server": "^1.2.2"
   }

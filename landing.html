@@ -4,69 +4,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to LabLink - Optimized Lab Management System</title>
+    <title>Welcome - Optimized Lab Management System</title>
     <link rel="stylesheet" href="css/style.css">
     <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        .landing-page {
-            display: flex;
-            min-height: 100vh;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 2rem;
-            /* Re-using the body's gradient background from style.css */
-        }
-        .landing-content {
-            /* Similar to auth-card but perhaps wider or with different padding */
-            background-color: rgba(255, 255, 255, 0.75); 
-            -webkit-backdrop-filter: blur(12px); 
-            backdrop-filter: blur(12px); 
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 1rem;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.1), 0 5px 15px rgba(0,0,0,0.07);
-            padding: 3rem 2.5rem;
-            max-width: 700px;
-            width: 100%;
-        }
-        .landing-title {
-            font-size: 2.5rem;
-            font-weight: 600;
-            color: #2c3e50; /* Darker, more prominent title color */
-            margin-bottom: 1rem;
-        }
-        .landing-subtitle {
-            font-size: 1.1rem;
-            color: #5a6268;
-            margin-bottom: 2.5rem;
-            line-height: 1.6;
-        }
-        .landing-actions .button {
-            margin: 0.5rem;
-            min-width: 150px; /* Ensure buttons have a decent width */
-        }
-        .landing-logo {
-            height: 4.5rem;
-            width: 4.5rem;
-            color: #14997A; /* Teal */
-            margin: 0 auto 1.5rem auto;
-            display: block;
-        }
-    </style>
 </head>
 <body>
-    <main class="landing-page">
-        <div class="landing-content">
-            <i data-lucide="atom" class="landing-logo"></i>
-            <h1 class="landing-title">Welcome to LabLink</h1>
-            <p class="landing-subtitle">
-                Your modern solution for efficiently managing laboratory schedules, equipment, and resources. 
-                Streamline bookings and optimize lab usage with our intuitive platform.
-            </p>
-            <div class="landing-actions">
-                <a href="index.html" class="button button-primary">Login</a>
-                <a href="signup.html" class="button button-outline">Sign Up</a>
+    <main class="auth-page">
+        <div class="auth-card" style="text-align: center;">
+            <div class="auth-header">
+                <i data-lucide="atom" class="auth-icon" style="font-size: 2.5rem; margin-bottom: 1rem;"></i>
+                <h1>Welcome to LabLink</h1>
+                <p>Your solution for Optimized Lab Management.</p>
+            </div>
+            <div style="margin-top: 2rem;">
+                <a href="index.html" class="button button-primary" style="margin-right: 1rem;">Login</a>
+                <a href="signup.html" class="button button-secondary">Sign Up</a>
             </div>
         </div>
     </main>
