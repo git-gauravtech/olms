@@ -1,95 +1,17 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Sections - OLMS</title>
+    <title>Manage Sections</title>
     <link rel="stylesheet" href="../css/style.css">
-    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-    <div class="dashboard-layout">
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <a href="admin.html" class="sidebar-header-link">
-                    <i data-lucide="atom"></i> <span class="sidebar-title">OLMS</span>
-                </a>
-            </div>
-            <ul class="sidebar-nav" id="sidebarNav"></ul>
-        </aside>
-        <div class="sidebar-overlay" id="sidebarOverlay"></div>
-        <div class="main-content-wrapper">
-            <header class="dashboard-header">
-                <button class="mobile-menu-button" id="mobileMenuButton" type="button"><i data-lucide="menu"></i></button>
-                <div class="user-nav" id="userNavContainer"></div>
-            </header>
-            <main class="page-content">
-                <div class="custom-card">
-                    <div class="custom-card-header">
-                        <i data-lucide="users-2"></i>
-                        <h1 class="custom-card-title">Manage Sections</h1>
-                    </div>
-                    <div class="custom-card-content">
-                        <button type="button" id="openAddSectionModalBtn" class="button button-primary mb-4">
-                            <i data-lucide="plus-circle" class="mr-2"></i> Add New Section
-                        </button>
-                        <div id="sectionsListContainer" class="mt-4">Loading sections...</div>
-                    </div>
-                </div>
-                <div id="sectionModal" class="dialog-overlay">
-                    <div class="dialog-content" style="max-width: 500px;">
-                        <form id="sectionForm">
-                            <div class="dialog-header">
-                                <h2 id="sectionModalTitle" class="dialog-title">Add New Section</h2>
-                                <button type="button" class="dialog-close-button" id="closeSectionModalBtn" aria-label="Close"><i data-lucide="x"></i></button>
-                            </div>
-                            <div class="dialog-body">
-                                <input type="hidden" id="sectionId" name="sectionId">
-                                <div class="form-group">
-                                    <label for="sectionCourseId">Course</label>
-                                    <select id="sectionCourseId" name="sectionCourseId" required></select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="sectionFacultyUserId">Faculty (Optional)</label>
-                                    <select id="sectionFacultyUserId" name="sectionFacultyUserId"></select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="sectionName">Section Name</label>
-                                    <input type="text" id="sectionName" name="sectionName" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="sectionSemester">Semester (Optional)</label>
-                                    <input type="text" id="sectionSemester" name="sectionSemester">
-                                </div>
-                                <div class="form-group">
-                                    <label for="sectionYear">Year (Optional)</label>
-                                    <input type="number" id="sectionYear" name="sectionYear" min="2000" max="2100">
-                                </div>
-                                <p id="sectionFormMessage" class="error-message" style="margin-bottom: 1rem;"></p>
-                            </div>
-                            <div class="dialog-footer">
-                                <button type="button" class="button button-secondary" id="cancelSectionModalBtn">Cancel</button>
-                                <button type="submit" class="button button-primary">Save Section</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </main>
-        </div>
-    </div>
+    <h1>Manage Sections</h1>
+    <p>Content for managing sections will be added here.</p>
     <script src="../js/constants.js"></script>
     <script src="../js/utils.js"></script>
     <script src="js/dashboard.js"></script>
     <script src="js/admin_management.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            if (!window.roleGuard(window.USER_ROLES.ADMIN)) return;
-            window.initializeDashboard();
-            window.initializeSectionManagementPage();
-            if (window.lucide) window.lucide.createIcons();
-        });
-    </script>
 </body>
 </html>
-    

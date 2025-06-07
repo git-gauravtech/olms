@@ -1,112 +1,17 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Labs - Optimized Lab Management System</title>
+    <title>Manage Labs</title>
     <link rel="stylesheet" href="../css/style.css">
-    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-    <div class="dashboard-layout">
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <a href="admin.html" class="sidebar-header-link">
-                    <i data-lucide="atom"></i>
-                    <span class="sidebar-title">Optimized Lab Management</span>
-                </a>
-            </div>
-            <ul class="sidebar-nav" id="sidebarNav">
-                <!-- Nav items will be populated by JS -->
-            </ul>
-        </aside>
-        <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
-        <div class="main-content-wrapper">
-            <header class="dashboard-header">
-                <button class="mobile-menu-button" id="mobileMenuButton" type="button">
-                    <i data-lucide="menu"></i>
-                </button>
-                <div class="user-nav" id="userNavContainer">
-                    <!-- UserNav will be populated by JS -->
-                </div>
-            </header>
-            <main class="page-content">
-                <div class="custom-card">
-                    <div class="custom-card-header">
-                        <i data-lucide="settings-2"></i>
-                        <h1 class="custom-card-title">Manage Labs</h1>
-                    </div>
-                    <div class="custom-card-content">
-                        <p class="text-muted-foreground">
-                            Add, edit, or delete lab details, capacities, room assignments, and locations.
-                        </p>
-                        <button type="button" id="addNewLabBtn" class="button button-primary mt-4 mb-4">
-                            <i data-lucide="plus-circle" class="mr-2"></i> Add New Lab
-                        </button>
-                        
-                        <div id="labsListContainer" class="mt-4">
-                            <!-- Labs will be listed here by JS -->
-                            <p>Loading labs...</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Modal for Add/Edit Lab -->
-                <div id="labModal" class="dialog-overlay">
-                    <div class="dialog-content" style="max-width: 500px;">
-                        <form id="labForm">
-                            <div class="dialog-header">
-                                <h2 id="labModalTitle" class="dialog-title">Add New Lab</h2>
-                                <button type="button" class="dialog-close-button" id="closeLabModalBtn" aria-label="Close">
-                                    <i data-lucide="x"></i>
-                                </button>
-                            </div>
-                            <div class="dialog-body">
-                                <input type="hidden" id="labId" name="labId">
-                                <div class="form-group">
-                                    <label for="labName">Lab Name</label>
-                                    <input type="text" id="labName" name="labName" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="labCapacity">Capacity</label>
-                                    <input type="number" id="labCapacity" name="labCapacity" required min="1">
-                                </div>
-                                <div class="form-group">
-                                    <label for="labRoomNumber">Room Number</label>
-                                    <input type="text" id="labRoomNumber" name="labRoomNumber" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="labLocation">Location</label>
-                                    <input type="text" id="labLocation" name="labLocation" placeholder="e.g., Block A, Floor 1">
-                                </div>
-                            </div>
-                            <div class="dialog-footer">
-                                <button type="button" class="button button-secondary" id="cancelLabModalBtn">Cancel</button>
-                                <button type="submit" class="button button-primary">Save Lab</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-
-            </main>
-        </div>
-    </div>
-
+    <h1>Manage Labs</h1>
+    <p>Content for managing labs will be added here.</p>
     <script src="../js/constants.js"></script>
     <script src="../js/utils.js"></script>
     <script src="js/dashboard.js"></script>
     <script src="js/admin_management.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            if (!roleGuard(USER_ROLES.ADMIN)) return;
-            initializeDashboard();
-            initializeLabManagementPage(); 
-            if (window.lucide) window.lucide.createIcons();
-        });
-    </script>
 </body>
 </html>
-
-    

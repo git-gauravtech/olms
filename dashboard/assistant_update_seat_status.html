@@ -1,88 +1,17 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Update Lab Seat Status - Optimized Lab Management System</title>
+    <title>Update Seat Status</title>
     <link rel="stylesheet" href="../css/style.css">
-    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-    <div class="dashboard-layout">
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                 <a href="#" class="sidebar-header-link" id="dashboardHomeLink">
-                    <i data-lucide="atom"></i>
-                    <span class="sidebar-title">Optimized Lab Management System</span>
-                </a>
-            </div>
-            <ul class="sidebar-nav" id="sidebarNav">
-                <!-- Nav items will be populated by JS -->
-            </ul>
-        </aside>
-        <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
-        <div class="main-content-wrapper">
-            <header class="dashboard-header">
-                <button type="button" class="mobile-menu-button" id="mobileMenuButton">
-                    <i data-lucide="menu"></i>
-                </button>
-                <div class="user-nav" id="userNavContainer">
-                    <!-- UserNav will be populated by JS -->
-                </div>
-            </header>
-            <main class="page-content">
-                <div class="custom-card">
-                    <div class="custom-card-header">
-                        <i data-lucide="edit-3"></i>
-                        <h1 class="custom-card-title">Update Lab Seat Status</h1>
-                    </div>
-                    <div class="custom-card-content">
-                        <p class="text-muted-foreground mb-4">
-                            Select a lab to view its layout and update the working status of individual seats. Click on a seat to toggle its status.
-                        </p>
-                        
-                        <div class="form-group">
-                            <label for="labSelectorForSeatUpdate">Select Lab:</label>
-                            <select id="labSelectorForSeatUpdate" name="labSelectorForSeatUpdate" class="mb-4" style="padding: 0.5rem 0.75rem; border-radius: 0.25rem; border: 1px solid #ced4da;">
-                                <!-- Options will be populated by JS -->
-                            </select>
-                        </div>
-
-                        <div id="interactiveLabLayoutContainer" style="margin-top: 1.5rem; border-top: 1px solid #eee; padding-top: 1rem;">
-                            <!-- Interactive lab layout will be populated here by JS -->
-                            <p class="text-muted-foreground text-center">Please select a lab to view its layout.</p>
-                        </div>
-                         <div class="mt-4 text-sm text-muted-foreground" id="seatStatusLegend">
-                            <p><strong>Legend:</strong></p>
-                            <p><span class="legend-icon-working"><i data-lucide="armchair"></i></span> Seat with working system (<span id="workingCount">0</span>)</p>
-                            <p><span class="legend-icon-not-working"><i data-lucide="armchair"></i></span> Seat with non-working system (<span id="notWorkingCount">0</span>)</p>
-                        </div>
-                    </div>
-                </div>
-            </main>
-        </div>
-    </div>
-
+    <h1>Update Lab Seat Status</h1>
+    <p>Content for updating seat status will be added here.</p>
     <script src="../js/constants.js"></script>
     <script src="../js/utils.js"></script>
     <script src="js/dashboard.js"></script>
     <script src="js/assistant_seat_updater.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            if (!window.roleGuard(window.USER_ROLES.ASSISTANT)) return;
-            
-            window.initializeDashboard();
-            window.setDashboardHomeLink(); // Ensure home link in sidebar is correct
-            window.initializeSeatUpdaterPage(); 
-            if (window.lucide) {
-                window.lucide.createIcons();
-                console.log("[assistant_update_seat_status.html] Lucide icons created on DOMContentLoaded.");
-            } else {
-                console.warn("[assistant_update_seat_status.html] Lucide library not found on DOMContentLoaded.");
-            }
-        });
-    </script>
 </body>
 </html>

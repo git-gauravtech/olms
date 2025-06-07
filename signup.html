@@ -3,107 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign Up - Optimized Lab Management System</title>
+    <title>Sign Up</title>
     <link rel="stylesheet" href="css/style.css">
-    <!-- <link rel="stylesheet" href="https://unpkg.com/lucide-static@latest/font/lucide.css"> Removed as we use JS version -->
-    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-    <main class="auth-page">
-        <div class="auth-card" style="max-width: 500px;">
-            <div class="auth-header">
-                <i data-lucide="atom" class="auth-icon"></i>
-                <h1>Create an Account</h1>
-                <p>Join Optimized Lab Management System to manage and book lab sessions efficiently.</p>
-            </div>
-            <form id="signupForm" class="auth-form">
-                <div class="form-group">
-                    <label for="fullName">Full Name</label>
-                    <input type="text" id="fullName" name="fullName" placeholder="John Doe" required>
-                    <p class="error-message" id="fullNameError"></p>
-                </div>
-                <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="email" id="email" name="email" placeholder="you@example.com" required>
-                    <p class="error-message" id="emailError"></p>
-                </div>
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <div class="password-wrapper">
-                        <input type="password" id="password" name="password" placeholder="•••••••• (Min. 6 characters)" required>
-                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('password', this)">
-                            <i data-lucide="eye"></i>
-                        </button>
-                    </div>
-                    <p class="error-message" id="passwordError"></p>
-                </div>
-                <div class="form-group">
-                    <label for="confirmPassword">Confirm Password</label>
-                     <div class="password-wrapper">
-                        <input type="password" id="confirmPassword" name="confirmPassword" placeholder="••••••••" required>
-                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('confirmPassword', this)">
-                             <i data-lucide="eye"></i>
-                        </button>
-                    </div>
-                    <p class="error-message" id="confirmPasswordError"></p>
-                </div>
-                <div class="form-group">
-                    <label for="secretWord">Secret Word (for password recovery)</label>
-                    <input type="text" id="secretWord" name="secretWord" placeholder="Your memorable secret word" required>
-                    <p class="error-message" id="secretWordError"></p>
-                </div>
-                <div class="form-group">
-                    <label for="role">Role</label>
-                    <select id="role" name="role" required>
-                        <option value="Student">Student</option>
-                        <option value="Admin">Admin</option>
-                        <option value="Faculty">Faculty</option>
-                        <option value="Assistant">Assistant</option>
-                    </select>
-                    <p class="error-message" id="roleError"></p>
-                </div>
-                <div class="form-group">
-                    <label for="department">Department (Optional)</label>
-                    <select id="department" name="department">
-                        <option value="">Select your department</option>
-                        <!-- Options will be populated by JS -->
-                    </select>
-                </div>
-                <button type="submit" id="signupButton" class="button button-primary full-width">
-                    Create Account
-                </button>
-            </form>
-            <p class="auth-switch-link">
-                Already have an account? <a href="index.html">Login</a>
-            </p>
-        </div>
-    </main>
+    <h1>Sign Up Page</h1>
+    <p>Signup form will be added here.</p>
     <script src="js/constants.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/auth.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log("Signup page DOM fully loaded and parsed.");
-            // Populate departments (already handled in auth.js if signupForm exists, but can be duplicated for clarity)
-            const departmentSelect = document.getElementById('department');
-            if (departmentSelect && window.DEPARTMENTS) {
-                 // Clear existing options first to avoid duplicates if auth.js also runs this
-                departmentSelect.innerHTML = '<option value="">Select your department</option>';
-                window.DEPARTMENTS.forEach(dept => {
-                    const option = document.createElement('option');
-                    option.value = dept;
-                    option.textContent = dept;
-                    departmentSelect.appendChild(option);
-                });
-            }
-            
-            if (window.lucide) {
-                window.lucide.createIcons();
-                 console.log("Lucide icons created on signup page.");
-            } else {
-                console.warn("Lucide library not found on signup page.");
-            }
-        });
-    </script>
 </body>
 </html>

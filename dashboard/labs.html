@@ -3,140 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lab Availability - Optimized Lab Management System</title>
+    <title>Lab Availability</title>
     <link rel="stylesheet" href="../css/style.css">
-    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-    <div class="dashboard-layout">
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <a href="#" class="sidebar-header-link" id="dashboardHomeLink">
-                    <i data-lucide="atom"></i>
-                    <span class="sidebar-title">Optimized Lab Management System</span>
-                </a>
-            </div>
-            <ul class="sidebar-nav" id="sidebarNav">
-                <!-- Nav items will be populated by JS -->
-            </ul>
-        </aside>
-        <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
-        <div class="main-content-wrapper">
-            <header class="dashboard-header">
-                <button type="button" class="mobile-menu-button" id="mobileMenuButton">
-                    <i data-lucide="menu"></i>
-                </button>
-                <div class="user-nav" id="userNavContainer">
-                    <!-- UserNav will be populated by JS -->
-                </div>
-            </header>
-            <main class="page-content">
-                <div class="custom-card">
-                    <div class="custom-card-header">
-                        <i data-lucide="flask-conical"></i>
-                        <h1 class="custom-card-title">Lab Availability Viewer</h1>
-                    </div>
-                    <div class="custom-card-content">
-                        <p class="text-muted-foreground mb-4">
-                            View lab schedules and availability. Select a lab and navigate weeks to see slots.
-                        </p>
-                        
-                        <div class="form-group">
-                            <label for="labSelector">Select Lab:</label>
-                            <select id="labSelector" name="labSelector" class="mb-4" style="padding: 0.5rem 0.75rem; border-radius: 0.25rem; border: 1px solid #ced4da;">
-                                <!-- Options will be populated by JS -->
-                            </select>
-                        </div>
-
-                        <div class="flex items-center justify-between mb-4">
-                            <button id="prevWeekBtn" class="button button-outline">Previous Week</button>
-                            <h2 id="currentWeekDisplay" class="text-lg font-semibold">Current Week</h2>
-                            <button id="nextWeekBtn" class="button button-outline">Next Week</button>
-                        </div>
-                        <button id="todayBtn" class="button button-secondary mb-4">Go to Today</button>
-
-                        <div class="lab-availability-grid-container">
-                            <div id="labAvailabilityGrid" class="lab-availability-grid">
-                                <!-- Grid will be populated by JS -->
-                            </div>
-                        </div>
-                        <p class="text-muted-foreground mt-4 text-sm">
-                            Click on a slot to see more details or book (if available).
-                            <br>
-                            <span class="status-available p-1 rounded-sm text-xs" style="border-radius: 0.125rem; font-size: 0.75rem;">Available</span>
-                            <span class="status-booked p-1 rounded-sm text-xs" style="border-radius: 0.125rem; font-size: 0.75rem;">Booked</span>
-                            <span class="status-pending p-1 rounded-sm text-xs" style="border-radius: 0.125rem; font-size: 0.75rem;">Pending</span>
-                            <span class="status-past p-1 rounded-sm text-xs" style="border-radius: 0.125rem; font-size: 0.75rem;">Past</span>
-                        </p>
-                    </div>
-                </div>
-
-                <!-- Dialog for slot details -->
-                <div id="slotDetailDialog" class="dialog-overlay">
-                    <div class="dialog-content" style="max-width: 750px;">
-                        <div class="dialog-header">
-                            <h2 id="dialogTitle" class="dialog-title">Slot Details</h2>
-                             <button type="button" class="dialog-close-button" id="dialogCloseButton" aria-label="Close">
-                                <i data-lucide="x"></i>
-                            </button>
-                        </div>
-                        <div id="dialogBody" class="dialog-body">
-                            <div id="dialogSlotInfo">
-                                <!-- Slot details will be populated here by JS -->
-                            </div>
-                            <div id="dialogAdminActions" class="mt-4 pt-4 border-t border-gray-200" style="display:none;">
-                                <!-- Admin specific actions will be populated here by JS -->
-                            </div>
-                            <div id="dialogLabLayoutVisualization" style="margin-top: 1.5rem; border-top: 1px solid #eee; padding-top: 1rem;">
-                                <!-- Lab layout visualization will be populated here by JS -->
-                            </div>
-                        </div>
-                        <div class="dialog-footer">
-                            <button type="button" id="dialogBookButton" class="button button-primary" style="display:none;">Book This Slot</button>
-                            <button type="button" id="dialogCloseButtonSecondary" class="button button-secondary">Close</button>
-                        </div>
-                    </div>
-                </div>
-
-            </main>
-        </div>
-    </div>
-
+    <h1>Lab Availability Viewer</h1>
+    <p>Content for viewing lab availability grid will be added here.</p>
     <script src="../js/constants.js"></script>
     <script src="../js/utils.js"></script>
     <script src="js/dashboard.js"></script>
-    <script src="js/lab_grid.js"></script> 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('DOM fully loaded and parsed for labs.html');
-            const currentUserRole = getCurrentUserRole();
-            if (!roleGuard([USER_ROLES.FACULTY, USER_ROLES.ASSISTANT, USER_ROLES.ADMIN])) {
-                return; 
-            }
-            
-            initializeDashboard(); 
-            setDashboardHomeLink(); 
-            initializeLabGrid(); 
-
-            const dialogCloseButton = document.getElementById('dialogCloseButton'); 
-            const dialogCloseButtonSecondary = document.getElementById('dialogCloseButtonSecondary'); 
-            const slotDetailDialog = document.getElementById('slotDetailDialog');
-
-            if(dialogCloseButton) {
-                dialogCloseButton.addEventListener('click', () => {
-                    if(slotDetailDialog) slotDetailDialog.classList.remove('open');
-                });
-            }
-            if(dialogCloseButtonSecondary) {
-                dialogCloseButtonSecondary.addEventListener('click', () => {
-                     if(slotDetailDialog) slotDetailDialog.classList.remove('open');
-                });
-            }
-
-
-            if (window.lucide) window.lucide.createIcons();
-        });
-    </script>
+    <script src="js/lab_grid.js"></script>
 </body>
 </html>

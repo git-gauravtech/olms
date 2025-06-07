@@ -1,56 +1,16 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Optimized Lab Management System</title>
+    <title>Login</title>
     <link rel="stylesheet" href="css/style.css">
-    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-    <main class="auth-page">
-        <div class="auth-card">
-            <div class="auth-header">
-                <i data-lucide="log-in" class="auth-icon"></i>
-                <h1>Login to Your Account</h1>
-                <p>Welcome back! Please enter your details.</p>
-            </div>
-            <form id="loginForm" class="auth-form">
-                <div class="form-group">
-                    <label for="email">Email Address</label>
-                    <input type="email" id="email" name="email" placeholder="you@example.com" required>
-                    <p class="error-message" id="emailError"></p>
-                </div>
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <div class="password-wrapper">
-                        <input type="password" id="password" name="password" placeholder="••••••••" required>
-                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('password', this)">
-                            <i data-lucide="eye"></i>
-                        </button>
-                    </div>
-                    <p class="error-message" id="passwordError"></p>
-                </div>
-                <p id="generalLoginError" class="error-message"></p>
-                <button type="submit" class="button button-primary full-width">Login</button>
-            </form>
-            <div class="auth-links">
-                <a href="forgot_password.html">Forgot Password?</a>
-                <span>|</span>
-                <a href="signup.html">Create an Account</a>
-            </div>
-        </div>
-    </main>
+    <h1>Login Page</h1>
+    <p>Login form will be added here.</p>
     <script src="js/constants.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/auth.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            if (window.lucide) {
-                window.lucide.createIcons();
-            }
-        });
-    </script>
 </body>
 </html>
