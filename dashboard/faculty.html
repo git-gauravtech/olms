@@ -6,19 +6,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Faculty Dashboard - LabLink</title>
     <link rel="stylesheet" href="../css/style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
     <div class="dashboard-container">
         <header class="dashboard-header">
-            <h1>Faculty Dashboard</h1>
+            <h1><i data-lucide="user-check" class="header-icon"></i> Faculty Dashboard</h1>
             <nav>
                 <a href="#" id="logoutLinkFaculty">Logout</a>
             </nav>
         </header>
         <main class="dashboard-content">
-            <p>Welcome, Faculty! View your timetable and manage lab requests.</p>
-            <!-- Faculty specific content will go here -->
-             <p><a href="faculty_my_bookings.html">View My Bookings & Request Labs</a></p>
+            <p id="welcomeMessageFaculty">Welcome, Faculty! View your timetable and manage lab requests.</p>
+            
+            <h2 class="mt-4">Your Actions:</h2>
+            <ul class="management-links">
+                <li><a href="faculty_my_bookings.html"><i data-lucide="calendar-days"></i> View My Bookings & Request Labs</a></li>
+                <!-- More faculty-specific links can be added here -->
+            </ul>
         </main>
     </div>
     <script src="../js/constants.js"></script>
@@ -34,7 +39,17 @@
                     }
                 });
             }
-            // Add any faculty specific dashboard initialization here
+            
+            const userInfo = JSON.parse(localStorage.getItem(window.USER_INFO_KEY));
+            if (userInfo && userInfo.fullName) {
+                 const welcomeMsg = document.getElementById('welcomeMessageFaculty');
+                if (welcomeMsg) {
+                    welcomeMsg.textContent = `Welcome, ${userInfo.fullName}! View your timetable and manage lab requests.`;
+                }
+            }
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
         });
     </script>
 </body>
