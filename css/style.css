@@ -226,6 +226,11 @@ body {
     color: #0c5460;
     border-color: #bee5eb;
 }
+.form-message.loading {
+    background-color: #e2e3e5;
+    color: #383d41;
+    border-color: #d6d8db;
+}
 
 
 /* Dashboard specific styles */
@@ -599,3 +604,74 @@ body {
     /* Add mobile menu button display logic here if needed */
 }
 
+/* Specific Landing Page Styles */
+.landing-container-override {
+    max-width: 600px; /* Wider card for landing page */
+}
+
+.auth-card.landing-card {
+    text-align: center;
+    padding-top: 40px;
+    padding-bottom: 40px;
+}
+
+.landing-logo {
+    margin-bottom: 25px;
+}
+
+.landing-logo i {
+    width: 64px; 
+    height: 64px;
+    color: #007BFF; 
+}
+
+.auth-card.landing-card h1 {
+    font-size: 2.25rem; 
+    color: #333; /* Main title darker for better readability */
+    margin-bottom: 15px;
+    margin-top: 0;
+    font-weight: 600;
+}
+
+.auth-card.landing-card .tagline {
+    font-size: 1.1rem;
+    color: #555; 
+    margin-bottom: 35px;
+    line-height: 1.6;
+}
+
+.landing-actions {
+    margin-top: 25px;
+    display: flex;
+    flex-direction: column; 
+    gap: 15px; 
+    align-items: center;
+}
+
+.landing-actions .button {
+    width: 80%; 
+    max-width: 280px; 
+    padding: 12px 20px; 
+    font-size: 1.05rem;
+    font-weight: 500;
+}
+
+.landing-actions .button.button-primary {
+    /* Uses default primary button styles */
+}
+.landing-actions .button.button-outline {
+    /* Uses default outline button styles */
+}
+
+
+@media (min-width: 480px) {
+    .landing-actions {
+        flex-direction: row; 
+        justify-content: center; 
+        gap: 25px;
+    }
+    .landing-actions .button {
+        width: auto; 
+        min-width: 130px;
+    }
+}
