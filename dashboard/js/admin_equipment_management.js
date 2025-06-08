@@ -26,11 +26,13 @@ async function initializeEquipmentManagementPage() {
     const saveEquipmentBtn = document.getElementById('saveEquipmentBtn');
 
     const TOKEN = localStorage.getItem(window.TOKEN_KEY);
+    let allEquipmentData = []; // To store fetched equipment for editing
 
     async function fetchLabsForDropdown() {
         if (!equipmentLabIdSelect) return;
+        equipmentLabIdSelect.innerHTML = '<option value="">Loading labs...</option>';
         try {
-            const response = await fetch(`${window.API_BASE_URL}/labs`, {
+            const response = await fetch(`${window.API_BASE_URL}/labs`, { // Assuming labs are fetched by admin
                 headers: { 'Authorization': `Bearer ${TOKEN}` }
             });
             if (!response.ok) throw new Error('Failed to fetch labs for dropdown');
@@ -50,6 +52,7 @@ async function initializeEquipmentManagementPage() {
     }
     
     async function fetchEquipment() {
+        showPageMessage(equipmentPageMessage, 'Loading equipment...', 'loading');
         try {
             const response = await fetch(`${window.API_BASE_URL}/equipment`, { 
                 headers: { 'Authorization': `Bearer ${TOKEN}` }
@@ -58,10 +61,12 @@ async function initializeEquipmentManagementPage() {
                 const error = await response.json();
                 throw new Error(error.message || 'Failed to fetch equipment');
             }
-            return await response.json();
+            allEquipmentData = await response.json();
+            hideMessage(equipmentPageMessage);
+            return allEquipmentData;
         } catch (error) {
             console.error('Error fetching equipment:', error);
-            if (equipmentPageMessage) showPageMessage(equipmentPageMessage, `Error fetching equipment: ${error.message}`, 'error');
+            if (equipmentPageMessage) showPageMessage(equipmentPageMessage, `Error fetching equipment: ${error.message}`, 'error', 0);
             if (equipmentTableContainer) equipmentTableContainer.innerHTML = '<p>Could not load equipment.</p>';
             return [];
         }
@@ -69,6 +74,8 @@ async function initializeEquipmentManagementPage() {
 
     function renderEquipmentTable(equipmentList) {
         if (!equipmentTableContainer) return;
+        equipmentTableContainer.innerHTML = ''; // Clear previous content
+
         if (!equipmentList || equipmentList.length === 0) {
             equipmentTableContainer.innerHTML = '<p>No equipment found. Add new equipment to get started.</p>';
             return;
@@ -84,6 +91,8 @@ async function initializeEquipmentManagementPage() {
                     <th>Quantity</th>
                     <th>Status</th>
                     <th>Assigned Lab</th>
+                    <th>Purchase Date</th>
+                    <th>Last Maintenance</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -91,6 +100,8 @@ async function initializeEquipmentManagementPage() {
             </tbody>
         `;
         const tbody = table.querySelector('tbody');
+        equipmentList.sort((a, b) => a.name.localeCompare(b.name)); // Sort by name
+
         equipmentList.forEach(item => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -99,22 +110,23 @@ async function initializeEquipmentManagementPage() {
                 <td>${item.quantity}</td>
                 <td>${item.status}</td>
                 <td>${item.lab_name || 'Not Assigned'}</td>
+                <td>${item.purchase_date ? new Date(item.purchase_date).toLocaleDateString() : 'N/A'}</td>
+                <td>${item.last_maintenance_date ? new Date(item.last_maintenance_date).toLocaleDateString() : 'N/A'}</td>
                 <td>
-                    <button class="button button-small button-outline view-equipment-btn" data-id="${item.equipment_id}" title="View/Edit Details"><i data-lucide="eye" class="icon-small"></i> Details</button>
+                    <button class="button button-small button-outline edit-equipment-btn" data-id="${item.equipment_id}" title="Edit Equipment"><i data-lucide="edit-2" class="icon-small"></i> Edit</button>
                     <button class="button button-small button-danger delete-equipment-btn" data-id="${item.equipment_id}" title="Delete Equipment"><i data-lucide="trash-2" class="icon-small"></i> Delete</button>
                 </td>
-            `; // Changed edit button to view/details
+            `;
             tbody.appendChild(tr);
         });
 
-        equipmentTableContainer.innerHTML = '';
         equipmentTableContainer.appendChild(table);
         if (window.lucide) window.lucide.createIcons();
 
-        document.querySelectorAll('.view-equipment-btn').forEach(btn => {
+        document.querySelectorAll('.edit-equipment-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const id = e.currentTarget.dataset.id;
-                const equipmentToEdit = equipmentList.find(eq => eq.equipment_id == id);
+                const equipmentToEdit = allEquipmentData.find(eq => eq.equipment_id == id);
                 if (equipmentToEdit) openEquipmentModal(equipmentToEdit);
             });
         });
@@ -122,7 +134,7 @@ async function initializeEquipmentManagementPage() {
         document.querySelectorAll('.delete-equipment-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 const id = e.currentTarget.dataset.id;
-                const equipmentToDelete = equipmentList.find(eq => eq.equipment_id == id);
+                const equipmentToDelete = allEquipmentData.find(eq => eq.equipment_id == id);
                 if (equipmentToDelete && confirm(`Are you sure you want to delete the equipment "${equipmentToDelete.name}"?`)) {
                     await deleteEquipment(id);
                 }
@@ -148,11 +160,13 @@ async function initializeEquipmentManagementPage() {
             equipmentLabIdSelect.value = equipment.lab_id || '';
             equipmentPurchaseDateInput.value = equipment.purchase_date ? equipment.purchase_date.split('T')[0] : '';
             equipmentLastMaintenanceDateInput.value = equipment.last_maintenance_date ? equipment.last_maintenance_date.split('T')[0] : '';
+            saveEquipmentBtn.textContent = 'Update Equipment';
         } else {
             equipmentModalTitle.textContent = 'Add New Equipment';
-            equipmentIdInput.value = '';
+            equipmentIdInput.value = ''; // Ensure it's empty for new equipment
             equipmentQuantityInput.value = 1; // Default quantity
             equipmentStatusSelect.value = 'Available'; // Default status
+            saveEquipmentBtn.textContent = 'Save Equipment';
         }
         equipmentModal.style.display = 'flex';
         if (window.lucide) window.lucide.createIcons(); 
@@ -166,6 +180,7 @@ async function initializeEquipmentManagementPage() {
         event.preventDefault();
         if (!saveEquipmentBtn || !equipmentFormMessage) return;
         hideMessage(equipmentFormMessage);
+        const originalButtonText = saveEquipmentBtn.textContent;
         saveEquipmentBtn.disabled = true;
         saveEquipmentBtn.innerHTML = '<i data-lucide="loader-2" class="animate-spin mr-2"></i> Saving...';
         if (window.lucide) window.lucide.createIcons();
@@ -184,13 +199,13 @@ async function initializeEquipmentManagementPage() {
         if (!equipmentData.name || !equipmentData.type) {
             showFormMessage(equipmentFormMessage, 'Equipment Name and Type are required.', 'error');
             saveEquipmentBtn.disabled = false;
-            saveEquipmentBtn.textContent = 'Save Equipment';
+            saveEquipmentBtn.textContent = originalButtonText;
             return;
         }
         if (isNaN(equipmentData.quantity) || equipmentData.quantity < 0) {
             showFormMessage(equipmentFormMessage, 'Quantity must be a non-negative number.', 'error');
             saveEquipmentBtn.disabled = false;
-            saveEquipmentBtn.textContent = 'Save Equipment';
+            saveEquipmentBtn.textContent = originalButtonText;
             return;
         }
 
@@ -214,19 +229,20 @@ async function initializeEquipmentManagementPage() {
                 throw new Error(result.message || `Failed to ${currentEquipmentId ? 'update' : 'add'} equipment`);
             }
 
-            showPageMessage(equipmentPageMessage, `Equipment successfully ${currentEquipmentId ? 'updated' : 'added'}!`, 'success');
+            showPageMessage(equipmentPageMessage, `Equipment successfully ${currentEquipmentId ? 'updated' : 'added'}!`, 'success', 2000);
             closeEquipmentModal();
-            loadAllEquipment(); 
+            loadAllEquipment(); // Refresh the table
         } catch (error) {
             console.error(`Error ${currentEquipmentId ? 'updating' : 'adding'} equipment:`, error);
             showFormMessage(equipmentFormMessage, error.message, 'error');
         } finally {
             saveEquipmentBtn.disabled = false;
-            saveEquipmentBtn.textContent = 'Save Equipment';
+            saveEquipmentBtn.textContent = originalButtonText;
         }
     }
     
     async function deleteEquipment(id) {
+        showPageMessage(equipmentPageMessage, 'Deleting equipment...', 'loading', 0);
         try {
             const response = await fetch(`${window.API_BASE_URL}/equipment/${id}`, {
                 method: 'DELETE',
@@ -236,11 +252,11 @@ async function initializeEquipmentManagementPage() {
             if (!response.ok) {
                 throw new Error(result.message || 'Failed to delete equipment');
             }
-            showPageMessage(equipmentPageMessage, 'Equipment deleted successfully!', 'success');
-            loadAllEquipment();
+            showPageMessage(equipmentPageMessage, 'Equipment deleted successfully!', 'success', 2000);
+            loadAllEquipment(); // Refresh the table
         } catch (error) {
             console.error('Error deleting equipment:', error);
-            showPageMessage(equipmentPageMessage, `Error deleting equipment: ${error.message}`, 'error');
+            showPageMessage(equipmentPageMessage, `Error deleting equipment: ${error.message}`, 'error', 0);
         }
     }
 
@@ -250,22 +266,23 @@ async function initializeEquipmentManagementPage() {
     if (equipmentForm) equipmentForm.addEventListener('submit', handleEquipmentFormSubmit);
     if (equipmentModal) {
         equipmentModal.addEventListener('click', (event) => {
-            if (event.target === equipmentModal) closeEquipmentModal();
+            if (event.target === equipmentModal) closeEquipmentModal(); // Close if overlay is clicked
         });
     }
 
     async function loadAllEquipment() {
         if (!equipmentTableContainer || !TOKEN) {
              if (equipmentTableContainer) equipmentTableContainer.innerHTML = '<p>Please log in to manage equipment.</p>';
-             if (equipmentPageMessage && !TOKEN) showPageMessage(equipmentPageMessage, 'Authentication token not found. Please log in.', 'error');
+             if (equipmentPageMessage && !TOKEN) showPageMessage(equipmentPageMessage, 'Authentication token not found. Please log in.', 'error', 0);
              return;
         }
-        if (equipmentTableContainer) equipmentTableContainer.innerHTML = '<p>Loading equipment...</p>';
+        // No need for this line: equipmentTableContainer.innerHTML = '<p>Loading equipment...</p>'; as fetchEquipment handles it
         await fetchLabsForDropdown(); // Pre-load labs for modal efficiency if opened quickly
         const equipmentList = await fetchEquipment();
         renderEquipmentTable(equipmentList);
     }
 
+    // Initial load
     if (document.getElementById('equipmentTableContainer')) { 
         loadAllEquipment();
     }
