@@ -43,14 +43,15 @@
                 <div class="custom-card">
                     <div class="custom-card-header">
                         <i data-lucide="calendar-plus"></i>
-                        <h2 class="custom-card-title">Book New Lab Slot</h2>
+                        <h2 id="bookingFormTitle" class="custom-card-title">Book New Lab Slot</h2>
                     </div>
                     <div class="custom-card-content">
                         <p class="text-muted-foreground mb-4">
-                            Manually create a new lab booking. Ensure the time slot does not conflict with existing bookings.
+                            Manually create a new lab booking or edit an existing one. Ensure the time slot does not conflict.
                         </p>
                         
                         <form id="manualBookingForm">
+                            <input type="hidden" id="editingBookingId" name="editingBookingId">
                             <div class="form-group">
                                 <label for="bookingLabId">Select Lab <span class="required">*</span></label>
                                 <select id="bookingLabId" name="lab_id" class="form-control" required>
@@ -113,6 +114,9 @@
                             <button type="submit" id="saveBookingBtn" class="button button-primary">
                                 <i data-lucide="save" class="mr-2"></i> Create Booking
                             </button>
+                            <button type="button" id="cancelEditBookingBtn" class="button button-secondary" style="display:none; margin-left: 10px;">
+                                <i data-lucide="x-circle" class="mr-2"></i> Cancel Edit
+                            </button>
                         </form>
                     </div>
                 </div>
@@ -123,7 +127,7 @@
                         <h2 class="custom-card-title">Existing Bookings</h2>
                     </div>
                     <div class="custom-card-content">
-                        <p class="text-muted-foreground mb-4">View, edit, or delete existing lab bookings. (Management of existing bookings will be implemented here)</p>
+                        <p class="text-muted-foreground mb-4">View, edit, or delete existing lab bookings.</p>
                         <div id="existingBookingsTableContainer" class="table-container mt-4">
                             <p>Loading existing bookings...</p>
                         </div>
@@ -165,8 +169,10 @@
             } else {
                 console.error('initializeAdminBookingPage function not found.');
                  if(document.getElementById('manualBookingForm')) {
-                    document.getElementById('manualBookingFormMessage').textContent = 'Error initializing page functions.';
-                    document.getElementById('manualBookingFormMessage').style.display = 'block';
+                    const formMsgEl = document.getElementById('manualBookingFormMessage');
+                    if (formMsgEl) {
+                        showFormMessage(formMsgEl, 'Error initializing page functions.', 'error');
+                    }
                  }
             }
             

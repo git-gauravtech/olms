@@ -40,12 +40,6 @@ router.post('/', auth, authorize(['admin']), async (req, res) => {
     if (!lab_id || !date || !start_time_str || !end_time_str) {
         return res.status(400).json({ message: 'Lab, date, start time, and end time are required.' });
     }
-    // user_id (faculty) and section_id are optional for a direct admin booking, but good to have for context
-    if (!user_id) {
-        // In a real system, you might assign the admin as the user_id or have a default "System Booked" user.
-        // For now, let's make it clear it's for a faculty or specific user.
-        // return res.status(400).json({ message: 'Faculty/User ID is required for the booking.' });
-    }
 
     // Combine date and time strings to create full DATETIME objects
     const start_time = `${date}T${start_time_str}:00`; // Assuming time is HH:mm
@@ -70,7 +64,9 @@ router.post('/', auth, authorize(['admin']), async (req, res) => {
         
         const newBookingId = result.insertId;
         const [newBooking] = await pool.query(
-            `SELECT b.*, l.name as lab_name, l.room_number, u.full_name as user_name, c.name as course_name, s.name as section_name
+            `SELECT b.*, l.name as lab_name, l.room_number, 
+                    u.full_name as user_name, 
+                    s.name as section_name, c.name as course_name, c.course_id as section_course_id
              FROM Bookings b
              LEFT JOIN Labs l ON b.lab_id = l.lab_id
              LEFT JOIN Users u ON b.user_id = u.user_id
@@ -99,7 +95,9 @@ router.get('/my', auth, authorize(['faculty', 'admin']), async (req, res) => { /
 
     try {
         const [bookings] = await pool.query(
-            `SELECT b.*, l.name as lab_name, l.room_number, u.full_name as user_name, c.name as course_name, s.name as section_name
+            `SELECT b.*, l.name as lab_name, l.room_number, 
+                    u.full_name as user_name, 
+                    s.name as section_name, c.name as course_name, c.course_id as section_course_id
              FROM Bookings b
              LEFT JOIN Labs l ON b.lab_id = l.lab_id
              LEFT JOIN Users u ON b.user_id = u.user_id
@@ -130,7 +128,7 @@ router.get('/', auth, async (req, res) => {
         let query = `
             SELECT b.*, l.name as lab_name, l.room_number, 
                    u.full_name as user_name, 
-                   s.name as section_name, c.name as course_name
+                   s.name as section_name, c.name as course_name, c.course_id as section_course_id
             FROM Bookings b
             LEFT JOIN Labs l ON b.lab_id = l.lab_id
             LEFT JOIN Users u ON b.user_id = u.user_id
@@ -193,7 +191,9 @@ router.put('/:bookingId', auth, authorize(['admin']), async (req, res) => {
         }
         
         const [updatedBooking] = await pool.query(
-             `SELECT b.*, l.name as lab_name, l.room_number, u.full_name as user_name, c.name as course_name, s.name as section_name
+             `SELECT b.*, l.name as lab_name, l.room_number, 
+                     u.full_name as user_name, 
+                     s.name as section_name, c.name as course_name, c.course_id as section_course_id
              FROM Bookings b
              LEFT JOIN Labs l ON b.lab_id = l.lab_id
              LEFT JOIN Users u ON b.user_id = u.user_id
@@ -220,11 +220,8 @@ router.delete('/:bookingId', auth, authorize(['admin']), async (req, res) => {
         // Before deleting booking, check if it's referenced in LabChangeRequests
         const [requests] = await pool.query('SELECT request_id FROM LabChangeRequests WHERE booking_id = ?', [bookingId]);
         if (requests.length > 0) {
-            // Option 1: Deny deletion
-            // return res.status(400).json({ message: 'Cannot delete booking. It has associated change requests. Please process or cancel the requests first.' });
-            // Option 2: Delete associated requests (cascade is already set in schema, so this is for explicit feedback or if not cascaded)
-            // await pool.query('DELETE FROM LabChangeRequests WHERE booking_id = ?', [bookingId]);
-            // The schema has ON DELETE CASCADE for LabChangeRequests.booking_id, so this is handled.
+            // The schema has ON DELETE CASCADE for LabChangeRequests.booking_id, so this is handled by DB.
+            // Optionally, delete explicitly or warn if cascade isn't set.
         }
 
         const [result] = await pool.query('DELETE FROM Bookings WHERE booking_id = ?', [bookingId]);
