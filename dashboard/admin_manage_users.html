@@ -47,13 +47,14 @@
                     </div>
                     <div class="custom-card-content">
                         <p class="text-muted-foreground mb-4">
-                            View and manage user accounts in the system. (Detailed CRUD functionality coming soon).
+                            View registered user accounts in the system.
+                            Future enhancements will include editing roles, and activating/deactivating accounts.
                         </p>
                         <div id="usersTableContainer" class="mt-4 table-container">
-                            <p>User management features (viewing list of users, editing roles, activating/deactivating accounts) will be implemented here.</p>
-                            <p class="mt-2">For now, new users can register through the <a href="../signup.html" target="_blank">Signup Page</a>.</p>
+                            <p>Loading users...</p>
                         </div>
                         <div id="usersPageMessage" class="form-message mt-4" style="display:none;"></div>
+                        <p class="mt-4 text-sm">New users can register through the <a href="../signup.html" target="_blank" class="text-blue-600 hover:underline">Signup Page</a>.</p>
                     </div>
                 </div>
             </main>
@@ -62,7 +63,7 @@
     <script src="../js/constants.js"></script>
     <script src="../js/utils.js"></script> 
     <script src="../js/auth.js"></script> 
-    <!-- <script src="js/admin_user_management.js"></script> -->
+    <script src="js/admin_user_management.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const userInfo = JSON.parse(localStorage.getItem(window.USER_INFO_KEY));
@@ -88,7 +89,14 @@
             if (window.lucide) {
                 window.lucide.createIcons();
             }
-            // Add user fetching and display logic here later
+            
+            if (typeof initializeUserManagementPage === 'function') {
+                initializeUserManagementPage();
+            } else {
+                console.error('initializeUserManagementPage function not found.');
+                const usersTableContainer = document.getElementById('usersTableContainer');
+                if (usersTableContainer) usersTableContainer.innerHTML = '<p>Error initializing page. User management script not fully loaded.</p>';
+            }
         });
     </script>
 </body>
