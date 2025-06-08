@@ -11,15 +11,7 @@
 <body>
     <div class="dashboard-layout">
         <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <a href="assistant.html" class="sidebar-header-link">
-                    <i data-lucide="atom"></i> <span class="sidebar-title">LabLink</span>
-                </a>
-            </div>
-            <ul class="sidebar-nav">
-                <li><a href="assistant.html" class="active" id="assistantDashboardLink"><i data-lucide="layout-dashboard"></i> Assistant Dashboard</a></li>
-                <li><a href="profile.html"><i data-lucide="user-circle"></i> My Profile</a></li>
-            </ul>
+            <!-- Sidebar content will be dynamically injected by JS -->
         </aside>
         <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
@@ -42,7 +34,7 @@
                             View upcoming lab sessions and manage lab resources as needed.
                         </p>
                         
-                        <h3 class="text-xl font-semibold mb-3 mt-6">Upcoming Lab Sessions Overview</h3>
+                        <h3 class="text-xl font-semibold mb-3 mt-6">All Lab Bookings Overview</h3>
                         <div id="allBookingsContainer" class="table-container mt-4">
                             <p>Loading all lab bookings...</p>
                         </div>
@@ -52,6 +44,7 @@
                         <h3 class="text-xl font-semibold mb-3">Other Tasks:</h3>
                          <ul class="management-links">
                             <li><a href="profile.html"><i data-lucide="user-circle"></i> Manage My Profile</a></li>
+                            <!-- Add other assistant-specific links here if any -->
                         </ul>
                     </div>
                 </div>
@@ -62,6 +55,38 @@
     <script src="../js/utils.js"></script>
     <script src="../js/auth.js"></script>
     <script>
+        // Sidebar generation logic (similar to profile.html but specific to Assistant)
+        function generateAssistantSidebarNav() {
+            const sidebarNav = document.createElement('ul');
+            sidebarNav.className = 'sidebar-nav';
+            const items = [
+                { href: 'assistant.html', icon: 'layout-dashboard', text: 'Assistant Dashboard', id: 'assistantDashboardLink' },
+                { href: 'profile.html', icon: 'user-circle', text: 'My Profile' }
+                // Add other assistant-specific nav items here if they become available
+                // e.g., { href: 'assistant_my_assignments.html', icon: 'clipboard-check', text: 'My Assignments' }
+            ];
+
+            items.forEach(item => {
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.href = item.href;
+                if (item.id) a.id = item.id;
+
+                const iconEl = document.createElement('i');
+                iconEl.setAttribute('data-lucide', item.icon);
+                a.appendChild(iconEl);
+                a.appendChild(document.createTextNode(' ' + item.text));
+                
+                if (window.location.pathname.endsWith('/' + item.href) || (item.href === 'assistant.html' && window.location.pathname.endsWith('/assistant.html'))) {
+                    a.classList.add('active');
+                }
+                li.appendChild(a);
+                sidebarNav.appendChild(li);
+            });
+            return sidebarNav;
+        }
+
+
         document.addEventListener('DOMContentLoaded', async () => {
             const userInfo = JSON.parse(localStorage.getItem(window.USER_INFO_KEY));
             if (!userInfo || userInfo.role !== window.USER_ROLES.ASSISTANT) {
@@ -70,15 +95,18 @@
                 return;
             }
             
+            // Populate user name in header
             const userNameDisplay = document.getElementById('userNameDisplay');
-            if (userNameDisplay && userInfo && userInfo.fullName) {
+            if (userNameDisplay && userInfo.fullName) {
                 userNameDisplay.textContent = userInfo.fullName;
             }
-             const welcomeMessage = document.getElementById('welcomeMessageAssistant');
-            if (welcomeMessage && userInfo && userInfo.fullName) {
-                welcomeMessage.textContent = `Welcome, ${userInfo.fullName}!`;
+            // Populate welcome message
+            const welcomeMessage = document.getElementById('welcomeMessageAssistant');
+            if (welcomeMessage && userInfo.fullName) {
+                welcomeMessage.textContent = \`Welcome, \${userInfo.fullName}!\`;
             }
 
+            // Logout link
             const logoutLinkNav = document.getElementById('logoutLinkNav');
             if (logoutLinkNav) {
                 logoutLinkNav.addEventListener('click', (e) => {
@@ -87,19 +115,18 @@
                 });
             }
             
-            // Make current page link active
-            const currentPath = window.location.pathname.split('/').pop();
-            const sidebarLinks = document.querySelectorAll('.sidebar-nav a');
-            sidebarLinks.forEach(link => {
-                if (link.href.endsWith(currentPath) && currentPath !== '#') {
-                    link.classList.add('active');
-                } else {
-                    link.classList.remove('active');
-                }
-            });
-            if (currentPath === 'assistant.html') {
-                const dashboardLink = document.getElementById('assistantDashboardLink');
-                if(dashboardLink) dashboardLink.classList.add('active');
+            // Sidebar setup
+            const sidebarElement = document.getElementById('sidebar');
+            if (sidebarElement) {
+                const sidebarHeader = document.createElement('div');
+                sidebarHeader.className = 'sidebar-header';
+                const homeLink = document.createElement('a');
+                homeLink.href = 'assistant.html'; // Assistant's home dashboard
+                homeLink.className = 'sidebar-header-link';
+                homeLink.innerHTML = '<i data-lucide="atom"></i> <span class="sidebar-title">LabLink</span>';
+                sidebarHeader.appendChild(homeLink);
+                sidebarElement.appendChild(sidebarHeader);
+                sidebarElement.appendChild(generateAssistantSidebarNav());
             }
 
             await fetchAndDisplayAllBookingsForAssistant();
@@ -114,15 +141,21 @@
             const bookingsMessage = document.getElementById('allBookingsMessage');
             const TOKEN = localStorage.getItem(window.TOKEN_KEY);
 
-            if (!bookingsContainer || !bookingsMessage || !TOKEN) {
-                if (bookingsMessage) showPageMessage(bookingsMessage, 'Could not initialize bookings view.', 'error', 0);
+            if (!bookingsContainer || !bookingsMessage) {
+                console.error("Bookings container or message element not found for assistant dashboard.");
+                return;
+            }
+             if (!TOKEN) {
+                showPageMessage(bookingsMessage, 'Authentication error. Please log in again.', 'error', 0);
+                bookingsContainer.innerHTML = '<p>Please log in to view bookings.</p>';
                 return;
             }
 
+
             showPageMessage(bookingsMessage, 'Loading all lab bookings...', 'loading');
             try {
-                const response = await fetch(`${window.API_BASE_URL}/bookings`, { // Fetches all bookings
-                    headers: { 'Authorization': `Bearer ${TOKEN}` }
+                const response = await fetch(\`\${window.API_BASE_URL}/bookings\`, { 
+                    headers: { 'Authorization': \`Bearer \${TOKEN}\` }
                 });
 
                 if (!response.ok) {
@@ -135,13 +168,13 @@
 
             } catch (error) {
                 console.error('Error fetching all bookings for assistant:', error);
-                showPageMessage(bookingsMessage, `Error: ${error.message}`, 'error', 0);
-                bookingsContainer.innerHTML = `<p>Could not load lab bookings. ${error.message}</p>`;
+                showPageMessage(bookingsMessage, \`Error: \${error.message}\`, 'error', 0);
+                bookingsContainer.innerHTML = \`<p>Could not load lab bookings. \${error.message}</p>\`;
             }
         }
 
         function renderAllBookingsTable(bookings, container, messageEl) {
-            container.innerHTML = '';
+            container.innerHTML = ''; // Clear loading or previous content
             if (!bookings || bookings.length === 0) {
                 container.innerHTML = '<p>No lab bookings found in the system.</p>';
                 showPageMessage(messageEl, 'No lab bookings are currently scheduled.', 'info');
@@ -150,7 +183,7 @@
 
             const table = document.createElement('table');
             table.className = 'styled-table';
-            table.innerHTML = `
+            table.innerHTML = \`
                 <thead>
                     <tr>
                         <th>Lab Name</th>
@@ -164,30 +197,30 @@
                     </tr>
                 </thead>
                 <tbody></tbody>
-            `;
+            \`;
             const tbody = table.querySelector('tbody');
-            bookings.sort((a,b) => new Date(a.start_time) - new Date(b.start_time)); // Show oldest first, or sort by upcoming
+            // Sort by upcoming first
+            bookings.sort((a,b) => new Date(a.start_time) - new Date(b.start_time)); 
 
             bookings.forEach(booking => {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${booking.lab_name || 'N/A'}</td>
-                    <td>${booking.room_number || 'N/A'}</td>
-                    <td>${booking.course_name || 'N/A'}</td>
-                    <td>${booking.section_name || 'N/A'}</td>
-                    <td>${booking.user_name || 'N/A'}</td>
-                    <td>${new Date(booking.start_time).toLocaleString()}</td>
-                    <td>${new Date(booking.end_time).toLocaleString()}</td>
-                    <td>${booking.status || 'Scheduled'}</td>
-                `;
+                tr.innerHTML = \`
+                    <td>\${booking.lab_name || 'N/A'}</td>
+                    <td>\${booking.room_number || 'N/A'}</td>
+                    <td>\${booking.course_name || 'N/A'}</td>
+                    <td>\${booking.section_name || 'N/A'}</td>
+                    <td>\${booking.user_name || 'N/A'}</td>
+                    <td>\${new Date(booking.start_time).toLocaleString()}</td>
+                    <td>\${new Date(booking.end_time).toLocaleString()}</td>
+                    <td>\${booking.status || 'Scheduled'}</td>
+                \`;
                 tbody.appendChild(tr);
             });
             container.appendChild(table);
-             if (window.lucide) {
+             if (window.lucide) { // Ensure icons are rendered if any were added dynamically
                 window.lucide.createIcons();
             }
         }
-
     </script>
 </body>
 </html>
