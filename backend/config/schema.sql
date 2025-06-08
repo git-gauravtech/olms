@@ -6,7 +6,7 @@ USE lab_management_db;
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     fullName VARCHAR(255) NOT NULL,
-    email VARCHAR(255) NOT NULL UNIQUE,
+    full_name VARCHAR(255) NOT NULL,
     passwordHash VARCHAR(255) NOT NULL,
     secretWordHash VARCHAR(255) NOT NULL COMMENT 'For password recovery validation',
     role VARCHAR(50) NOT NULL COMMENT 'Admin, Faculty, Student, Assistant',
