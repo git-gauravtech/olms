@@ -1,125 +1,130 @@
 
--- Main Users table
-DROP TABLE IF EXISTS Users;
-CREATE TABLE Users (
+-- Main Tables
+CREATE TABLE IF NOT EXISTS Users (
     user_id INT AUTO_INCREMENT PRIMARY KEY,
     full_name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     role ENUM('admin', 'faculty', 'assistant', 'student') NOT NULL,
     contact_number VARCHAR(20),
-    -- Fields for faculty/assistant
-    department VARCHAR(100),          -- Department for faculty/assistant
-    employee_id VARCHAR(50) UNIQUE,   -- Employee ID for faculty/assistant
-    -- Fields for student
-    enrollment_number VARCHAR(50) UNIQUE, -- Enrollment number for student
-    course VARCHAR(100),              -- Course name/ID for student (consider normalizing this later)
-    section VARCHAR(50),              -- Section name/ID for student (consider normalizing this later)
+    department VARCHAR(100), -- For faculty, assistant
+    employee_id VARCHAR(50), -- For faculty, assistant
+    enrollment_number VARCHAR(50), -- For student
+    course VARCHAR(100), -- For student (e.g., B.Tech CSE)
+    section VARCHAR(50), -- For student (e.g., Section A)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Courses table
-DROP TABLE IF EXISTS Courses;
-CREATE TABLE Courses (
+CREATE TABLE IF NOT EXISTS Courses (
     course_id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    department VARCHAR(100), -- Optional: Department offering the course
+    department VARCHAR(100), -- e.g., Computer Science, Electrical Engineering
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Sections table
-DROP TABLE IF EXISTS Sections;
-CREATE TABLE Sections (
+CREATE TABLE IF NOT EXISTS Sections (
     section_id INT AUTO_INCREMENT PRIMARY KEY,
     course_id INT NOT NULL,
-    name VARCHAR(255) NOT NULL, -- e.g., "A", "B", "Morning Batch"
-    semester VARCHAR(50) NOT NULL, -- e.g., "Fall", "Spring", "1st Semester"
+    name VARCHAR(100) NOT NULL, -- e.g., Section A, Section B, Morning Batch
+    semester VARCHAR(50) NOT NULL, -- e.g., Fall, Spring, 1st, 2nd
     year INT NOT NULL, -- e.g., 2023
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (course_id) REFERENCES Courses(course_id) ON DELETE CASCADE -- If a course is deleted, its sections are also deleted
+    FOREIGN KEY (course_id) REFERENCES Courses(course_id) ON DELETE CASCADE, -- If a course is deleted, its sections are deleted
+    UNIQUE KEY (course_id, name, semester, year) -- Ensure section uniqueness within a course for a given term
 );
 
--- Labs table
-DROP TABLE IF EXISTS Labs;
-CREATE TABLE Labs (
+CREATE TABLE IF NOT EXISTS Labs (
     lab_id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     room_number VARCHAR(50),
     capacity INT NOT NULL,
-    type VARCHAR(100), -- e.g., "Computer Lab", "Physics Lab", "Chemistry Lab"
-    is_available BOOLEAN DEFAULT TRUE, -- To mark a lab as temporarily unavailable
+    type VARCHAR(100), -- e.g., Computer Lab, Physics Lab, Chemistry Lab
+    is_available BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Equipment table
-DROP TABLE IF EXISTS Equipment;
-CREATE TABLE Equipment (
+CREATE TABLE IF NOT EXISTS Equipment (
     equipment_id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     description TEXT,
-    type VARCHAR(100), -- e.g., "Microscope", "Oscilloscope", "Computer"
+    type VARCHAR(100) NOT NULL, -- e.g., Microscope, Oscilloscope, PC
     quantity INT DEFAULT 1,
-    status ENUM('Available', 'In Use', 'Under Maintenance', 'Out of Order') DEFAULT 'Available',
-    lab_id INT, -- Optional: If the equipment is permanently assigned to a specific lab
+    status VARCHAR(50) DEFAULT 'Available', -- e.g., Available, In Use, Under Maintenance, Out of Order
+    lab_id INT, -- Optional: If equipment is specific to a lab
     purchase_date DATE,
     last_maintenance_date DATE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (lab_id) REFERENCES Labs(lab_id) ON DELETE SET NULL -- If a lab is deleted, equipment assigned to it is not deleted but lab_id becomes NULL
+    FOREIGN KEY (lab_id) REFERENCES Labs(lab_id) ON DELETE SET NULL -- If lab is deleted, equipment becomes unassigned
 );
 
-
--- Bookings table
-DROP TABLE IF EXISTS Bookings;
-CREATE TABLE Bookings (
+-- Booking/Scheduling Table
+CREATE TABLE IF NOT EXISTS Bookings (
     booking_id INT AUTO_INCREMENT PRIMARY KEY,
     lab_id INT NOT NULL,
-    user_id INT NOT NULL, -- User who made the booking (typically faculty or admin)
-    section_id INT,       -- Section for which the lab is booked (can be NULL for general bookings)
+    user_id INT, -- User (faculty) who booked or is responsible for the lab session
+    section_id INT, -- Section for which the lab is booked
     start_time DATETIME NOT NULL,
     end_time DATETIME NOT NULL,
     purpose TEXT,
     status VARCHAR(50) DEFAULT 'Scheduled', -- e.g., Scheduled, Cancelled, Completed
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (lab_id) REFERENCES Labs(lab_id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (lab_id) REFERENCES Labs(lab_id) ON DELETE CASCADE, -- If a lab is deleted, its bookings are deleted
+    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE SET NULL, -- If user is deleted, booking remains but user_id becomes NULL
     FOREIGN KEY (section_id) REFERENCES Sections(section_id) ON DELETE SET NULL, -- If section is deleted, booking remains but section_id becomes NULL
-    CONSTRAINT chk_end_time CHECK (end_time > start_time) -- Ensure end time is after start time
+    INDEX (lab_id, start_time, end_time) -- For quick check of lab availability
 );
 
--- Example: Add an admin user (replace with your actual details)
--- Make sure to hash the password appropriately if inserting manually.
--- The signup route will handle hashing.
--- INSERT INTO Users (full_name, email, password_hash, role) VALUES
--- ('Admin User', 'admin@example.com', '$2a$10$your_bcrypt_hashed_password_here', 'admin');
+-- Table for Faculty Lab Change Requests
+CREATE TABLE IF NOT EXISTS LabChangeRequests (
+    request_id INT AUTO_INCREMENT PRIMARY KEY,
+    booking_id INT NOT NULL,
+    user_id INT NOT NULL, -- Faculty who made the request
+    requested_changes TEXT NOT NULL, -- Description of what they want to change (e.g., different time, different lab, notes)
+    reason TEXT, -- Reason for the change
+    status ENUM('Pending', 'Approved', 'Denied', 'Cancelled') DEFAULT 'Pending',
+    admin_remarks TEXT, -- Remarks from admin when processing
+    requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    processed_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+    processed_by_admin_id INT NULL,
+    FOREIGN KEY (booking_id) REFERENCES Bookings(booking_id) ON DELETE CASCADE, -- If original booking is deleted, request is irrelevant
+    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE, -- If user (faculty) is deleted
+    FOREIGN KEY (processed_by_admin_id) REFERENCES Users(user_id) ON DELETE SET NULL
+);
 
--- Consider adding indexes for frequently queried columns, e.g.,
--- CREATE INDEX idx_bookings_lab_time ON Bookings(lab_id, start_time, end_time);
--- CREATE INDEX idx_sections_course ON Sections(course_id);
 
-/*
-Normalization Notes:
-- User's course and section: For students, 'course' and 'section' are directly in the Users table.
-  This is denormalized for simplicity. A more normalized approach would be a linking table
-  like `UserSections` or `Enrollments` (user_id, section_id). This depends on whether a student
-  can be in multiple sections/courses simultaneously or if their current section is singular.
-  The current model is simpler for direct display on signup/profile.
+-- Example Insert Statements (Optional - for testing)
 
-- Lab Equipment: Could be a many-to-many relationship if specific equipment items (not just types)
-  are tracked and can be moved between labs or booked. The current `Equipment` table is simpler,
-  assuming a type of equipment and its quantity, optionally tied to a lab.
+-- Users
+-- INSERT INTO Users (full_name, email, password_hash, role) VALUES 
+-- ('Admin User', 'admin@example.com', '$2a$10$...', 'admin'), -- Replace ... with a valid bcrypt hash
+-- ('Faculty One', 'faculty1@example.com', '$2a$10$...', 'faculty'),
+-- ('Student One', 'student1@example.com', '$2a$10$...', 'student');
 
-Data Integrity:
-- Cascade vs. Restrict vs. Set Null:
-  - Courses -> Sections: ON DELETE CASCADE (if a course is removed, its sections don't make sense).
-  - Labs -> Bookings: ON DELETE CASCADE (if a lab is removed, its bookings are invalid).
-  - Users -> Bookings: ON DELETE CASCADE (if a user is removed, their bookings are removed).
-  - Sections -> Bookings: ON DELETE SET NULL (if a section is removed, a booking might still be valid as a general booking, or it could be CASCADE).
-  - Labs -> Equipment: ON DELETE SET NULL (if a lab is removed, equipment assigned to it becomes unassigned rather than deleted).
-  These choices depend on business rules.
-*/
+-- Courses
+-- INSERT INTO Courses (name, department) VALUES 
+-- ('Introduction to Programming', 'Computer Science'),
+-- ('Data Structures', 'Computer Science'),
+-- ('Circuit Theory', 'Electrical Engineering');
+
+-- Sections
+-- INSERT INTO Sections (course_id, name, semester, year) VALUES
+-- (1, 'A', 'Fall', 2023),
+-- (1, 'B', 'Fall', 2023),
+-- (2, 'A', 'Spring', 2024);
+
+-- Labs
+-- INSERT INTO Labs (name, room_number, capacity, type) VALUES
+-- ('CS Lab 1', '101', 30, 'Computer Lab'),
+-- ('Electronics Lab A', '203', 20, 'Electronics Lab');
+
+-- Bookings (Example - Ensure user_id, section_id, lab_id exist)
+-- INSERT INTO Bookings (lab_id, user_id, section_id, start_time, end_time, purpose) VALUES
+-- (1, 2, 1, '2023-10-01 09:00:00', '2023-10-01 11:00:00', 'Intro to Python Lab'),
+-- (1, 2, 1, '2023-10-03 09:00:00', '2023-10-03 11:00:00', 'Intro to Python Lab');
+

@@ -43,28 +43,101 @@
                 <div class="custom-card">
                     <div class="custom-card-header">
                         <i data-lucide="calendar-plus"></i>
-                        <h2 class="custom-card-title">Book or Modify Lab Slots</h2>
+                        <h2 class="custom-card-title">Book New Lab Slot</h2>
                     </div>
                     <div class="custom-card-content">
                         <p class="text-muted-foreground mb-4">
-                            This section will allow administrators to manually create, view, edit, or cancel lab bookings.
+                            Manually create a new lab booking. Ensure the time slot does not conflict with existing bookings.
                         </p>
-                        <p><strong>Feature Under Development.</strong></p>
                         
-                        <div id="manualBookingFormContainer" class="mt-4">
-                            <p>A form for selecting lab, section, date/time, and purpose will be implemented here. Existing bookings could also be listed for modification/cancellation.</p>
-                        </div>
-                        <div id="manualBookingMessage" class="form-message mt-4" style="display:none;"></div>
+                        <form id="manualBookingForm">
+                            <div class="form-group">
+                                <label for="bookingLabId">Select Lab <span class="required">*</span></label>
+                                <select id="bookingLabId" name="lab_id" class="form-control" required>
+                                    <option value="">Loading labs...</option>
+                                </select>
+                            </div>
 
+                            <div class="form-group">
+                                <label for="bookingCourseId">Select Course (for Section)</label>
+                                <select id="bookingCourseId" name="course_id_for_section_filter" class="form-control">
+                                    <option value="">Loading courses...</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="bookingSectionId">Select Section (Optional)</label>
+                                <select id="bookingSectionId" name="section_id" class="form-control" disabled>
+                                    <option value="">Select a course first or leave blank</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="bookingUserId">Assign to Faculty/User (Optional)</label>
+                                <select id="bookingUserId" name="user_id" class="form-control">
+                                    <option value="">Loading faculty...</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="bookingDate">Date <span class="required">*</span></label>
+                                <input type="date" id="bookingDate" name="date" class="form-control" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="bookingStartTime">Start Time <span class="required">*</span></label>
+                                <input type="time" id="bookingStartTime" name="start_time_str" class="form-control" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="bookingEndTime">End Time <span class="required">*</span></label>
+                                <input type="time" id="bookingEndTime" name="end_time_str" class="form-control" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="bookingPurpose">Purpose/Notes</label>
+                                <textarea id="bookingPurpose" name="purpose" class="form-control" rows="3"></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="bookingStatus">Status</label>
+                                <select id="bookingStatus" name="status" class="form-control">
+                                    <option value="Scheduled">Scheduled</option>
+                                    <option value="Tentative">Tentative</option>
+                                    <option value="Cancelled">Cancelled</option>
+                                </select>
+                            </div>
+                            
+                            <p id="manualBookingFormMessage" class="form-message" style="display:none;"></p>
+
+                            <button type="submit" id="saveBookingBtn" class="button button-primary">
+                                <i data-lucide="save" class="mr-2"></i> Create Booking
+                            </button>
+                        </form>
                     </div>
                 </div>
+
+                <div class="custom-card mt-4">
+                    <div class="custom-card-header">
+                         <i data-lucide="list-checks"></i>
+                        <h2 class="custom-card-title">Existing Bookings</h2>
+                    </div>
+                    <div class="custom-card-content">
+                        <p class="text-muted-foreground mb-4">View, edit, or delete existing lab bookings. (Management of existing bookings will be implemented here)</p>
+                        <div id="existingBookingsTableContainer" class="table-container mt-4">
+                            <p>Loading existing bookings...</p>
+                        </div>
+                        <div id="existingBookingsMessage" class="form-message" style="display:none;"></div>
+                    </div>
+                </div>
+
             </main>
         </div>
     </div>
     <script src="../js/constants.js"></script>
     <script src="../js/utils.js"></script> 
     <script src="../js/auth.js"></script> 
-    <!-- <script src="js/booking_form.js"></script> -->
+    <script src="js/admin_booking_management.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const userInfo = JSON.parse(localStorage.getItem(window.USER_INFO_KEY));
@@ -85,6 +158,16 @@
                     e.preventDefault();
                     if (typeof logout === 'function') logout();
                 });
+            }
+            
+            if (typeof initializeAdminBookingPage === 'function') {
+                initializeAdminBookingPage();
+            } else {
+                console.error('initializeAdminBookingPage function not found.');
+                 if(document.getElementById('manualBookingForm')) {
+                    document.getElementById('manualBookingFormMessage').textContent = 'Error initializing page functions.';
+                    document.getElementById('manualBookingFormMessage').style.display = 'block';
+                 }
             }
             
             if (window.lucide) {
