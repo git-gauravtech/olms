@@ -24,7 +24,9 @@ const sectionRoutes = require('./routes/sectionRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
 const labRoutes = require('./routes/labRoutes');
 const userRoutes = require('./routes/userRoutes');
-const equipmentRoutes = require('./routes/equipmentRoutes'); // New equipment routes
+const equipmentRoutes = require('./routes/equipmentRoutes');
+const facultyRequestRoutes = require('./routes/facultyRequestRoutes');
+const schedulingRoutes = require('./routes/schedulingRoutes'); // New scheduling routes
 
 
 app.use('/api/auth', authRoutes);
@@ -33,7 +35,9 @@ app.use('/api/sections', sectionRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/labs', labRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/equipment', equipmentRoutes); // Use equipment routes
+app.use('/api/equipment', equipmentRoutes);
+app.use('/api/faculty-requests', facultyRequestRoutes);
+app.use('/api/scheduling', schedulingRoutes); // Use scheduling routes
 
 
 // Basic error handling middleware (example)
@@ -51,3 +55,4 @@ app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`API available at http://localhost:${PORT}/api`);
 });
+

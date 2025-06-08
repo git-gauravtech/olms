@@ -48,15 +48,17 @@
                     </div>
                     <div class="custom-card-content">
                         <p class="text-muted-foreground mb-4">
-                            This section will provide controls to initiate the automated scheduling algorithms (e.g., based on graph coloring, greedy methods) to generate conflict-free timetables.
+                            Initiate the automated scheduling algorithms to generate conflict-free timetables.
                         </p>
-                        <p><strong>Core Algorithm Feature Under Development.</strong></p>
                         
                         <div id="algorithmControlsContainer" class="mt-4">
-                            <p>Controls to start the scheduling process, select parameters (if any), and view results/logs will be implemented here.</p>
-                            <button type="button" class="button button-primary" disabled>
-                                <i data-lucide="play-circle" class="mr-2"></i> Run Scheduling Algorithm (Coming Soon)
+                            <p class="mb-3">Click the button below to start the scheduling process. This may take some time.</p>
+                            <button type="button" id="runSchedulingBtn" class="button button-primary">
+                                <i data-lucide="play-circle" class="mr-2"></i> Run Scheduling Algorithm
                             </button>
+                            <p class="mt-3 text-sm text-muted-foreground">
+                                Note: The actual scheduling logic is currently a placeholder. This will simulate initiating the process.
+                            </p>
                         </div>
                         <div id="algorithmStatusMessage" class="form-message mt-4" style="display:none;"></div>
 
@@ -68,6 +70,7 @@
     <script src="../js/constants.js"></script>
     <script src="../js/utils.js"></script> 
     <script src="../js/auth.js"></script> 
+    <script src="js/admin_scheduling.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const userInfo = JSON.parse(localStorage.getItem(window.USER_INFO_KEY));
@@ -90,6 +93,14 @@
                 });
             }
             
+            if (typeof initializeAdminSchedulingPage === 'function') {
+                initializeAdminSchedulingPage();
+            } else {
+                console.error('initializeAdminSchedulingPage function not found.');
+                const statusMsg = document.getElementById('algorithmStatusMessage');
+                if (statusMsg) showPageMessage(statusMsg, 'Error initializing page scripts.', 'error', 0);
+            }
+
             if (window.lucide) {
                 window.lucide.createIcons();
             }
