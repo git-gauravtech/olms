@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "description": "Frontend for Optimized Lab Management System (HTML, CSS, JS)",
   "scripts": {
-    "start": "echo \"To serve static files, consider using a tool like 'live-server' or a simple Express static server.\"",
+    "start": "live-server --port=8080 --open=./landing.html",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": ["lab", "management", "frontend"],
