@@ -115,7 +115,7 @@ router.get('/my', auth, authorize(['faculty', 'admin']), async (req, res) => { /
 
 
 // GET /api/bookings?section_id= (for student/public to view schedule for a chosen section)
-// OR GET /api/bookings (for admin to view all)
+// OR GET /api/bookings (for admin/assistant to view all)
 router.get('/', auth, async (req, res) => { 
     const { section_id } = req.query;
 
@@ -142,9 +142,9 @@ router.get('/', auth, async (req, res) => {
             query += ` WHERE b.section_id = ? ORDER BY b.start_time ASC`;
             params.push(section_id);
         } else {
-            // If no section_id, only admin can see all bookings
-            if (userRole !== 'admin') { 
-                return res.status(403).json({ message: 'Access forbidden: Admins only for all bookings view.' });
+            // If no section_id, only admin or assistant can see all bookings
+            if (userRole !== 'admin' && userRole !== 'assistant') { 
+                return res.status(403).json({ message: 'Access forbidden: Admins or Assistants only for all bookings view.' });
             }
             query += ` ORDER BY b.start_time ASC`;
         }
@@ -239,3 +239,4 @@ router.delete('/:bookingId', auth, authorize(['admin']), async (req, res) => {
 
 
 module.exports = router;
+

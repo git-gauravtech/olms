@@ -19,7 +19,6 @@
             <ul class="sidebar-nav">
                 <li><a href="assistant.html" class="active" id="assistantDashboardLink"><i data-lucide="layout-dashboard"></i> Assistant Dashboard</a></li>
                 <li><a href="profile.html"><i data-lucide="user-circle"></i> My Profile</a></li>
-                <li><a href="#"><i data-lucide="calendar-days"></i> My Assigned Schedule (Coming Soon)</a></li>
             </ul>
         </aside>
         <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -40,16 +39,20 @@
                     </div>
                     <div class="custom-card-content">
                         <p class="text-muted-foreground mb-4">
-                            View your assigned lab duties and manage lab resources as needed.
+                            View upcoming lab sessions and manage lab resources as needed.
                         </p>
-                        <h3 class="text-xl font-semibold mb-3 mt-6">Your Tasks:</h3>
+                        
+                        <h3 class="text-xl font-semibold mb-3 mt-6">Upcoming Lab Sessions Overview</h3>
+                        <div id="allBookingsContainer" class="table-container mt-4">
+                            <p>Loading all lab bookings...</p>
+                        </div>
+                        <div id="allBookingsMessage" class="form-message" style="display:none;"></div>
+
+                        <hr class="my-8 border-gray-300">
+                        <h3 class="text-xl font-semibold mb-3">Other Tasks:</h3>
                          <ul class="management-links">
                             <li><a href="profile.html"><i data-lucide="user-circle"></i> Manage My Profile</a></li>
-                            <li><a href="#" class="disabled-link"><i data-lucide="calendar-days"></i> View My Assigned Schedule (Coming Soon)</a></li>
                         </ul>
-                        <p class="mt-4 text-sm text-muted-foreground">
-                            Your detailed schedule and specific functionalities for lab status updates will be available here soon.
-                        </p>
                     </div>
                 </div>
             </main>
@@ -59,7 +62,7 @@
     <script src="../js/utils.js"></script>
     <script src="../js/auth.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             const userInfo = JSON.parse(localStorage.getItem(window.USER_INFO_KEY));
             if (!userInfo || userInfo.role !== window.USER_ROLES.ASSISTANT) {
                 alert('Access Denied: Assistants only.');
@@ -73,7 +76,7 @@
             }
              const welcomeMessage = document.getElementById('welcomeMessageAssistant');
             if (welcomeMessage && userInfo && userInfo.fullName) {
-                welcomeMessage.textContent = \`Welcome, \${userInfo.fullName}!\`;
+                welcomeMessage.textContent = `Welcome, ${userInfo.fullName}!`;
             }
 
             const logoutLinkNav = document.getElementById('logoutLinkNav');
@@ -88,7 +91,7 @@
             const currentPath = window.location.pathname.split('/').pop();
             const sidebarLinks = document.querySelectorAll('.sidebar-nav a');
             sidebarLinks.forEach(link => {
-                if (link.href.endsWith(currentPath) && currentPath !== '#') { // Avoid making '#' active
+                if (link.href.endsWith(currentPath) && currentPath !== '#') {
                     link.classList.add('active');
                 } else {
                     link.classList.remove('active');
@@ -99,10 +102,92 @@
                 if(dashboardLink) dashboardLink.classList.add('active');
             }
 
+            await fetchAndDisplayAllBookingsForAssistant();
+
             if (window.lucide) {
                 window.lucide.createIcons();
             }
         });
+
+        async function fetchAndDisplayAllBookingsForAssistant() {
+            const bookingsContainer = document.getElementById('allBookingsContainer');
+            const bookingsMessage = document.getElementById('allBookingsMessage');
+            const TOKEN = localStorage.getItem(window.TOKEN_KEY);
+
+            if (!bookingsContainer || !bookingsMessage || !TOKEN) {
+                if (bookingsMessage) showPageMessage(bookingsMessage, 'Could not initialize bookings view.', 'error', 0);
+                return;
+            }
+
+            showPageMessage(bookingsMessage, 'Loading all lab bookings...', 'loading');
+            try {
+                const response = await fetch(`${window.API_BASE_URL}/bookings`, { // Fetches all bookings
+                    headers: { 'Authorization': `Bearer ${TOKEN}` }
+                });
+
+                if (!response.ok) {
+                    const errorResult = await response.json();
+                    throw new Error(errorResult.message || 'Failed to fetch bookings.');
+                }
+                const bookings = await response.json();
+                renderAllBookingsTable(bookings, bookingsContainer, bookingsMessage);
+                hideMessage(bookingsMessage);
+
+            } catch (error) {
+                console.error('Error fetching all bookings for assistant:', error);
+                showPageMessage(bookingsMessage, `Error: ${error.message}`, 'error', 0);
+                bookingsContainer.innerHTML = `<p>Could not load lab bookings. ${error.message}</p>`;
+            }
+        }
+
+        function renderAllBookingsTable(bookings, container, messageEl) {
+            container.innerHTML = '';
+            if (!bookings || bookings.length === 0) {
+                container.innerHTML = '<p>No lab bookings found in the system.</p>';
+                showPageMessage(messageEl, 'No lab bookings are currently scheduled.', 'info');
+                return;
+            }
+
+            const table = document.createElement('table');
+            table.className = 'styled-table';
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Lab Name</th>
+                        <th>Room</th>
+                        <th>Course</th>
+                        <th>Section</th>
+                        <th>Booked By</th>
+                        <th>Start Time</th>
+                        <th>End Time</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            `;
+            const tbody = table.querySelector('tbody');
+            bookings.sort((a,b) => new Date(a.start_time) - new Date(b.start_time)); // Show oldest first, or sort by upcoming
+
+            bookings.forEach(booking => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${booking.lab_name || 'N/A'}</td>
+                    <td>${booking.room_number || 'N/A'}</td>
+                    <td>${booking.course_name || 'N/A'}</td>
+                    <td>${booking.section_name || 'N/A'}</td>
+                    <td>${booking.user_name || 'N/A'}</td>
+                    <td>${new Date(booking.start_time).toLocaleString()}</td>
+                    <td>${new Date(booking.end_time).toLocaleString()}</td>
+                    <td>${booking.status || 'Scheduled'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+            container.appendChild(table);
+             if (window.lucide) {
+                window.lucide.createIcons();
+            }
+        }
+
     </script>
 </body>
 </html>
