@@ -1,1 +1,0 @@
-// Assistant seat updater specific JavaScript will be added here.

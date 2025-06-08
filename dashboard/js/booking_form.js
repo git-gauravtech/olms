@@ -1,1 +1,0 @@
-// Booking form specific JavaScript will be added here.
