@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt =require('jsonwebtoken');
 const pool = require('../config/db');
 const dotenv = require('dotenv');
+const crypto = require('crypto'); // For generating reset tokens
 
 dotenv.config();
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -113,6 +114,108 @@ router.post('/login', async (req, res) => {
     } catch (error) {
         console.error('Login error:', error);
         res.status(500).json({ message: 'Server error during login.' });
+    }
+});
+
+
+// POST /api/auth/request-password-reset
+router.post('/request-password-reset', async (req, res) => {
+    const { email } = req.body;
+    if (!email) {
+        return res.status(400).json({ message: 'Email address is required.' });
+    }
+
+    try {
+        const [users] = await pool.query('SELECT user_id, email FROM Users WHERE email = ?', [email]);
+        if (users.length === 0) {
+            // Important: Do not reveal if an email exists or not for security reasons.
+            // Send a generic success message in both cases.
+            console.log(`Password reset requested for non-existent email: ${email}`);
+            return res.status(200).json({ message: 'If your email address exists in our system, you will receive a password reset link shortly.' });
+        }
+        const user = users[0];
+
+        // Generate a reset token
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        const expiresAt = new Date(Date.now() + 3600000); // Token expires in 1 hour
+
+        // Store the token in the PasswordResets table
+        // Ensure you have a PasswordResets table:
+        // CREATE TABLE PasswordResets (
+        //     reset_id INT AUTO_INCREMENT PRIMARY KEY,
+        //     user_id INT NOT NULL,
+        //     token VARCHAR(255) NOT NULL UNIQUE,
+        //     expires_at DATETIME NOT NULL,
+        //     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        //     FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
+        // );
+        // Delete any existing tokens for this user to prevent multiple active tokens
+        await pool.query('DELETE FROM PasswordResets WHERE user_id = ?', [user.user_id]);
+        await pool.query('INSERT INTO PasswordResets (user_id, token, expires_at) VALUES (?, ?, ?)', [user.user_id, resetToken, expiresAt]);
+
+        // Simulate sending email
+        // In a real application, you would use an email service (e.g., SendGrid, Nodemailer)
+        const resetLink = `http://localhost:8080/reset_password.html?token=${resetToken}`; // Adjust port/URL as needed
+        console.log(`Password Reset Link for ${user.email}: ${resetLink}`); // For development/testing
+
+        res.status(200).json({ message: 'If your email address exists in our system, you will receive a password reset link shortly.' });
+
+    } catch (error) {
+        console.error('Error requesting password reset:', error);
+        // Generic error for client, specific error logged server-side
+        if (error.code === 'ER_NO_SUCH_TABLE' && error.message.includes('PasswordResets')) {
+            console.error("CRITICAL: PasswordResets table does not exist. Please create it.");
+             return res.status(500).json({ message: 'Password reset system configuration error. Please contact support.' });
+        }
+        res.status(500).json({ message: 'An error occurred while processing your request.' });
+    }
+});
+
+// POST /api/auth/reset-password
+router.post('/reset-password', async (req, res) => {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+        return res.status(400).json({ message: 'Token and new password are required.' });
+    }
+    if (newPassword.length < 6) {
+        return res.status(400).json({ message: 'Password must be at least 6 characters long.' });
+    }
+
+    try {
+        // Find the token in the PasswordResets table
+        const [tokens] = await pool.query('SELECT * FROM PasswordResets WHERE token = ?', [token]);
+        if (tokens.length === 0) {
+            return res.status(400).json({ message: 'Invalid or expired password reset token. Please request a new one.' });
+        }
+        const resetRecord = tokens[0];
+
+        // Check if token has expired
+        if (new Date(resetRecord.expires_at) < new Date()) {
+            // Clean up expired token
+            await pool.query('DELETE FROM PasswordResets WHERE reset_id = ?', [resetRecord.reset_id]);
+            return res.status(400).json({ message: 'Password reset token has expired. Please request a new one.' });
+        }
+
+        // Hash the new password
+        const salt = await bcrypt.genSalt(10);
+        const passwordHash = await bcrypt.hash(newPassword, salt);
+
+        // Update user's password
+        await pool.query('UPDATE Users SET password_hash = ?, updated_at = NOW() WHERE user_id = ?', [passwordHash, resetRecord.user_id]);
+
+        // Delete the used token from PasswordResets table
+        await pool.query('DELETE FROM PasswordResets WHERE reset_id = ?', [resetRecord.reset_id]);
+
+        res.status(200).json({ message: 'Password has been reset successfully. You can now login with your new password.' });
+
+    } catch (error) {
+        console.error('Error resetting password:', error);
+         if (error.code === 'ER_NO_SUCH_TABLE' && error.message.includes('PasswordResets')) {
+            console.error("CRITICAL: PasswordResets table does not exist. Please create it.");
+             return res.status(500).json({ message: 'Password reset system configuration error. Please contact support.' });
+        }
+        res.status(500).json({ message: 'An error occurred while resetting your password.' });
     }
 });
 

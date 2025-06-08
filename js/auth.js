@@ -1,4 +1,5 @@
 
+
 function initializeSignupPage() {
     const signupForm = document.getElementById('signupForm');
     const roleSelect = document.getElementById('role');
@@ -111,6 +112,9 @@ function initializeSignupPage() {
 function initializeLoginPage() {
     const loginForm = document.getElementById('loginForm');
     const formMessageDiv = document.getElementById('formMessage');
+    // Check for forgot password link - it's commented out in index.html
+    const forgotPasswordLinkExists = document.querySelector('a[href="forgot_password.html"]');
+
 
     function showMessage(message, type) {
         if (formMessageDiv) {
@@ -174,6 +178,18 @@ function initializeLoginPage() {
             }
         });
     }
+     // Add forgot password link if it was missing (it's currently commented out in index.html)
+    if (loginForm && !forgotPasswordLinkExists) {
+        const authSwitchElements = loginForm.parentElement.querySelectorAll('.auth-switch');
+        if (authSwitchElements.length > 0) {
+            const lastAuthSwitch = authSwitchElements[authSwitchElements.length -1];
+            const forgotPasswordP = document.createElement('p');
+            forgotPasswordP.className = 'auth-switch';
+            forgotPasswordP.style.marginTop = '10px';
+            forgotPasswordP.innerHTML = '<a href="forgot_password.html">Forgot Password?</a>';
+            lastAuthSwitch.parentNode.insertBefore(forgotPasswordP, lastAuthSwitch.nextSibling);
+        }
+    }
 }
 
 // Logout function
@@ -182,12 +198,166 @@ function logout() {
     localStorage.removeItem(window.USER_INFO_KEY);
     // Redirect to login page or landing page
     // Check if current page is already index.html or signup.html to avoid loop
-    const nonAuthPages = ['/index.html', '/signup.html', '/landing.html'];
+    const nonAuthPages = ['/index.html', '/signup.html', '/landing.html', '/forgot_password.html', '/reset_password.html'];
     if (nonAuthPages.some(page => window.location.pathname.endsWith(page))) {
          // Already on a non-auth page, no need to redirect further for logout
     } else if (window.location.pathname.includes('/dashboard/')) {
         window.location.href = '../index.html';
     } else {
         window.location.href = 'index.html';
+    }
+}
+
+
+function initializeForgotPasswordPage() {
+    const forgotPasswordForm = document.getElementById('forgotPasswordForm');
+    const emailInput = document.getElementById('email');
+    const formMessageDiv = document.getElementById('formMessage');
+    const requestResetBtn = document.getElementById('requestResetBtn');
+
+    function showMessage(message, type) {
+        if (formMessageDiv) {
+            formMessageDiv.textContent = message;
+            formMessageDiv.className = `form-message ${type}`;
+            formMessageDiv.style.display = 'block';
+        }
+    }
+    function hideMessage() {
+        if (formMessageDiv) {
+            formMessageDiv.style.display = 'none';
+        }
+    }
+
+    if (forgotPasswordForm) {
+        forgotPasswordForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            hideMessage();
+            if (!emailInput.value) {
+                showMessage('Please enter your email address.', 'error');
+                return;
+            }
+            
+            requestResetBtn.disabled = true;
+            requestResetBtn.textContent = 'Processing...';
+
+            try {
+                const response = await fetch(`${window.API_BASE_URL}/auth/request-password-reset`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: emailInput.value })
+                });
+                const result = await response.json();
+                // Backend sends 200 OK for both found and not found emails for security.
+                // The message from backend is generic.
+                showMessage(result.message, response.ok ? 'success' : 'error');
+                if (response.ok) {
+                    forgotPasswordForm.reset();
+                    requestResetBtn.textContent = 'Request Sent';
+                } else {
+                     requestResetBtn.textContent = 'Request Password Reset';
+                }
+
+            } catch (error) {
+                console.error('Request password reset error:', error);
+                showMessage('An error occurred. Please try again.', 'error');
+                requestResetBtn.textContent = 'Request Password Reset';
+            } finally {
+                if(!response.ok) requestResetBtn.disabled = false;
+            }
+        });
+    }
+}
+
+
+function initializeResetPasswordPage() {
+    const resetPasswordForm = document.getElementById('resetPasswordForm');
+    const tokenInput = document.getElementById('resetToken');
+    const newPasswordInput = document.getElementById('newPassword');
+    const confirmNewPasswordInput = document.getElementById('confirmNewPassword');
+    const formMessageDiv = document.getElementById('formMessage');
+    const submitResetBtn = document.getElementById('submitResetBtn');
+
+    function showMessage(message, type) {
+        if (formMessageDiv) {
+            formMessageDiv.textContent = message;
+            formMessageDiv.className = `form-message ${type}`;
+            formMessageDiv.style.display = 'block';
+        }
+    }
+     function hideMessage() {
+        if (formMessageDiv) {
+            formMessageDiv.style.display = 'none';
+        }
+    }
+
+    // Extract token from URL query parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const tokenFromUrl = urlParams.get('token');
+    if (tokenInput && tokenFromUrl) {
+        tokenInput.value = tokenFromUrl;
+    } else if (tokenInput && !tokenFromUrl) {
+        showMessage('Password reset token not found in URL. Please use the link from your email.', 'error');
+        if(submitResetBtn) submitResetBtn.disabled = true;
+    }
+
+
+    if (resetPasswordForm) {
+        resetPasswordForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            hideMessage();
+
+            const token = tokenInput.value;
+            const newPassword = newPasswordInput.value;
+            const confirmNewPassword = confirmNewPasswordInput.value;
+
+            if (!token) {
+                showMessage('Invalid reset token. Please use the link from your email.', 'error');
+                return;
+            }
+            if (newPassword.length < 6) {
+                showMessage('New password must be at least 6 characters long.', 'error');
+                return;
+            }
+            if (newPassword !== confirmNewPassword) {
+                showMessage('Passwords do not match.', 'error');
+                return;
+            }
+
+            if(submitResetBtn) {
+                submitResetBtn.disabled = true;
+                submitResetBtn.textContent = 'Processing...';
+            }
+            
+            try {
+                const response = await fetch(`${window.API_BASE_URL}/auth/reset-password`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token, newPassword })
+                });
+                const result = await response.json();
+
+                if (response.ok) {
+                    showMessage(result.message || 'Password reset successfully! You can now login.', 'success');
+                    resetPasswordForm.reset(); // Clear form
+                    if(submitResetBtn) submitResetBtn.textContent = 'Password Reset!';
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 3000);
+                } else {
+                    showMessage(result.message || 'Failed to reset password. The token might be invalid or expired.', 'error');
+                    if(submitResetBtn) {
+                        submitResetBtn.disabled = false;
+                        submitResetBtn.textContent = 'Reset Password';
+                    }
+                }
+            } catch (error) {
+                console.error('Reset password error:', error);
+                showMessage('An error occurred. Please try again.', 'error');
+                if(submitResetBtn) {
+                    submitResetBtn.disabled = false;
+                    submitResetBtn.textContent = 'Reset Password';
+                }
+            }
+        });
     }
 }
