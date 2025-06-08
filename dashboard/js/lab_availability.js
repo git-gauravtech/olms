@@ -12,6 +12,7 @@ async function initializeLabAvailabilityPage() {
         }
         showPageMessage(bookingsMessage, 'Loading lab bookings...', 'loading');
         try {
+            // Admin view gets all bookings by default from this endpoint
             const response = await fetch(`${window.API_BASE_URL}/bookings`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -55,7 +56,7 @@ async function initializeLabAvailabilityPage() {
                 <th>Course</th>
                 <th>Section</th>
                 <th>Purpose</th>
-                <th>Booked By</th>
+                <th>Booked By (Faculty)</th>
                 <th>Start Time</th>
                 <th>End Time</th>
                 <th>Status</th>
@@ -64,6 +65,8 @@ async function initializeLabAvailabilityPage() {
         table.appendChild(thead);
 
         const tbody = document.createElement('tbody');
+        bookings.sort((a, b) => new Date(b.start_time) - new Date(a.start_time)); // Show newest first
+
         bookings.forEach(booking => {
             const tr = document.createElement('tr');
             const startTime = new Date(booking.start_time).toLocaleString();
@@ -75,7 +78,7 @@ async function initializeLabAvailabilityPage() {
                 <td>${booking.course_name || 'N/A'}</td>
                 <td>${booking.section_name || 'N/A'}</td>
                 <td>${booking.purpose || 'N/A'}</td>
-                <td>${booking.user_name || 'N/A'}</td>
+                <td>${booking.user_name || 'N/A (System/Admin Booking)'}</td>
                 <td>${startTime}</td>
                 <td>${endTime}</td>
                 <td>${booking.status || 'N/A'}</td>
@@ -85,6 +88,15 @@ async function initializeLabAvailabilityPage() {
         table.appendChild(tbody);
         bookingsContainer.appendChild(table);
         if(window.lucide) window.lucide.createIcons();
+    }
+
+    // Ensure this page is only for admins as it fetches ALL bookings
+    const userInfo = JSON.parse(localStorage.getItem(window.USER_INFO_KEY));
+    if (!userInfo || userInfo.role !== window.USER_ROLES.ADMIN) {
+        if(bookingsContainer) bookingsContainer.innerHTML = '<p>Access Denied. This view is for Admins only.</p>';
+        showPageMessage(bookingsMessage, 'Access Denied.', 'error', 0);
+        // Redirect or further lock down UI if necessary
+        return;
     }
 
     const bookings = await fetchLabBookings();
