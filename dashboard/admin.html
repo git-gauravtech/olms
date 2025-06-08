@@ -17,12 +17,13 @@
                 </a>
             </div>
             <ul class="sidebar-nav">
-                <li><a href="admin.html" class="active"><i data-lucide="layout-dashboard"></i> Admin Dashboard</a></li>
+                <li><a href="admin.html" class="active" id="adminDashboardLink"><i data-lucide="layout-dashboard"></i> Admin Dashboard</a></li>
                 <li><a href="admin_manage_courses.html"><i data-lucide="book-open"></i> Manage Courses</a></li>
                 <li><a href="admin_manage_sections.html"><i data-lucide="users-2"></i> Manage Sections</a></li>
                 <li><a href="admin_manage_labs.html"><i data-lucide="flask-conical"></i> Manage Labs</a></li>
                 <li><a href="admin_manage_equipment.html"><i data-lucide="wrench"></i> Manage Equipment</a></li>
                 <li><a href="admin_manage_users.html"><i data-lucide="users"></i> Manage Users</a></li>
+                <li><a href="profile.html"><i data-lucide="user-circle"></i> My Profile</a></li>
                 <li><a href="labs.html"><i data-lucide="microscope"></i> Lab Availability</a></li>
                 <li><a href="book_slot.html"><i data-lucide="calendar-plus"></i> Manual Bookings</a></li>
                 <li><a href="admin_faculty_requests.html"><i data-lucide="mail-question"></i> Faculty Requests</a></li>
@@ -56,6 +57,7 @@
                             <li><a href="admin_manage_labs.html"><i data-lucide="flask-conical"></i> Manage Labs</a></li>
                             <li><a href="admin_manage_equipment.html"><i data-lucide="wrench"></i> Manage Equipment</a></li>
                             <li><a href="admin_manage_users.html"><i data-lucide="users"></i> Manage Users</a></li>
+                            <li><a href="profile.html"><i data-lucide="user-circle"></i> My Profile</a></li>
                             <li><a href="labs.html"><i data-lucide="microscope"></i> View Lab Availability</a></li>
                             <li><a href="book_slot.html"><i data-lucide="calendar-plus"></i> Book/Modify Lab Slots (Manual)</a></li>
                             <li><a href="admin_faculty_requests.html"><i data-lucide="mail-question"></i> Review Faculty Requests</a></li>
@@ -84,7 +86,7 @@
             }
             const welcomeMessage = document.getElementById('welcomeMessageAdmin');
              if (welcomeMessage && userInfo && userInfo.fullName) {
-                welcomeMessage.textContent = `Welcome, ${userInfo.fullName}!`;
+                welcomeMessage.textContent = \`Welcome, \${userInfo.fullName}!\`;
             }
 
             const logoutLinkNav = document.getElementById('logoutLinkNav');
@@ -95,6 +97,23 @@
                 });
             }
             
+            // Make current page link active
+            const currentPath = window.location.pathname.split('/').pop();
+            const sidebarLinks = document.querySelectorAll('.sidebar-nav a');
+            sidebarLinks.forEach(link => {
+                if (link.href.endsWith(currentPath)) {
+                    link.classList.add('active');
+                } else {
+                    link.classList.remove('active');
+                }
+            });
+            // Special case for admin.html as it's the root dashboard page
+            if (currentPath === 'admin.html') {
+                const dashboardLink = document.getElementById('adminDashboardLink');
+                if(dashboardLink) dashboardLink.classList.add('active');
+            }
+
+
             if (window.lucide) {
                 window.lucide.createIcons();
             }

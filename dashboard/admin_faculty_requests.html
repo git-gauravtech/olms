@@ -23,6 +23,7 @@
                 <li><a href="admin_manage_labs.html"><i data-lucide="flask-conical"></i> Manage Labs</a></li>
                 <li><a href="admin_manage_equipment.html"><i data-lucide="wrench"></i> Manage Equipment</a></li>
                 <li><a href="admin_manage_users.html"><i data-lucide="users"></i> Manage Users</a></li>
+                <li><a href="profile.html"><i data-lucide="user-circle"></i> My Profile</a></li>
                 <li><a href="labs.html"><i data-lucide="microscope"></i> Lab Availability</a></li>
                 <li><a href="book_slot.html"><i data-lucide="calendar-plus"></i> Manual Bookings</a></li>
                 <li><a href="admin_faculty_requests.html" class="active"><i data-lucide="mail-question"></i> Faculty Requests</a></li>
@@ -47,13 +48,44 @@
                     </div>
                     <div class="custom-card-content">
                         <p class="text-muted-foreground mb-4">
-                            This section will display requests submitted by faculty members for changes to their lab schedules or bookings. Admins can review, approve, or deny these requests.
+                            Review and process requests submitted by faculty members for changes to their lab schedules or bookings.
                         </p>
-                        <p><strong>Feature Under Development.</strong></p>
-                        <div id="facultyRequestsContainer" class="mt-4">
-                            <p>Listing of faculty requests and actions to approve/deny will be implemented here.</p>
+                        <div id="facultyRequestsContainer" class="mt-4 table-container">
+                            <p>Loading faculty requests...</p>
                         </div>
                         <div id="facultyRequestsMessage" class="form-message mt-4" style="display:none;"></div>
+                    </div>
+                </div>
+
+                 <!-- Modal for Admin to Process Request -->
+                <div id="adminProcessRequestModal" class="dialog-overlay" style="display:none;">
+                    <div class="dialog-content" style="max-width: 600px;">
+                        <form id="adminProcessRequestForm">
+                            <div class="dialog-header">
+                                <h3 id="adminProcessModalTitle" class="dialog-title">Process Faculty Request</h3>
+                                <button type="button" class="dialog-close-button" id="closeAdminProcessModalBtn" aria-label="Close"><i data-lucide="x"></i></button>
+                            </div>
+                            <div class="dialog-body">
+                                <input type="hidden" id="processingRequestId" name="request_id">
+                                <h4>Request Details:</h4>
+                                <p><strong>Faculty:</strong> <span id="modalFacultyName"></span></p>
+                                <p><strong>Original Booking:</strong> <span id="modalOriginalBookingInfo"></span></p>
+                                <p><strong>Requested Change:</strong> <span id="modalRequestedChange"></span></p>
+                                <p><strong>Reason:</strong> <span id="modalReasonForChange"></span></p>
+                                <p><strong>Submitted:</strong> <span id="modalRequestDate"></span></p>
+                                <hr class="my-4">
+                                <div class="form-group">
+                                    <label for="adminRemarks">Admin Remarks (Optional)</label>
+                                    <textarea id="adminRemarks" name="admin_remarks" class="form-control" rows="3"></textarea>
+                                </div>
+                                <p id="adminProcessFormMessage" class="form-message" style="display:none;"></p>
+                            </div>
+                            <div class="dialog-footer">
+                                <button type="button" class="button button-secondary" id="cancelAdminProcessModalBtn">Cancel</button>
+                                <button type="button" id="denyRequestBtn" class="button button-danger">Deny Request</button>
+                                <button type="button" id="approveRequestBtn" class="button button-primary" style="background-color: #28a745; border-color: #28a745;">Approve Request</button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </main>
@@ -62,6 +94,7 @@
     <script src="../js/constants.js"></script>
     <script src="../js/utils.js"></script> 
     <script src="../js/auth.js"></script> 
+    <script src="js/admin_faculty_requests.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const userInfo = JSON.parse(localStorage.getItem(window.USER_INFO_KEY));
@@ -82,6 +115,14 @@
                     e.preventDefault();
                     if (typeof logout === 'function') logout();
                 });
+            }
+
+            if(typeof initializeAdminFacultyRequestsPage === 'function') {
+                initializeAdminFacultyRequestsPage();
+            } else {
+                console.error('initializeAdminFacultyRequestsPage function not found.');
+                const container = document.getElementById('facultyRequestsContainer');
+                if(container) container.innerHTML = '<p>Error initializing page scripts.</p>';
             }
             
             if (window.lucide) {

@@ -17,7 +17,8 @@
                 </a>
             </div>
             <ul class="sidebar-nav">
-                <li><a href="assistant.html" class="active"><i data-lucide="layout-dashboard"></i> Assistant Dashboard</a></li>
+                <li><a href="assistant.html" class="active" id="assistantDashboardLink"><i data-lucide="layout-dashboard"></i> Assistant Dashboard</a></li>
+                <li><a href="profile.html"><i data-lucide="user-circle"></i> My Profile</a></li>
                 <li><a href="#"><i data-lucide="calendar-days"></i> My Assigned Schedule (Coming Soon)</a></li>
             </ul>
         </aside>
@@ -43,6 +44,7 @@
                         </p>
                         <h3 class="text-xl font-semibold mb-3 mt-6">Your Tasks:</h3>
                          <ul class="management-links">
+                            <li><a href="profile.html"><i data-lucide="user-circle"></i> Manage My Profile</a></li>
                             <li><a href="#" class="disabled-link"><i data-lucide="calendar-days"></i> View My Assigned Schedule (Coming Soon)</a></li>
                         </ul>
                         <p class="mt-4 text-sm text-muted-foreground">
@@ -71,7 +73,7 @@
             }
              const welcomeMessage = document.getElementById('welcomeMessageAssistant');
             if (welcomeMessage && userInfo && userInfo.fullName) {
-                welcomeMessage.textContent = `Welcome, ${userInfo.fullName}!`;
+                welcomeMessage.textContent = \`Welcome, \${userInfo.fullName}!\`;
             }
 
             const logoutLinkNav = document.getElementById('logoutLinkNav');
@@ -82,6 +84,21 @@
                 });
             }
             
+            // Make current page link active
+            const currentPath = window.location.pathname.split('/').pop();
+            const sidebarLinks = document.querySelectorAll('.sidebar-nav a');
+            sidebarLinks.forEach(link => {
+                if (link.href.endsWith(currentPath) && currentPath !== '#') { // Avoid making '#' active
+                    link.classList.add('active');
+                } else {
+                    link.classList.remove('active');
+                }
+            });
+            if (currentPath === 'assistant.html') {
+                const dashboardLink = document.getElementById('assistantDashboardLink');
+                if(dashboardLink) dashboardLink.classList.add('active');
+            }
+
             if (window.lucide) {
                 window.lucide.createIcons();
             }

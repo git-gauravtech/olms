@@ -17,9 +17,9 @@
                 </a>
             </div>
             <ul class="sidebar-nav">
-                <li><a href="faculty.html" class="active"><i data-lucide="layout-dashboard"></i> Faculty Dashboard</a></li>
+                <li><a href="faculty.html" class="active" id="facultyDashboardLink"><i data-lucide="layout-dashboard"></i> Faculty Dashboard</a></li>
                 <li><a href="faculty_my_bookings.html"><i data-lucide="calendar-days"></i> My Schedule</a></li>
-                <!-- Add more faculty links here -->
+                <li><a href="profile.html"><i data-lucide="user-circle"></i> My Profile</a></li>
             </ul>
         </aside>
         <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -45,7 +45,7 @@
                         <h3 class="text-xl font-semibold mb-3 mt-6">Your Actions:</h3>
                         <ul class="management-links">
                             <li><a href="faculty_my_bookings.html"><i data-lucide="calendar-days"></i> View My Schedule & Lab Bookings</a></li>
-                            <li><a href="#" class="disabled-link"><i data-lucide="edit-3"></i> Request Lab/Time Change (Coming Soon)</a></li>
+                            <li><a href="profile.html"><i data-lucide="user-circle"></i> Manage My Profile</a></li>
                         </ul>
                     </div>
                 </div>
@@ -70,7 +70,7 @@
             }
             const welcomeMessage = document.getElementById('welcomeMessageFaculty');
             if (welcomeMessage && userInfo && userInfo.fullName) {
-                welcomeMessage.textContent = `Welcome, ${userInfo.fullName}!`;
+                welcomeMessage.textContent = \`Welcome, \${userInfo.fullName}!\`;
             }
 
             const logoutLinkNav = document.getElementById('logoutLinkNav');
@@ -81,6 +81,21 @@
                 });
             }
             
+            // Make current page link active
+            const currentPath = window.location.pathname.split('/').pop();
+            const sidebarLinks = document.querySelectorAll('.sidebar-nav a');
+            sidebarLinks.forEach(link => {
+                if (link.href.endsWith(currentPath)) {
+                    link.classList.add('active');
+                } else {
+                    link.classList.remove('active');
+                }
+            });
+             if (currentPath === 'faculty.html') {
+                const dashboardLink = document.getElementById('facultyDashboardLink');
+                if(dashboardLink) dashboardLink.classList.add('active');
+            }
+
             if (window.lucide) {
                 window.lucide.createIcons();
             }

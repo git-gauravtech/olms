@@ -1,16 +1,181 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Profile</title>
+    <title>My Profile - LabLink</title>
     <link rel="stylesheet" href="../css/style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-    <h1>User Profile</h1>
-    <p>Content for user profile management will be added here.</p>
+    <div class="dashboard-layout">
+        <aside class="sidebar" id="sidebar">
+            <!-- Sidebar content will be dynamically injected by JS based on role -->
+        </aside>
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <div class="main-content-wrapper">
+            <header class="dashboard-header">
+                <h1 class="dashboard-page-title"><i data-lucide="user-circle" class="header-icon"></i> My Profile</h1>
+                <div class="user-nav">
+                    <span id="userNameDisplay">User</span>
+                    <a href="#" id="logoutLinkNav" class="button button-small button-outline">Logout</a>
+                </div>
+            </header>
+            <main class="page-content">
+                <div class="custom-card">
+                    <div class="custom-card-header">
+                        <i data-lucide="key-round"></i>
+                        <h2 class="custom-card-title">Change Password</h2>
+                    </div>
+                    <div class="custom-card-content">
+                        <form id="changePasswordForm">
+                            <div class="form-group">
+                                <label for="currentPassword">Current Password <span class="required">*</span></label>
+                                <input type="password" id="currentPassword" name="currentPassword" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="newPassword">New Password <span class="required">*</span></label>
+                                <input type="password" id="newPassword" name="newPassword" class="form-control" required minlength="6">
+                                <small class="text-muted-foreground">Must be at least 6 characters long.</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="confirmNewPassword">Confirm New Password <span class="required">*</span></label>
+                                <input type="password" id="confirmNewPassword" name="confirmNewPassword" class="form-control" required>
+                            </div>
+                            
+                            <div id="changePasswordFormMessage" class="form-message" style="display:none;"></div>
+
+                            <button type="submit" id="changePasswordBtn" class="button button-primary">
+                                <i data-lucide="save" class="mr-2"></i> Change Password
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Future sections for other profile details can be added here -->
+            </main>
+        </div>
+    </div>
     <script src="../js/constants.js"></script>
-    <script src="../js/utils.js"></script>
-    <script src="js/dashboard.js"></script>
+    <script src="../js/utils.js"></script> 
+    <script src="../js/auth.js"></script> 
+    <script src="js/profile_management.js"></script>
+    <script>
+        // Sidebar generation logic (simplified common part)
+        function generateSidebarNav(role) {
+            const sidebarNav = document.createElement('ul');
+            sidebarNav.className = 'sidebar-nav';
+            let items = [];
+            const commonProfileLink = { href: 'profile.html', icon: 'user-circle', text: 'My Profile', id: 'profileLink' };
+
+            if (role === window.USER_ROLES.ADMIN) {
+                items = [
+                    { href: 'admin.html', icon: 'layout-dashboard', text: 'Admin Dashboard', id: 'adminDashboardLink' },
+                    { href: 'admin_manage_courses.html', icon: 'book-open', text: 'Manage Courses' },
+                    { href: 'admin_manage_sections.html', icon: 'users-2', text: 'Manage Sections' },
+                    { href: 'admin_manage_labs.html', icon: 'flask-conical', text: 'Manage Labs' },
+                    { href: 'admin_manage_equipment.html', icon: 'wrench', text: 'Manage Equipment' },
+                    { href: 'admin_manage_users.html', icon: 'users', text: 'Manage Users' },
+                    commonProfileLink,
+                    { href: 'labs.html', icon: 'microscope', text: 'Lab Availability' },
+                    { href: 'book_slot.html', icon: 'calendar-plus', text: 'Manual Bookings' },
+                    { href: 'admin_faculty_requests.html', icon: 'mail-question', text: 'Faculty Requests' },
+                    { href: 'admin_run_algorithms.html', icon: 'cpu', text: 'Scheduling Algo' }
+                ];
+            } else if (role === window.USER_ROLES.FACULTY) {
+                items = [
+                    { href: 'faculty.html', icon: 'layout-dashboard', text: 'Faculty Dashboard', id: 'facultyDashboardLink' },
+                    { href: 'faculty_my_bookings.html', icon: 'calendar-days', text: 'My Schedule' },
+                    commonProfileLink
+                ];
+            } else if (role === window.USER_ROLES.ASSISTANT) {
+                 items = [
+                    { href: 'assistant.html', icon: 'layout-dashboard', text: 'Assistant Dashboard', id: 'assistantDashboardLink' },
+                     commonProfileLink,
+                    { href: '#', icon: 'calendar-days', text: 'My Assigned Schedule (Coming Soon)', class: 'disabled-link' }
+                ];
+            }
+            // Student sidebar is not part of this layout directly.
+
+            items.forEach(item => {
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.href = item.href;
+                if (item.id) a.id = item.id;
+                if (item.class) a.className = item.class;
+
+                const icon = document.createElement('i');
+                icon.setAttribute('data-lucide', item.icon);
+                a.appendChild(icon);
+                a.appendChild(document.createTextNode(' ' + item.text));
+                
+                // Check if current page matches link href to set 'active'
+                if (window.location.pathname.endsWith('/' + item.href)) {
+                    a.classList.add('active');
+                }
+                li.appendChild(a);
+                sidebarNav.appendChild(li);
+            });
+            return sidebarNav;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const userInfo = JSON.parse(localStorage.getItem(window.USER_INFO_KEY));
+            if (!userInfo) {
+                alert('Access Denied. Please log in.');
+                window.location.href = '../index.html';
+                return;
+            }
+
+            // Populate user name in header
+            const userNameDisplay = document.getElementById('userNameDisplay');
+            if (userNameDisplay && userInfo.fullName) {
+                userNameDisplay.textContent = userInfo.fullName;
+            }
+
+            // Logout link
+            const logoutLinkNav = document.getElementById('logoutLinkNav');
+            if (logoutLinkNav) {
+                logoutLinkNav.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (typeof logout === 'function') logout();
+                });
+            }
+            
+            // Sidebar setup
+            const sidebarElement = document.getElementById('sidebar');
+            if (sidebarElement) {
+                const sidebarHeader = document.createElement('div');
+                sidebarHeader.className = 'sidebar-header';
+                const homeLink = document.createElement('a');
+                homeLink.className = 'sidebar-header-link';
+                homeLink.innerHTML = '<i data-lucide="atom"></i> <span class="sidebar-title">LabLink</span>';
+                
+                if (userInfo.role === window.USER_ROLES.ADMIN) homeLink.href = 'admin.html';
+                else if (userInfo.role === window.USER_ROLES.FACULTY) homeLink.href = 'faculty.html';
+                else if (userInfo.role === window.USER_ROLES.ASSISTANT) homeLink.href = 'assistant.html';
+                else homeLink.href = '#'; // Fallback for unexpected roles
+                
+                sidebarHeader.appendChild(homeLink);
+                sidebarElement.appendChild(sidebarHeader);
+                sidebarElement.appendChild(generateSidebarNav(userInfo.role));
+            }
+
+
+            if (typeof initializeProfileManagementPage === 'function') {
+                initializeProfileManagementPage();
+            } else {
+                console.error('initializeProfileManagementPage function not found.');
+                const formMessage = document.getElementById('changePasswordFormMessage');
+                if(formMessage) showFormMessage(formMessage, 'Error initializing page scripts.', 'error');
+            }
+            
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
+        });
+    </script>
 </body>
 </html>

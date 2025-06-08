@@ -19,7 +19,7 @@
             <ul class="sidebar-nav">
                 <li><a href="faculty.html"><i data-lucide="layout-dashboard"></i> Faculty Dashboard</a></li>
                 <li><a href="faculty_my_bookings.html" class="active"><i data-lucide="calendar-days"></i> My Schedule</a></li>
-                <!-- Add more faculty links here: e.g., Request Lab Change -->
+                <li><a href="profile.html"><i data-lucide="user-circle"></i> My Profile</a></li>
             </ul>
         </aside>
         <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -40,7 +40,7 @@
                     </div>
                     <div class="custom-card-content">
                         <p class="text-muted-foreground mb-4">
-                            This page displays lab sessions and bookings assigned to you.
+                            This page displays lab sessions and bookings assigned to you. You can request changes to your bookings here.
                         </p>
                         
                         <div id="facultyBookingsContainer" class="mt-4 table-container">
@@ -48,16 +48,38 @@
                         </div>
                         <div id="facultyBookingsMessage" class="form-message mt-4" style="display:none;"></div>
                         
-                        <hr class="my-8 border-gray-300">
-                        <h3 class="text-xl font-semibold mb-3 mt-6">Request Lab/Time Change</h3>
-                        <p class="text-muted-foreground mb-3">
-                            Need to request a change for one of your scheduled labs? (This feature is under development)
-                        </p>
-                        <button type="button" class="button button-outline" disabled>
-                            <i data-lucide="edit-3" class="mr-2"></i> Request Change (Coming Soon)
-                        </button>
                     </div>
                 </div>
+
+                <!-- Modal for Faculty to Request Change -->
+                <div id="facultyRequestChangeModal" class="dialog-overlay" style="display:none;">
+                    <div class="dialog-content" style="max-width: 550px;">
+                        <form id="facultyRequestChangeForm">
+                            <div class="dialog-header">
+                                <h3 id="facultyRequestModalTitle" class="dialog-title">Request Lab/Time Change</h3>
+                                <button type="button" class="dialog-close-button" id="closeFacultyRequestModalBtn" aria-label="Close"><i data-lucide="x"></i></button>
+                            </div>
+                            <div class="dialog-body">
+                                <input type="hidden" id="requestBookingId" name="booking_id">
+                                <p class="mb-3"><strong>Original Booking:</strong> <span id="originalBookingDetails"></span></p>
+                                <div class="form-group">
+                                    <label for="requestedChangeDetails">Requested Change Details <span class="required">*</span></label>
+                                    <textarea id="requestedChangeDetails" name="requested_change_details" class="form-control" rows="4" required placeholder="e.g., 'Need to shift to next week, same time due to conference' or 'Requesting Lab X instead if available'"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label for="reasonForChange">Reason for Change <span class="required">*</span></label>
+                                    <textarea id="reasonForChange" name="reason" class="form-control" rows="3" required placeholder="Briefly explain the reason for the change request."></textarea>
+                                </div>
+                                <p id="facultyRequestFormMessage" class="form-message" style="display:none;"></p>
+                            </div>
+                            <div class="dialog-footer">
+                                <button type="button" class="button button-secondary" id="cancelFacultyRequestModalBtn">Cancel</button>
+                                <button type="submit" id="submitFacultyRequestBtn" class="button button-primary">Submit Request</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
             </main>
         </div>
     </div>

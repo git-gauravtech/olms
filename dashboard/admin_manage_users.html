@@ -23,6 +23,7 @@
                 <li><a href="admin_manage_labs.html"><i data-lucide="flask-conical"></i> Manage Labs</a></li>
                 <li><a href="admin_manage_equipment.html"><i data-lucide="wrench"></i> Manage Equipment</a></li>
                 <li><a href="admin_manage_users.html" class="active"><i data-lucide="users"></i> Manage Users</a></li>
+                <li><a href="profile.html"><i data-lucide="user-circle"></i> My Profile</a></li>
                 <li><a href="labs.html"><i data-lucide="microscope"></i> Lab Availability</a></li>
                 <li><a href="book_slot.html"><i data-lucide="calendar-plus"></i> Manual Bookings</a></li>
                 <li><a href="admin_faculty_requests.html"><i data-lucide="mail-question"></i> Faculty Requests</a></li>
@@ -47,8 +48,7 @@
                     </div>
                     <div class="custom-card-content">
                         <p class="text-muted-foreground mb-4">
-                            View registered user accounts in the system.
-                            Future enhancements will include editing roles, and activating/deactivating accounts.
+                            View, edit, and delete user accounts in the system.
                         </p>
                         <div id="usersTableContainer" class="mt-4 table-container">
                             <p>Loading users...</p>
@@ -57,6 +57,80 @@
                         <p class="mt-4 text-sm">New users can register through the <a href="../signup.html" target="_blank" class="text-blue-600 hover:underline">Signup Page</a>.</p>
                     </div>
                 </div>
+
+                <!-- User Modal for Editing -->
+                <div id="userModal" class="dialog-overlay" style="display:none;">
+                    <div class="dialog-content" style="max-width: 600px;">
+                        <form id="userForm">
+                            <div class="dialog-header">
+                                <h3 id="userModalTitle" class="dialog-title">Edit User</h3>
+                                <button type="button" class="dialog-close-button" id="closeUserModalBtn" aria-label="Close"><i data-lucide="x"></i></button>
+                            </div>
+                            <div class="dialog-body">
+                                <input type="hidden" id="userId" name="userId">
+                                <div class="form-group">
+                                    <label for="userFullName">Full Name <span class="required">*</span></label>
+                                    <input type="text" id="userFullName" name="fullName" class="form-control" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="userEmail">Email (Read-only)</label>
+                                    <input type="email" id="userEmail" name="email" class="form-control" readonly>
+                                </div>
+                                <div class="form-group">
+                                    <label for="userRole">Role <span class="required">*</span></label>
+                                    <select id="userRole" name="role" class="form-control" required>
+                                        <option value="admin">Admin</option>
+                                        <option value="faculty">Faculty</option>
+                                        <option value="assistant">Assistant</option>
+                                        <option value="student">Student</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="userContactNumber">Contact Number</label>
+                                    <input type="tel" id="userContactNumber" name="contactNumber" class="form-control">
+                                </div>
+                
+                                <!-- Role-specific fields -->
+                                <div id="userFacultyAssistantDetails" class="role-specific-fields" style="display: none;">
+                                    <hr>
+                                    <p class="role-specific-title">Faculty/Assistant Details</p>
+                                    <div class="form-group">
+                                        <label for="userDepartmentFA">Department</label>
+                                        <input type="text" id="userDepartmentFA" name="department" class="form-control">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="userEmployeeId">Employee ID</label>
+                                        <input type="text" id="userEmployeeId" name="employeeId" class="form-control">
+                                    </div>
+                                </div>
+                
+                                <div id="userStudentDetails" class="role-specific-fields" style="display: none;">
+                                    <hr>
+                                    <p class="role-specific-title">Student Details</p>
+                                    <div class="form-group">
+                                        <label for="userEnrollmentNumber">Enrollment Number</label>
+                                        <input type="text" id="userEnrollmentNumber" name="enrollmentNumber" class="form-control">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="userCourse">Course</label>
+                                        <input type="text" id="userCourse" name="course" class="form-control">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="userSection">Section</label>
+                                        <input type="text" id="userSection" name="section" class="form-control">
+                                    </div>
+                                </div>
+                                
+                                <p id="userFormMessage" class="form-message" style="display:none; margin-bottom: 1rem;"></p>
+                            </div>
+                            <div class="dialog-footer">
+                                <button type="button" class="button button-secondary" id="cancelUserModalBtn">Cancel</button>
+                                <button type="submit" id="saveUserBtn" class="button button-primary">Save Changes</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
             </main>
         </div>
     </div>
