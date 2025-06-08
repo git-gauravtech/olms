@@ -6,13 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>View Section Schedule</title>
     <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/auth.js"></script>
 </head>
 <body>
     <div class="dashboard-container">
         <header class="dashboard-header">
             <h1>View Section Lab Schedule</h1>
             <nav>
-                <a href="student.html">Student Dashboard</a>
+                <!-- Removed link to student.html -->
                 <a href="../index.html" id="logoutLinkStudentBookings">Logout</a>
             </nav>
         </header>
@@ -45,9 +46,8 @@
     </div>
 
     <script src="../js/constants.js"></script>
-    <script src="../js/utils.js"></script> <!-- Assuming utils.js might contain fetchWithAuth or similar -->
-    <script src="../js/auth.js"></script> <!-- Added for logout() function -->
-    <script src="js/dashboard.js"></script>
+    <script src="../js/utils.js"></script> 
+    <script src="../js/dashboard.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             if (typeof initializeStudentSchedulePage === 'function') {
@@ -64,3 +64,4 @@
     </script>
 </body>
 </html>
+
