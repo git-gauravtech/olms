@@ -47,13 +47,77 @@
                     </div>
                     <div class="custom-card-content">
                         <p class="text-muted-foreground mb-4">
-                            This section will allow for managing details of laboratory equipment, such as type, quantity, status, and associated lab.
+                            Add, view, edit, and delete laboratory equipment.
                         </p>
-                        <p><strong>Feature Under Development.</strong></p>
-                         <div id="equipmentTableContainer" class="mt-4 table-container">
-                            <p>Equipment management features (add, edit, delete equipment, assign to labs) will be implemented here.</p>
+                        
+                        <button type="button" id="openAddEquipmentModalBtn" class="button button-primary mb-4">
+                            <i data-lucide="plus-circle" class="mr-2"></i> Add New Equipment
+                        </button>
+                        
+                        <div id="equipmentTableContainer" class="mt-4 table-container">
+                            <p>Loading equipment...</p>
                         </div>
                         <div id="equipmentPageMessage" class="form-message mt-4" style="display:none;"></div>
+                    </div>
+                </div>
+                
+                <!-- Equipment Modal -->
+                <div id="equipmentModal" class="dialog-overlay" style="display:none;">
+                    <div class="dialog-content" style="max-width: 600px;">
+                        <form id="equipmentForm">
+                            <div class="dialog-header">
+                                <h3 id="equipmentModalTitle" class="dialog-title">Add New Equipment</h3>
+                                <button type="button" class="dialog-close-button" id="closeEquipmentModalBtn" aria-label="Close"><i data-lucide="x"></i></button>
+                            </div>
+                            <div class="dialog-body">
+                                <input type="hidden" id="equipmentId" name="equipmentId">
+                                <div class="form-group">
+                                    <label for="equipmentName">Equipment Name <span class="required">*</span></label>
+                                    <input type="text" id="equipmentName" name="name" class="form-control" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="equipmentType">Equipment Type <span class="required">*</span></label>
+                                    <input type="text" id="equipmentType" name="type" class="form-control" required placeholder="e.g., Microscope, Oscilloscope, PC">
+                                </div>
+                                <div class="form-group">
+                                    <label for="equipmentDescription">Description</label>
+                                    <textarea id="equipmentDescription" name="description" class="form-control" rows="3"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label for="equipmentQuantity">Quantity</label>
+                                    <input type="number" id="equipmentQuantity" name="quantity" class="form-control" min="0" value="1">
+                                </div>
+                                <div class="form-group">
+                                    <label for="equipmentStatus">Status</label>
+                                    <select id="equipmentStatus" name="status" class="form-control">
+                                        <option value="Available">Available</option>
+                                        <option value="In Use">In Use</option>
+                                        <option value="Under Maintenance">Under Maintenance</option>
+                                        <option value="Out of Order">Out of Order</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="equipmentLabId">Assign to Lab (Optional)</label>
+                                    <select id="equipmentLabId" name="lab_id" class="form-control">
+                                        <option value="">Select a Lab</option>
+                                        <!-- Labs will be populated here by JS -->
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="equipmentPurchaseDate">Purchase Date</label>
+                                    <input type="date" id="equipmentPurchaseDate" name="purchase_date" class="form-control">
+                                </div>
+                                <div class="form-group">
+                                    <label for="equipmentLastMaintenanceDate">Last Maintenance Date</label>
+                                    <input type="date" id="equipmentLastMaintenanceDate" name="last_maintenance_date" class="form-control">
+                                </div>
+                                <p id="equipmentFormMessage" class="form-message error" style="display:none; margin-bottom: 1rem;"></p>
+                            </div>
+                            <div class="dialog-footer">
+                                <button type="button" class="button button-secondary" id="cancelEquipmentModalBtn">Cancel</button>
+                                <button type="submit" id="saveEquipmentBtn" class="button button-primary">Save Equipment</button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </main>
@@ -62,7 +126,7 @@
     <script src="../js/constants.js"></script>
     <script src="../js/utils.js"></script> 
     <script src="../js/auth.js"></script> 
-    <!-- <script src="js/admin_equipment_management.js"></script> -->
+    <script src="js/admin_equipment_management.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const userInfo = JSON.parse(localStorage.getItem(window.USER_INFO_KEY));
@@ -85,6 +149,13 @@
                 });
             }
             
+            if (typeof initializeEquipmentManagementPage === 'function') {
+                initializeEquipmentManagementPage();
+            } else {
+                console.error('initializeEquipmentManagementPage function not found.');
+                const equipmentTableContainer = document.getElementById('equipmentTableContainer');
+                if(equipmentTableContainer) equipmentTableContainer.innerHTML = '<p>Error initializing page. Equipment management script not fully loaded.</p>';
+            }
             if (window.lucide) {
                 window.lucide.createIcons();
             }

@@ -64,14 +64,9 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const userInfo = JSON.parse(localStorage.getItem(window.USER_INFO_KEY));
-            // This page is generally for admins, but could be opened up to other roles
-            // For now, let's keep it admin-centric for fetching ALL bookings easily.
-            // If other roles need to see it, the API logic might need adjustment or they'd see a filtered view.
             if (!userInfo || userInfo.role !== window.USER_ROLES.ADMIN) {
-                // Faculty/Students might have specific views, this is the general overview
-                // For simplicity, keeping it admin for now. Could redirect to their specific dashboard.
                  alert('Access Denied: Admin view of all lab bookings.');
-                 window.location.href = '../index.html'; // Or a more role-appropriate page
+                 window.location.href = '../index.html';
                  return;
             }
 

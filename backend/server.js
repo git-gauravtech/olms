@@ -23,7 +23,8 @@ const courseRoutes = require('./routes/courseRoutes');
 const sectionRoutes = require('./routes/sectionRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
 const labRoutes = require('./routes/labRoutes');
-const userRoutes = require('./routes/userRoutes'); // New user routes
+const userRoutes = require('./routes/userRoutes');
+const equipmentRoutes = require('./routes/equipmentRoutes'); // New equipment routes
 
 
 app.use('/api/auth', authRoutes);
@@ -31,7 +32,8 @@ app.use('/api/courses', courseRoutes);
 app.use('/api/sections', sectionRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/labs', labRoutes);
-app.use('/api/users', userRoutes); // Use user routes
+app.use('/api/users', userRoutes);
+app.use('/api/equipment', equipmentRoutes); // Use equipment routes
 
 
 // Basic error handling middleware (example)
