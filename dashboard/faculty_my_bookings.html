@@ -70,7 +70,7 @@
             const userInfo = JSON.parse(localStorage.getItem(window.USER_INFO_KEY));
             if (!userInfo || userInfo.role !== window.USER_ROLES.FACULTY) {
                 alert('Access Denied: Faculty only.');
-                window.location.href = '../index.html'; // or to a generic dashboard
+                window.location.href = '../index.html'; 
                 return;
             }
             
@@ -91,7 +91,8 @@
                 initializeFacultyBookingsPage();
             } else {
                 console.error('initializeFacultyBookingsPage function not found.');
-                document.getElementById('facultyBookingsContainer').innerHTML = '<p>Error initializing page.</p>';
+                const facultyBookingsContainer = document.getElementById('facultyBookingsContainer');
+                if (facultyBookingsContainer) facultyBookingsContainer.innerHTML = '<p>Error initializing page.</p>';
             }
 
             if (window.lucide) {

@@ -5,29 +5,14 @@ async function initializeFacultyBookingsPage() {
     const TOKEN = localStorage.getItem(window.TOKEN_KEY);
     const userInfo = JSON.parse(localStorage.getItem(window.USER_INFO_KEY));
 
-    function showMessage(element, message, type = 'info') {
-        if (!element) return;
-        element.textContent = message;
-        element.className = `form-message ${type}`;
-        element.style.display = 'block';
-        if (type !== 'error' && type !== 'loading') { // Persist error/loading messages
-             setTimeout(() => { if(element.textContent === message) element.style.display = 'none';}, 3000);
-        }
-    }
-    
-    function hideMessage(element) {
-        if (!element) return;
-        element.style.display = 'none';
-    }
-
     if (!TOKEN || !userInfo || !userInfo.userId) {
-        showMessage(bookingsMessage, 'Authentication error. Please log in again.', 'error');
+        showPageMessage(bookingsMessage, 'Authentication error. Please log in again.', 'error', 0);
         if(bookingsContainer) bookingsContainer.innerHTML = '<p>Unable to load bookings due to authentication issues.</p>';
         return;
     }
 
     async function fetchMyBookings() {
-        showMessage(bookingsMessage, 'Loading your bookings...', 'loading');
+        showPageMessage(bookingsMessage, 'Loading your bookings...', 'loading');
         try {
             const response = await fetch(`${window.API_BASE_URL}/bookings/my`, {
                 headers: {
@@ -43,7 +28,7 @@ async function initializeFacultyBookingsPage() {
             return bookings;
         } catch (error) {
             console.error('Error fetching faculty bookings:', error);
-            showMessage(bookingsMessage, `Error: ${error.message}`, 'error');
+            showPageMessage(bookingsMessage, `Error: ${error.message}`, 'error', 0);
             if(bookingsContainer) bookingsContainer.innerHTML = `<p>Could not load your bookings. ${error.message}</p>`;
             return [];
         }
@@ -51,10 +36,10 @@ async function initializeFacultyBookingsPage() {
 
     function renderBookingsTable(bookings) {
         if (!bookingsContainer) return;
-        bookingsContainer.innerHTML = ''; // Clear loading message
+        bookingsContainer.innerHTML = ''; 
 
         if (!bookings || bookings.length === 0) {
-            showMessage(bookingsMessage, 'You have no bookings scheduled at the moment.', 'info');
+            showPageMessage(bookingsMessage, 'You have no bookings scheduled at the moment.', 'info');
             bookingsContainer.innerHTML = '<p>No bookings found.</p>';
             return;
         }

@@ -18,29 +18,7 @@ function initializeCourseManagementPage() {
     const saveCourseBtn = document.getElementById('saveCourseBtn');
 
     const TOKEN = localStorage.getItem(window.TOKEN_KEY);
-
-    function showPageMessage(element, message, type = 'info') {
-        if (!element) return;
-        element.textContent = message;
-        element.className = `form-message ${type}`;
-        element.style.display = 'block';
-        setTimeout(() => {
-            if (element.textContent === message) element.style.display = 'none';
-        }, 3000);
-    }
     
-    function showFormMessage(element, message, type = 'error') {
-        if (!element) return;
-        element.textContent = message;
-        element.className = `form-message ${type}`;
-        element.style.display = 'block';
-    }
-
-    function hideFormMessage(element) {
-        if (!element) return;
-        element.style.display = 'none';
-    }
-
     async function fetchCourses() {
         try {
             const response = await fetch(`${window.API_BASE_URL}/courses`, {
@@ -120,7 +98,7 @@ function initializeCourseManagementPage() {
 
     function openCourseModal(course = null) {
         if (!courseForm || !courseModal || !courseModalTitle || !courseIdInput || !courseNameInput || !courseDepartmentInput) return;
-        hideFormMessage(courseFormMessage);
+        hideMessage(courseFormMessage);
         courseForm.reset();
         if (course) {
             courseModalTitle.textContent = 'Edit Course';
@@ -142,7 +120,7 @@ function initializeCourseManagementPage() {
     async function handleCourseFormSubmit(event) {
         event.preventDefault();
         if (!saveCourseBtn || !courseFormMessage) return;
-        hideFormMessage(courseFormMessage);
+        hideMessage(courseFormMessage);
         saveCourseBtn.disabled = true;
         saveCourseBtn.innerHTML = '<i data-lucide="loader-2" class="animate-spin mr-2"></i> Saving...';
         if(window.lucide) window.lucide.createIcons();
@@ -223,7 +201,7 @@ function initializeCourseManagementPage() {
     async function loadCourses() {
         if (!coursesTableContainer || !TOKEN) {
              if (coursesTableContainer) coursesTableContainer.innerHTML = '<p>Please log in to manage courses.</p>';
-             if (coursesPageMessage && !TOKEN) showPageMessage(coursesPageMessage, 'Authentication token not found. Please log in.', 'error');
+             if (coursesPageMessage && !TOKEN) showPageMessage(coursesPageMessage, 'Authentication token not found. Please log in.', 'error', 0);
              return;
         }
         coursesTableContainer.innerHTML = '<p>Loading courses...</p>';
@@ -257,34 +235,12 @@ function initializeSectionManagementPage() {
     const saveSectionBtn = document.getElementById('saveSectionBtn');
 
     const TOKEN = localStorage.getItem(window.TOKEN_KEY);
-
-    function showPageMessage(element, message, type = 'info') {
-        if (!element) return;
-        element.textContent = message;
-        element.className = `form-message ${type}`;
-        element.style.display = 'block';
-        setTimeout(() => {
-             if (element.textContent === message) element.style.display = 'none';
-        }, 3000);
-    }
-    
-    function showFormMessage(element, message, type = 'error') {
-        if(!element) return;
-        element.textContent = message;
-        element.className = `form-message ${type}`;
-        element.style.display = 'block';
-    }
-
-    function hideFormMessage(element) {
-        if(!element) return;
-        element.style.display = 'none';
-    }
     
     async function fetchCoursesForDropdown() {
         if(!sectionCourseIdSelect) return;
         try {
             const response = await fetch(`${window.API_BASE_URL}/courses`, {
-                headers: { 'Authorization': `Bearer ${TOKEN}` } // Admins should have access to all courses
+                headers: { 'Authorization': `Bearer ${TOKEN}` } 
             });
             if (!response.ok) throw new Error('Failed to fetch courses for dropdown');
             const courses = await response.json();
@@ -384,7 +340,7 @@ function initializeSectionManagementPage() {
     async function openSectionModal(section = null) {
         if (!sectionForm || !sectionModal || !sectionModalTitle || !sectionIdInput || !sectionCourseIdSelect || !sectionNameInput || !sectionSemesterSelect || !sectionYearInput) return;
         await fetchCoursesForDropdown(); 
-        hideFormMessage(sectionFormMessage);
+        hideMessage(sectionFormMessage);
         sectionForm.reset();
         if (section) {
             sectionModalTitle.textContent = 'Edit Section';
@@ -408,7 +364,7 @@ function initializeSectionManagementPage() {
     async function handleSectionFormSubmit(event) {
         event.preventDefault();
         if(!saveSectionBtn || !sectionFormMessage) return;
-        hideFormMessage(sectionFormMessage);
+        hideMessage(sectionFormMessage);
         saveSectionBtn.disabled = true;
         saveSectionBtn.innerHTML = '<i data-lucide="loader-2" class="animate-spin mr-2"></i> Saving...';
         if(window.lucide) window.lucide.createIcons();
@@ -496,7 +452,7 @@ function initializeSectionManagementPage() {
     async function loadSections() {
          if (!sectionsTableContainer || !TOKEN) {
              if (sectionsTableContainer) sectionsTableContainer.innerHTML = '<p>Please log in to manage sections.</p>';
-             if (sectionsPageMessage && !TOKEN) showPageMessage(sectionsPageMessage, 'Authentication token not found. Please log in.', 'error');
+             if (sectionsPageMessage && !TOKEN) showPageMessage(sectionsPageMessage, 'Authentication token not found. Please log in.', 'error', 0);
              return;
         }
         sectionsTableContainer.innerHTML = '<p>Loading sections...</p>';
@@ -531,28 +487,6 @@ function initializeLabManagementPage() {
     const saveLabBtn = document.getElementById('saveLabBtn');
 
     const TOKEN = localStorage.getItem(window.TOKEN_KEY);
-
-    function showPageMessage(element, message, type = 'info') {
-        if (!element) return;
-        element.textContent = message;
-        element.className = `form-message ${type}`;
-        element.style.display = 'block';
-        setTimeout(() => {
-            if (element.textContent === message) element.style.display = 'none';
-        }, 3000);
-    }
-    
-    function showFormMessage(element, message, type = 'error') {
-        if(!element) return;
-        element.textContent = message;
-        element.className = `form-message ${type}`;
-        element.style.display = 'block';
-    }
-
-    function hideFormMessage(element) {
-        if(!element) return;
-        element.style.display = 'none';
-    }
 
     async function fetchLabs() {
         try {
@@ -637,7 +571,7 @@ function initializeLabManagementPage() {
 
     function openLabModal(lab = null) {
         if (!labForm || !labModal || !labModalTitle || !labIdInput || !labNameInput || !labRoomNumberInput || !labCapacityInput || !labTypeSelect || !labIsAvailableSelect) return;
-        hideFormMessage(labFormMessage);
+        hideMessage(labFormMessage);
         labForm.reset();
         if (lab) {
             labModalTitle.textContent = 'Edit Lab';
@@ -663,7 +597,7 @@ function initializeLabManagementPage() {
     async function handleLabFormSubmit(event) {
         event.preventDefault();
         if(!saveLabBtn || !labFormMessage) return;
-        hideFormMessage(labFormMessage);
+        hideMessage(labFormMessage);
         saveLabBtn.disabled = true;
         saveLabBtn.innerHTML = '<i data-lucide="loader-2" class="animate-spin mr-2"></i> Saving...';
         if(window.lucide) window.lucide.createIcons();
@@ -746,7 +680,7 @@ function initializeLabManagementPage() {
     async function loadLabs() {
          if (!labsTableContainer || !TOKEN) {
              if (labsTableContainer) labsTableContainer.innerHTML = '<p>Please log in to manage labs.</p>';
-             if (labsPageMessage && !TOKEN) showPageMessage(labsPageMessage, 'Authentication token not found. Please log in.', 'error');
+             if (labsPageMessage && !TOKEN) showPageMessage(labsPageMessage, 'Authentication token not found. Please log in.', 'error', 0);
              return;
         }
         labsTableContainer.innerHTML = '<p>Loading labs...</p>';

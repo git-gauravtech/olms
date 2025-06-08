@@ -6,25 +6,55 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lab Availability - LabLink</title>
     <link rel="stylesheet" href="../css/style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-    <div class="dashboard-container">
-        <header class="dashboard-header">
-            <h1>Lab Availability Viewer</h1>
-            <nav>
-                <a href="admin.html">Admin Dashboard</a>
-                <a href="#" id="logoutLinkLabAvailability">Logout</a>
-            </nav>
-        </header>
-        <main class="dashboard-content">
-            <p>Overview of all current lab bookings. (Assuming Admin view)</p>
-            
-            <div id="labBookingsContainer" class="table-container mt-4">
-                <p>Loading lab bookings...</p>
+    <div class="dashboard-layout">
+         <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <a href="admin.html" class="sidebar-header-link">
+                    <i data-lucide="atom"></i> <span class="sidebar-title">LabLink</span>
+                </a>
             </div>
-            <div id="labBookingsMessage" class="form-message" style="display:none;"></div>
+            <ul class="sidebar-nav">
+                <li><a href="admin.html"><i data-lucide="layout-dashboard"></i> Admin Dashboard</a></li>
+                <li><a href="admin_manage_courses.html"><i data-lucide="book-open"></i> Manage Courses</a></li>
+                <li><a href="admin_manage_sections.html"><i data-lucide="users-2"></i> Manage Sections</a></li>
+                <li><a href="admin_manage_labs.html"><i data-lucide="flask-conical"></i> Manage Labs</a></li>
+                <li><a href="admin_manage_equipment.html"><i data-lucide="wrench"></i> Manage Equipment</a></li>
+                <li><a href="admin_manage_users.html"><i data-lucide="users"></i> Manage Users</a></li>
+                <li><a href="labs.html" class="active"><i data-lucide="microscope"></i> Lab Availability</a></li>
+                <li><a href="book_slot.html"><i data-lucide="calendar-plus"></i> Manual Bookings</a></li>
+                <li><a href="admin_faculty_requests.html"><i data-lucide="mail-question"></i> Faculty Requests</a></li>
+                <li><a href="admin_run_algorithms.html"><i data-lucide="cpu"></i> Scheduling Algo</a></li>
+            </ul>
+        </aside>
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-        </main>
+        <div class="main-content-wrapper">
+            <header class="dashboard-header">
+                 <h1 class="dashboard-page-title"><i data-lucide="microscope" class="header-icon"></i> Lab Availability Viewer</h1>
+                <div class="user-nav">
+                    <span id="userNameDisplay">Admin User</span>
+                    <a href="#" id="logoutLinkNav" class="button button-small button-outline">Logout</a>
+                </div>
+            </header>
+            <main class="page-content">
+                <div class="custom-card">
+                    <div class="custom-card-header">
+                        <i data-lucide="calendar-search"></i>
+                        <h2 class="custom-card-title">Current Lab Bookings</h2>
+                    </div>
+                    <div class="custom-card-content">
+                        <p class="text-muted-foreground mb-4">Overview of all current lab bookings. (Assuming Admin view)</p>
+                        <div id="labBookingsContainer" class="table-container mt-4">
+                            <p>Loading lab bookings...</p>
+                        </div>
+                        <div id="labBookingsMessage" class="form-message" style="display:none;"></div>
+                    </div>
+                </div>
+            </main>
+        </div>
     </div>
 
     <script src="../js/constants.js"></script>
@@ -33,15 +63,41 @@
     <script src="js/lab_availability.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const logoutLink = document.getElementById('logoutLinkLabAvailability');
-            if (logoutLink && typeof logout === 'function') {
-                logoutLink.addEventListener('click', (e) => {
+            const userInfo = JSON.parse(localStorage.getItem(window.USER_INFO_KEY));
+            // This page is generally for admins, but could be opened up to other roles
+            // For now, let's keep it admin-centric for fetching ALL bookings easily.
+            // If other roles need to see it, the API logic might need adjustment or they'd see a filtered view.
+            if (!userInfo || userInfo.role !== window.USER_ROLES.ADMIN) {
+                // Faculty/Students might have specific views, this is the general overview
+                // For simplicity, keeping it admin for now. Could redirect to their specific dashboard.
+                 alert('Access Denied: Admin view of all lab bookings.');
+                 window.location.href = '../index.html'; // Or a more role-appropriate page
+                 return;
+            }
+
+            const userNameDisplay = document.getElementById('userNameDisplay');
+            if (userNameDisplay && userInfo && userInfo.fullName) {
+                userNameDisplay.textContent = userInfo.fullName;
+            }
+
+            const logoutLinkNav = document.getElementById('logoutLinkNav');
+            if (logoutLinkNav) {
+                logoutLinkNav.addEventListener('click', (e) => {
                     e.preventDefault();
-                    logout();
+                    if (typeof logout === 'function') logout();
                 });
             }
+            
             if (typeof initializeLabAvailabilityPage === 'function') {
                 initializeLabAvailabilityPage();
+            } else {
+                console.error('initializeLabAvailabilityPage function not found.');
+                const labBookingsContainer = document.getElementById('labBookingsContainer');
+                if(labBookingsContainer) labBookingsContainer.innerHTML = '<p>Error initializing page.</p>';
+            }
+
+            if (window.lucide) {
+                window.lucide.createIcons();
             }
         });
     </script>

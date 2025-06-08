@@ -53,6 +53,7 @@
         </div>
     </div>
     <script src="../js/constants.js"></script>
+    <script src="../js/utils.js"></script>
     <script src="../js/auth.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -67,9 +68,9 @@
             if (userNameDisplay && userInfo && userInfo.fullName) {
                 userNameDisplay.textContent = userInfo.fullName;
             }
-            const welcomeMsg = document.getElementById('welcomeMessageFaculty');
-            if (welcomeMsg && userInfo && userInfo.fullName) {
-                welcomeMsg.textContent = `Welcome, ${userInfo.fullName}!`;
+            const welcomeMessage = document.getElementById('welcomeMessageFaculty');
+            if (welcomeMessage && userInfo && userInfo.fullName) {
+                welcomeMessage.textContent = `Welcome, ${userInfo.fullName}!`;
             }
 
             const logoutLinkNav = document.getElementById('logoutLinkNav');

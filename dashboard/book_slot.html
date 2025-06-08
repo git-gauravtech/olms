@@ -69,7 +69,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             const userInfo = JSON.parse(localStorage.getItem(window.USER_INFO_KEY));
             if (!userInfo || userInfo.role !== window.USER_ROLES.ADMIN) {
-                // Allow faculty to access if they also have booking rights? For now, admin only for this page.
                 alert('Access Denied: Admins only for manual booking page.');
                 window.location.href = '../index.html';
                 return;

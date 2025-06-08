@@ -2,32 +2,16 @@
 async function initializeLabAvailabilityPage() {
     const bookingsContainer = document.getElementById('labBookingsContainer');
     const bookingsMessage = document.getElementById('labBookingsMessage');
-
-    function showMessage(message, type = 'info') {
-        bookingsMessage.textContent = message;
-        bookingsMessage.className = `form-message ${type}`;
-        bookingsMessage.style.display = 'block';
-        if (type !== 'error') { // Keep loading message if it's not an error
-             setTimeout(() => { if(bookingsMessage.textContent === message) bookingsMessage.style.display = 'none';}, 3000);
-        }
-    }
-
-    function hideMessage() {
-        bookingsMessage.style.display = 'none';
-    }
     
     async function fetchLabBookings() {
         const token = localStorage.getItem(window.TOKEN_KEY);
         if (!token) {
-            showMessage('Authentication token not found. Please log in.', 'error');
-            bookingsContainer.innerHTML = '<p>Please log in to view lab bookings.</p>';
-            // Optionally redirect to login: window.location.href = '../index.html';
+            showPageMessage(bookingsMessage, 'Authentication token not found. Please log in.', 'error', 0);
+            if(bookingsContainer) bookingsContainer.innerHTML = '<p>Please log in to view lab bookings.</p>';
             return null;
         }
-
+        showPageMessage(bookingsMessage, 'Loading lab bookings...', 'loading');
         try {
-            // This endpoint currently returns all bookings if the user is an admin.
-            // For other roles, permissions might need adjustment or a different endpoint.
             const response = await fetch(`${window.API_BASE_URL}/bookings`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -39,27 +23,29 @@ async function initializeLabAvailabilityPage() {
                 throw new Error(errorResult.message || `Failed to fetch lab bookings: ${response.statusText}`);
             }
             const bookings = await response.json();
+            hideMessage(bookingsMessage);
             return bookings;
         } catch (error) {
             console.error('Error fetching lab bookings:', error);
-            showMessage(error.message || 'Could not load lab bookings.', 'error');
-            bookingsContainer.innerHTML = `<p>Error loading bookings. ${error.message || ''}</p>`;
+            showPageMessage(bookingsMessage, error.message || 'Could not load lab bookings.', 'error', 0);
+            if(bookingsContainer) bookingsContainer.innerHTML = `<p>Error loading bookings. ${error.message || ''}</p>`;
             return null;
         }
     }
 
     function renderLabBookingsTable(bookings) {
-        bookingsContainer.innerHTML = ''; // Clear loading message
-        hideMessage();
+        if(!bookingsContainer) return;
+        bookingsContainer.innerHTML = ''; 
+        hideMessage(bookingsMessage);
 
         if (!bookings || bookings.length === 0) {
             bookingsContainer.innerHTML = '<p>No lab bookings found.</p>';
-            showMessage('No lab bookings are currently scheduled.', 'info');
+            showPageMessage(bookingsMessage, 'No lab bookings are currently scheduled.', 'info');
             return;
         }
 
         const table = document.createElement('table');
-        table.className = 'styled-table'; // Add a class for styling
+        table.className = 'styled-table'; 
 
         const thead = document.createElement('thead');
         thead.innerHTML = `
@@ -98,9 +84,9 @@ async function initializeLabAvailabilityPage() {
         });
         table.appendChild(tbody);
         bookingsContainer.appendChild(table);
+        if(window.lucide) window.lucide.createIcons();
     }
 
-    // Initial fetch and render
     const bookings = await fetchLabBookings();
     if (bookings) {
         renderLabBookingsTable(bookings);

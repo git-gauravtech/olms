@@ -19,7 +19,6 @@
             <ul class="sidebar-nav">
                 <li><a href="assistant.html" class="active"><i data-lucide="layout-dashboard"></i> Assistant Dashboard</a></li>
                 <li><a href="#"><i data-lucide="calendar-days"></i> My Assigned Schedule (Coming Soon)</a></li>
-                <!-- Removed link to assistant_update_seat_status.html -->
             </ul>
         </aside>
         <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -45,7 +44,6 @@
                         <h3 class="text-xl font-semibold mb-3 mt-6">Your Tasks:</h3>
                          <ul class="management-links">
                             <li><a href="#" class="disabled-link"><i data-lucide="calendar-days"></i> View My Assigned Schedule (Coming Soon)</a></li>
-                            <!-- Removed placeholder link for updating lab status -->
                         </ul>
                         <p class="mt-4 text-sm text-muted-foreground">
                             Your detailed schedule and specific functionalities for lab status updates will be available here soon.
@@ -56,6 +54,7 @@
         </div>
     </div>
     <script src="../js/constants.js"></script>
+    <script src="../js/utils.js"></script>
     <script src="../js/auth.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -70,11 +69,10 @@
             if (userNameDisplay && userInfo && userInfo.fullName) {
                 userNameDisplay.textContent = userInfo.fullName;
             }
-             const welcomeMsg = document.getElementById('welcomeMessageAssistant');
-            if (welcomeMsg && userInfo && userInfo.fullName) {
-                welcomeMsg.textContent = `Welcome, ${userInfo.fullName}!`;
+             const welcomeMessage = document.getElementById('welcomeMessageAssistant');
+            if (welcomeMessage && userInfo && userInfo.fullName) {
+                welcomeMessage.textContent = `Welcome, ${userInfo.fullName}!`;
             }
-
 
             const logoutLinkNav = document.getElementById('logoutLinkNav');
             if (logoutLinkNav) {

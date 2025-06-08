@@ -142,6 +142,15 @@
                 });
             }
             
+            // Initialize the course management specific parts of admin_management.js
+            if (typeof initializeCourseManagementPage === 'function') {
+                initializeCourseManagementPage();
+            } else {
+                 console.error('initializeCourseManagementPage function not found.');
+                 const coursesTableContainer = document.getElementById('coursesTableContainer');
+                 if(coursesTableContainer) coursesTableContainer.innerHTML = '<p>Error initializing page. Admin management script not fully loaded.</p>';
+            }
+
             if (window.lucide) {
                 window.lucide.createIcons();
             }
@@ -149,4 +158,4 @@
     </script>
 </body>
 </html>
-    
+  

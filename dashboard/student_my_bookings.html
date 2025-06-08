@@ -4,64 +4,89 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>View Section Schedule</title>
+    <title>View Section Schedule - LabLink</title>
     <link rel="stylesheet" href="../css/style.css">
-    <script src="../js/auth.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-    <div class="dashboard-container">
-        <header class="dashboard-header">
-            <h1>View Section Lab Schedule</h1>
-            <nav>
-                <!-- Removed link to student.html -->
-                <a href="../index.html" id="logoutLinkStudentBookings">Logout</a>
-            </nav>
-        </header>
-        <main class="dashboard-content">
-            <div class="auth-card">
-                <p>Select a course and section to view its lab schedule.</p>
-                
-                <div class="form-group">
-                    <label for="studentCourseSelect">Select Course:</label>
-                    <select id="studentCourseSelect" name="studentCourseSelect">
-                        <option value="">Loading courses...</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="studentSectionSelect">Select Section:</label>
-                    <select id="studentSectionSelect" name="studentSectionSelect" disabled>
-                        <option value="">Select a course first</option>
-                    </select>
-                </div>
-
-                <button id="viewSectionScheduleBtn" class="button" disabled>View Schedule</button>
-
-                <div id="studentScheduleContainer" class="schedule-container mt-4">
-                    <!-- Schedule will be displayed here -->
-                </div>
-                <div id="studentScheduleMessage" class="form-message" style="display:none;"></div>
+    <div class="auth-container"> 
+        <div class="auth-card" style="max-width: 700px;"> 
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin:0;">View Section Lab Schedule</h2>
+                <a href="#" id="logoutLinkStudentBookings" class="button button-small button-outline">Logout</a>
             </div>
-        </main>
+            
+            <p class="text-muted-foreground">Select a course and section to view its lab schedule.</p>
+            
+            <div class="form-group">
+                <label for="studentCourseSelect">Select Course:</label>
+                <select id="studentCourseSelect" name="studentCourseSelect" class="form-control">
+                    <option value="">Loading courses...</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="studentSectionSelect">Select Section:</label>
+                <select id="studentSectionSelect" name="studentSectionSelect" class="form-control" disabled>
+                    <option value="">Select a course first</option>
+                </select>
+            </div>
+
+            <button id="viewSectionScheduleBtn" class="button button-primary" disabled style="width: auto; padding: 10px 20px;">
+                <i data-lucide="calendar-search" style="margin-right: 8px; vertical-align: middle;"></i>View Schedule
+            </button>
+
+            <div id="studentScheduleMessage" class="form-message mt-4" style="display:none;"></div>
+            <div id="studentScheduleContainer" class="schedule-container mt-4" style="background-color: #fff; border: none; padding:0;">
+                <!-- Schedule will be displayed here -->
+            </div>
+            
+        </div>
     </div>
 
     <script src="../js/constants.js"></script>
     <script src="../js/utils.js"></script> 
-    <script src="../js/dashboard.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="js/dashboard.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            if (typeof initializeStudentSchedulePage === 'function') {
-                initializeStudentSchedulePage();
+            const userInfo = JSON.parse(localStorage.getItem(window.USER_INFO_KEY));
+            // This page is for students, but any authenticated user can technically view schedules by section.
+            // A strict student role check might be:
+            // if (!userInfo || userInfo.role !== window.USER_ROLES.STUDENT) {
+            //     alert('Access Denied: Students only.');
+            //     window.location.href = '../index.html';
+            //     return;
+            // }
+            // For now, let's allow any authenticated user to use this page,
+            // as the API for section bookings requires authentication anyway.
+            if (!userInfo) {
+                alert('Authentication required to view schedules.');
+                window.location.href = '../index.html';
+                return;
             }
+
+
             const logoutLink = document.getElementById('logoutLinkStudentBookings');
-            if (logoutLink && typeof logout === 'function') {
+            if (logoutLink) {
                 logoutLink.addEventListener('click', (e) => {
                     e.preventDefault();
-                    logout();
+                    if (typeof logout === 'function') logout();
                 });
+            }
+
+            if (typeof initializeStudentSchedulePage === 'function') {
+                initializeStudentSchedulePage();
+            } else {
+                console.error('initializeStudentSchedulePage function not found.');
+                const studentScheduleContainer = document.getElementById('studentScheduleContainer');
+                if(studentScheduleContainer) studentScheduleContainer.innerHTML = '<p>Error initializing page.</p>';
+            }
+            
+            if (window.lucide) {
+                window.lucide.createIcons();
             }
         });
     </script>
 </body>
 </html>
-
