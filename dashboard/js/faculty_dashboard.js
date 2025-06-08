@@ -26,7 +26,6 @@ async function initializeFacultyBookingsPage() {
     if (!facultyRequestModal || !facultyRequestForm) {
         console.error("Faculty request modal elements are missing.");
         showPageMessage(bookingsMessage, 'Error: Page components for requesting changes are missing.', 'error', 0);
-        // Disable request functionality if modal is not found
     }
 
 
@@ -64,12 +63,12 @@ async function initializeFacultyBookingsPage() {
             `Course: ${booking.course_name || 'N/A'}, Section: ${booking.section_name || 'N/A'}.`;
         
         requestBookingIdInput.value = booking.booking_id;
-        facultyRequestForm.reset(); // Reset textarea fields
-        requestedChangeDetailsInput.value = ''; // Explicitly clear textareas
-        reasonForChangeInput.value = '';      // Explicitly clear textareas
-        hideMessage(facultyRequestFormMessage);
+        if(facultyRequestForm) facultyRequestForm.reset(); 
+        if(requestedChangeDetailsInput) requestedChangeDetailsInput.value = ''; 
+        if(reasonForChangeInput) reasonForChangeInput.value = '';      
+        if(facultyRequestFormMessage) hideMessage(facultyRequestFormMessage);
         facultyRequestModal.style.display = 'flex';
-        if (window.lucide) window.lucide.createIcons(); // Re-render icons if any in modal
+        if (window.lucide) window.lucide.createIcons(); 
     }
 
     function closeRequestChangeModal() {
@@ -100,19 +99,45 @@ async function initializeFacultyBookingsPage() {
                     <th>Start Time</th>
                     <th>End Time</th>
                     <th>Status</th>
+                    <th>Change Request Status</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody></tbody>
         `;
         const tbody = table.querySelector('tbody');
-        bookings.sort((a,b) => new Date(a.start_time) - new Date(b.start_time)); // Sort by upcoming
+        bookings.sort((a,b) => new Date(a.start_time) - new Date(b.start_time)); 
 
         bookings.forEach(booking => {
             const tr = document.createElement('tr');
             const startTime = new Date(booking.start_time).toLocaleString();
             const endTime = new Date(booking.end_time).toLocaleString();
             
+            let requestStatusHtml = 'N/A';
+            let requestButtonDisabled = false;
+            let requestButtonText = 'Request Change';
+            let requestButtonIcon = 'edit-3';
+
+            if (booking.latest_change_request) {
+                const req = booking.latest_change_request;
+                const requestDate = new Date(req.request_date).toLocaleDateString();
+                const processedDate = req.processed_at ? new Date(req.processed_at).toLocaleDateString() : 'N/A';
+                
+                if (req.status === 'Pending') {
+                    requestStatusHtml = `<strong>Pending</strong> (Submitted: ${requestDate})`;
+                    requestButtonDisabled = true;
+                    requestButtonText = 'Request Pending';
+                    requestButtonIcon = 'clock';
+                } else if (req.status === 'Approved') {
+                    requestStatusHtml = `<span style="color: green;"><strong>Approved</strong></span> (Processed: ${processedDate})`;
+                    if(req.admin_remarks) requestStatusHtml += `<br><small>Remarks: ${req.admin_remarks}</small>`;
+                } else if (req.status === 'Denied') {
+                    requestStatusHtml = `<span style="color: red;"><strong>Denied</strong></span> (Processed: ${processedDate})`;
+                     if(req.admin_remarks) requestStatusHtml += `<br><small>Remarks: ${req.admin_remarks}</small>`;
+                }
+            }
+
+
             tr.innerHTML = `
                 <td>${booking.lab_name || 'N/A'}</td>
                 <td>${booking.room_number || 'N/A'}</td>
@@ -122,18 +147,20 @@ async function initializeFacultyBookingsPage() {
                 <td>${startTime}</td>
                 <td>${endTime}</td>
                 <td>${booking.status || 'Scheduled'}</td>
+                <td>${requestStatusHtml}</td>
                 <td>
-                    <button class="button button-small button-outline request-change-btn" data-booking-id="${booking.booking_id}">
-                        <i data-lucide="edit-3" class="icon-small"></i> Request Change
+                    <button class="button button-small button-outline request-change-btn" 
+                            data-booking-id="${booking.booking_id}" 
+                            ${requestButtonDisabled ? 'disabled' : ''}>
+                        <i data-lucide="${requestButtonIcon}" class="icon-small"></i> ${requestButtonText}
                     </button>
                 </td>
             `;
             tbody.appendChild(tr);
 
             const requestChangeBtn = tr.querySelector('.request-change-btn');
-            if(requestChangeBtn) {
+            if(requestChangeBtn && !requestButtonDisabled) { // Only add listener if not disabled
                 requestChangeBtn.addEventListener('click', () => {
-                    // Find the full booking object to pass to the modal function
                     const fullBookingDetails = bookings.find(b => b.booking_id == booking.booking_id);
                     if(fullBookingDetails) openRequestChangeModal(fullBookingDetails);
                 });
@@ -148,14 +175,14 @@ async function initializeFacultyBookingsPage() {
     if (facultyRequestForm && submitFacultyRequestBtn) {
         facultyRequestForm.addEventListener('submit', async (event) => {
             event.preventDefault();
-            hideMessage(facultyRequestFormMessage);
+            if(facultyRequestFormMessage) hideMessage(facultyRequestFormMessage);
 
             const booking_id = requestBookingIdInput.value;
             const requested_change_details = requestedChangeDetailsInput.value.trim();
             const reason = reasonForChangeInput.value.trim();
 
             if (!requested_change_details || !reason) {
-                showFormMessage(facultyRequestFormMessage, 'Please provide details for the requested change and the reason.', 'error');
+                if(facultyRequestFormMessage) showFormMessage(facultyRequestFormMessage, 'Please provide details for the requested change and the reason.', 'error');
                 return;
             }
 
@@ -175,24 +202,23 @@ async function initializeFacultyBookingsPage() {
                 const result = await response.json();
 
                 if (response.ok) {
-                    showFormMessage(facultyRequestFormMessage, 'Change request submitted successfully!', 'success');
+                    if(facultyRequestFormMessage) showFormMessage(facultyRequestFormMessage, 'Change request submitted successfully!', 'success');
                     setTimeout(() => {
                         closeRequestChangeModal();
-                        // Optionally, refresh bookings or update UI to show request is pending
                          fetchMyBookings().then(updatedBookings => {
                             if (updatedBookings) renderBookingsTable(updatedBookings);
                         });
                     }, 1500);
                 } else {
-                    showFormMessage(facultyRequestFormMessage, result.message || 'Failed to submit request.', 'error');
+                    if(facultyRequestFormMessage) showFormMessage(facultyRequestFormMessage, result.message || 'Failed to submit request.', 'error');
                 }
 
             } catch (error) {
                 console.error('Error submitting faculty request:', error);
-                showFormMessage(facultyRequestFormMessage, 'An unexpected error occurred.', 'error');
+                if(facultyRequestFormMessage) showFormMessage(facultyRequestFormMessage, 'An unexpected error occurred.', 'error');
             } finally {
                 submitFacultyRequestBtn.disabled = false;
-                submitFacultyRequestBtn.innerHTML = 'Submit Request';
+                submitFacultyRequestBtn.textContent = 'Submit Request';
             }
         });
     }
@@ -201,7 +227,7 @@ async function initializeFacultyBookingsPage() {
     if (cancelFacultyRequestModalBtn) cancelFacultyRequestModalBtn.addEventListener('click', closeRequestChangeModal);
     if (facultyRequestModal) {
          facultyRequestModal.addEventListener('click', (event) => {
-            if (event.target === facultyRequestModal) { // Click on overlay
+            if (event.target === facultyRequestModal) { 
                 closeRequestChangeModal();
             }
         });

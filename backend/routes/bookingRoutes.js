@@ -106,7 +106,24 @@ router.get('/my', auth, authorize(['faculty', 'admin']), async (req, res) => { /
              WHERE b.user_id = ? ORDER BY b.start_time ASC`,
             [userId]
         );
-        res.json(bookings);
+
+        // For each booking, fetch the latest lab change request
+        const bookingsWithRequests = await Promise.all(bookings.map(async (booking) => {
+            const [latestRequest] = await pool.query(
+                `SELECT request_id, status, admin_remarks, request_date, processed_at 
+                 FROM LabChangeRequests 
+                 WHERE booking_id = ? AND faculty_user_id = ? 
+                 ORDER BY request_date DESC 
+                 LIMIT 1`,
+                [booking.booking_id, userId]
+            );
+            return {
+                ...booking,
+                latest_change_request: latestRequest.length > 0 ? latestRequest[0] : null
+            };
+        }));
+
+        res.json(bookingsWithRequests);
     } catch (error) {
         console.error('Error fetching faculty-specific bookings:', error);
         res.status(500).json({ message: 'Server error fetching your bookings.' });
@@ -150,6 +167,8 @@ router.get('/', auth, async (req, res) => {
         }
         
         const [bookings] = await pool.query(query, params);
+        // For admin/assistant view, we could also fetch latest requests if needed, similar to /my route.
+        // For simplicity, keeping this as is for now.
         return res.json(bookings);
 
     } catch (error) {
