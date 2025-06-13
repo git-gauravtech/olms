@@ -4,7 +4,7 @@ const pool = require('../config/db');
 const { auth, authorize } = require('../middleware/authMiddleware');
 const { spawn } = require('child_process');
 const path = require('path');
-const { checkOverlappingBookings } = require('../utils/bookingUtils');
+const { checkOverlappingBookings } = require('../utils/bookingUtils'); // Corrected import path
 
 
 const router = express.Router();
@@ -21,11 +21,12 @@ router.post('/run', auth, authorize(['admin']), async (req, res) => {
         // Fetch sections with their course name and an assumed labs_per_week and capacity (customize as needed)
         const [sections] = await pool.query(`
             SELECT s.section_id, s.name, s.semester, s.year, s.course_id, c.name as course_name,
-                   30 AS capacity, 1 AS labs_per_week 
+                   COALESCE(s.expected_students, 30) AS capacity, -- Use actual if exists, else default
+                   COALESCE(s.labs_per_week, 1) AS labs_per_week   -- Use actual if exists, else default
             FROM Sections s
             JOIN Courses c ON s.course_id = c.course_id
-            WHERE s.year >= YEAR(CURDATE()) AND s.semester IN ('Fall', 'Spring', 'Summer') 
-        `); // Example: only schedule for current year's relevant semesters
+            WHERE s.year >= YEAR(CURDATE()) AND s.semester IN ('Fall', 'Spring', 'Summer', 'Winter', 'Semester 1', 'Semester 2', 'Semester 3', 'Semester 4', 'Trimester 1', 'Trimester 2', 'Trimester 3', 'Other') 
+        `); // Example: only schedule for current year's relevant semesters, expanded list
 
         const [faculty_users] = await pool.query('SELECT user_id, full_name FROM Users WHERE role = "faculty"');
 
@@ -37,8 +38,6 @@ router.post('/run', auth, authorize(['admin']), async (req, res) => {
         };
 
         // 2. Determine path to C++ executable
-        // IMPORTANT: The C++ executable (e.g., 'scheduler' or 'scheduler.exe') 
-        // must be compiled and placed in the 'backend' directory or a known path.
         const schedulerExecutableName = process.platform === "win32" ? "scheduler.exe" : "scheduler";
         const schedulerPath = path.join(__dirname, '..', schedulerExecutableName); // Assumes executable is in backend/
 
@@ -65,7 +64,7 @@ router.post('/run', auth, authorize(['admin']), async (req, res) => {
         schedulerProcess.on('close', async (code) => {
             if (code !== 0) {
                 console.error(`Scheduler process exited with code ${code}`);
-                console.error(`Scheduler STDERR: ${stderrData}`);
+                console.error(`Scheduler STDERR Output: ${stderrData}`);
                 return res.status(500).json({ 
                     message: 'Scheduling algorithm process failed.', 
                     error: `Exited with code ${code}`,
@@ -83,15 +82,28 @@ router.post('/run', auth, authorize(['admin']), async (req, res) => {
                         details: resultFromScheduler.details
                     });
                 }
+                
+                if (resultFromScheduler.message && resultFromScheduler.proposed_bookings && resultFromScheduler.proposed_bookings.length === 0) {
+                     // Message from C++ indicating no labs/sections, etc.
+                    return res.status(200).json({
+                        message: resultFromScheduler.message,
+                        successfullyScheduledCount: 0,
+                        conflictCount: 0,
+                        totalProposed: 0,
+                        createdBookingIds: []
+                    });
+                }
+
 
                 const proposedBookings = resultFromScheduler.proposed_bookings || [];
                 let successfullyScheduledCount = 0;
                 let conflictCount = 0;
                 const createdBookingIds = [];
+                let dbErrors = [];
 
-                if (proposedBookings.length === 0) {
+                if (proposedBookings.length === 0 && !resultFromScheduler.message) { // No message and no bookings
                     return res.status(200).json({
-                        message: 'Scheduling algorithm ran, but no new bookings were proposed or required.',
+                        message: 'Scheduling algorithm ran, but no new bookings were proposed.',
                         details: 'This might be due to existing schedules, lack of available slots, or no sections needing labs.',
                         successfullyScheduledCount,
                         conflictCount,
@@ -99,12 +111,15 @@ router.post('/run', auth, authorize(['admin']), async (req, res) => {
                     });
                 }
                 
-                // 4. Process the results: Insert valid bookings into the Bookings table
                 for (const booking of proposedBookings) {
                     const { lab_id, section_id, user_id, start_time, end_time, purpose, status } = booking;
                     
-                    // Validate against existing bookings in DB before inserting
-                    // The C++ algo handles internal conflicts for its run, but not against DB state
+                    if (!lab_id || !start_time || !end_time) {
+                        console.warn('Algorithm proposed an invalid booking (missing lab_id, start_time, or end_time), skipping:', booking);
+                        conflictCount++; // Or a new category for invalid proposals
+                        continue;
+                    }
+
                     const isOverlappingWithDb = await checkOverlappingBookings(lab_id, start_time, end_time);
 
                     if (isOverlappingWithDb) {
@@ -116,23 +131,30 @@ router.post('/run', auth, authorize(['admin']), async (req, res) => {
                     try {
                         const [dbResult] = await pool.query(
                             'INSERT INTO Bookings (lab_id, section_id, user_id, start_time, end_time, purpose, status, created_by_user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-                            [lab_id, section_id || null, user_id || null, start_time, end_time, purpose || null, status || 'Scheduled', adminUserId]
+                            [lab_id, section_id || null, user_id === 0 ? null : (user_id || null), start_time, end_time, purpose || null, status || 'Scheduled', adminUserId]
                         );
                         createdBookingIds.push(dbResult.insertId);
                         successfullyScheduledCount++;
                     } catch (dbError) {
-                        console.error('Error inserting proposed booking into DB:', dbError);
-                        // Decide if this should count as a conflict or a different kind of failure
-                        conflictCount++; // Or handle as a specific DB insert error
+                        console.error('Error inserting proposed booking into DB:', dbError, 'Booking Data:', booking);
+                        dbErrors.push(`Failed to insert booking for lab ${lab_id} at ${start_time}: ${dbError.message}`);
+                        conflictCount++; 
                     }
                 }
+                
+                let finalMessage = 'Scheduling process completed.';
+                if (dbErrors.length > 0) {
+                    finalMessage += ` Encountered ${dbErrors.length} errors during database insertion.`;
+                }
+
 
                 res.status(200).json({
-                    message: 'Scheduling process completed.',
+                    message: finalMessage,
                     successfullyScheduledCount,
                     conflictCount,
                     totalProposed: proposedBookings.length,
-                    createdBookingIds 
+                    createdBookingIds,
+                    dbInsertionErrors: dbErrors.length > 0 ? dbErrors : undefined
                 });
 
             } catch (parseError) {

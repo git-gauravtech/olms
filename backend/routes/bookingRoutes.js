@@ -2,34 +2,9 @@
 const express = require('express');
 const pool = require('../config/db');
 const { auth, authorize } = require('../middleware/authMiddleware');
+const { checkOverlappingBookings } = require('../utils/bookingUtils'); // Import from utils
 
 const router = express.Router();
-
-// Helper function to check for overlapping bookings
-async function checkOverlappingBookings(lab_id, start_time, end_time, exclude_booking_id = null) {
-    const startTimeObj = new Date(start_time);
-    const endTimeObj = new Date(end_time);
-
-    let query = `
-        SELECT booking_id FROM Bookings 
-        WHERE lab_id = ? 
-        AND (
-            (? < end_time AND ? > start_time) OR -- New booking overlaps existing
-            (start_time < ? AND end_time > ?) OR -- Existing booking overlaps new
-            (start_time = ? AND end_time = ?)    -- Exact same slot
-        )
-    `;
-    const params = [lab_id, startTimeObj, startTimeObj, endTimeObj, endTimeObj, startTimeObj, endTimeObj];
-
-    if (exclude_booking_id) {
-        query += ` AND booking_id != ?`;
-        params.push(exclude_booking_id);
-    }
-
-    const [overlappingBookings] = await pool.query(query, params);
-    return overlappingBookings.length > 0;
-}
-
 
 // POST /api/bookings - Create a new booking (Admin only)
 router.post('/', auth, authorize(['admin']), async (req, res) => {
@@ -58,8 +33,8 @@ router.post('/', auth, authorize(['admin']), async (req, res) => {
         }
 
         const [result] = await pool.query(
-            'INSERT INTO Bookings (lab_id, user_id, section_id, start_time, end_time, purpose, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [lab_id, user_id || null, section_id || null, start_time, end_time, purpose || null, status || 'Scheduled']
+            'INSERT INTO Bookings (lab_id, user_id, section_id, start_time, end_time, purpose, status, created_by_user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [lab_id, user_id || null, section_id || null, start_time, end_time, purpose || null, status || 'Scheduled', adminCreatingBookingId]
         );
         
         const newBookingId = result.insertId;
@@ -103,7 +78,7 @@ router.get('/my', auth, authorize(['faculty', 'admin']), async (req, res) => { /
              LEFT JOIN Users u ON b.user_id = u.user_id
              LEFT JOIN Sections s ON b.section_id = s.section_id
              LEFT JOIN Courses c ON s.course_id = c.course_id
-             WHERE b.user_id = ? ORDER BY b.start_time ASC`,
+             WHERE b.user_id = ? AND b.status != 'Cancelled' ORDER BY b.start_time ASC`, // Exclude cancelled
             [userId]
         );
 
@@ -153,22 +128,25 @@ router.get('/', auth, async (req, res) => {
             LEFT JOIN Courses c ON s.course_id = c.course_id
         `;
         const params = [];
+        let whereClauses = ["b.status != 'Cancelled'"]; // Base: always exclude cancelled
 
         if (section_id) {
             // Any authenticated user can fetch by section_id
-            query += ` WHERE b.section_id = ? ORDER BY b.start_time ASC`;
+            whereClauses.push('b.section_id = ?');
             params.push(section_id);
         } else {
             // If no section_id, only admin or assistant can see all bookings
             if (userRole !== 'admin' && userRole !== 'assistant') { 
                 return res.status(403).json({ message: 'Access forbidden: Admins or Assistants only for all bookings view.' });
             }
-            query += ` ORDER BY b.start_time ASC`;
         }
+
+        if (whereClauses.length > 0) {
+            query += ` WHERE ${whereClauses.join(' AND ')}`;
+        }
+        query += ` ORDER BY b.start_time ASC`;
         
         const [bookings] = await pool.query(query, params);
-        // For admin/assistant view, we could also fetch latest requests if needed, similar to /my route.
-        // For simplicity, keeping this as is for now.
         return res.json(bookings);
 
     } catch (error) {
@@ -201,7 +179,7 @@ router.put('/:bookingId', auth, authorize(['admin']), async (req, res) => {
         }
 
         const [result] = await pool.query(
-            'UPDATE Bookings SET lab_id = ?, user_id = ?, section_id = ?, start_time = ?, end_time = ?, purpose = ?, status = ? WHERE booking_id = ?',
+            'UPDATE Bookings SET lab_id = ?, user_id = ?, section_id = ?, start_time = ?, end_time = ?, purpose = ?, status = ?, updated_at = NOW() WHERE booking_id = ?',
             [lab_id, user_id || null, section_id || null, start_time, end_time, purpose || null, status || 'Scheduled', bookingId]
         );
 
@@ -236,13 +214,7 @@ router.delete('/:bookingId', auth, authorize(['admin']), async (req, res) => {
     const { bookingId } = req.params;
 
     try {
-        // Before deleting booking, check if it's referenced in LabChangeRequests
-        const [requests] = await pool.query('SELECT request_id FROM LabChangeRequests WHERE booking_id = ?', [bookingId]);
-        if (requests.length > 0) {
-            // The schema has ON DELETE CASCADE for LabChangeRequests.booking_id, so this is handled by DB.
-            // Optionally, delete explicitly or warn if cascade isn't set.
-        }
-
+        // LabChangeRequests table has ON DELETE CASCADE for booking_id, so they are auto-deleted.
         const [result] = await pool.query('DELETE FROM Bookings WHERE booking_id = ?', [bookingId]);
 
         if (result.affectedRows === 0) {
@@ -258,4 +230,3 @@ router.delete('/:bookingId', auth, authorize(['admin']), async (req, res) => {
 
 
 module.exports = router;
-
