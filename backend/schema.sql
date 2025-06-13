@@ -1,130 +1,164 @@
 
--- Main Tables
+-- LabLink Database Schema
+
+-- Users Table: Stores information about all users of the system.
 CREATE TABLE IF NOT EXISTS Users (
     user_id INT AUTO_INCREMENT PRIMARY KEY,
     full_name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     role ENUM('admin', 'faculty', 'assistant', 'student') NOT NULL,
-    contact_number VARCHAR(20),
-    department VARCHAR(100), -- For faculty, assistant
-    employee_id VARCHAR(50), -- For faculty, assistant
-    enrollment_number VARCHAR(50), -- For student
-    course VARCHAR(100), -- For student (e.g., B.Tech CSE)
-    section VARCHAR(50), -- For student (e.g., Section A)
+    contact_number VARCHAR(20) NULL,
+    -- Role-specific fields (nullable as they depend on role)
+    department VARCHAR(100) NULL,         -- For faculty/assistant
+    employee_id VARCHAR(50) NULL UNIQUE,  -- For faculty/assistant
+    enrollment_number VARCHAR(50) NULL UNIQUE, -- For student
+    course VARCHAR(100) NULL,             -- For student (e.g., B.Tech, M.Sc.)
+    section VARCHAR(50) NULL,             -- For student (e.g., A, B1)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_user_role (role),
+    INDEX idx_user_email (email)
 );
 
+-- Courses Table: Stores information about academic courses.
 CREATE TABLE IF NOT EXISTS Courses (
     course_id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    department VARCHAR(100), -- e.g., Computer Science, Electrical Engineering
+    department VARCHAR(100) NULL, -- e.g., Computer Science, Electrical Engineering
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_course_name (name)
 );
 
+-- Sections Table: Stores information about specific sections of courses.
 CREATE TABLE IF NOT EXISTS Sections (
     section_id INT AUTO_INCREMENT PRIMARY KEY,
     course_id INT NOT NULL,
-    name VARCHAR(100) NOT NULL, -- e.g., Section A, Section B, Morning Batch
-    semester VARCHAR(50) NOT NULL, -- e.g., Fall, Spring, 1st, 2nd
+    name VARCHAR(100) NOT NULL, -- e.g., "A", "B", "Morning Batch"
+    semester VARCHAR(50) NOT NULL, -- e.g., "Fall", "Spring", "Semester 1"
     year INT NOT NULL, -- e.g., 2023
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (course_id) REFERENCES Courses(course_id) ON DELETE CASCADE, -- If a course is deleted, its sections are deleted
-    UNIQUE KEY (course_id, name, semester, year) -- Ensure section uniqueness within a course for a given term
+    FOREIGN KEY (course_id) REFERENCES Courses(course_id) ON DELETE CASCADE, -- If a course is deleted, its sections are also deleted.
+    INDEX idx_section_course (course_id),
+    UNIQUE KEY uq_section_course_name_sem_year (course_id, name, semester, year) -- Ensures section uniqueness within a course, semester, and year
 );
 
+-- Labs Table: Stores information about physical or virtual laboratories.
 CREATE TABLE IF NOT EXISTS Labs (
     lab_id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    room_number VARCHAR(50),
+    room_number VARCHAR(50) NULL,
     capacity INT NOT NULL,
-    type VARCHAR(100), -- e.g., Computer Lab, Physics Lab, Chemistry Lab
+    type VARCHAR(100) NULL, -- e.g., "Computer Lab", "Physics Lab", "Wet Lab"
     is_available BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_lab_name (name)
 );
 
+-- Equipment Table: Stores information about lab equipment.
 CREATE TABLE IF NOT EXISTS Equipment (
     equipment_id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    description TEXT,
-    type VARCHAR(100) NOT NULL, -- e.g., Microscope, Oscilloscope, PC
+    description TEXT NULL,
+    type VARCHAR(100) NOT NULL, -- e.g., "Microscope", "Oscilloscope", "PC"
     quantity INT DEFAULT 1,
-    status VARCHAR(50) DEFAULT 'Available', -- e.g., Available, In Use, Under Maintenance, Out of Order
-    lab_id INT, -- Optional: If equipment is specific to a lab
-    purchase_date DATE,
-    last_maintenance_date DATE,
+    status ENUM('Available', 'In Use', 'Under Maintenance', 'Out of Order') DEFAULT 'Available',
+    lab_id INT NULL, -- Optional: If equipment is specific to one lab
+    purchase_date DATE NULL,
+    last_maintenance_date DATE NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (lab_id) REFERENCES Labs(lab_id) ON DELETE SET NULL -- If lab is deleted, equipment becomes unassigned
+    FOREIGN KEY (lab_id) REFERENCES Labs(lab_id) ON DELETE SET NULL, -- If lab is deleted, equipment becomes unassigned.
+    INDEX idx_equipment_name (name),
+    INDEX idx_equipment_lab (lab_id)
 );
 
--- Booking/Scheduling Table
+-- Bookings Table: Stores information about lab bookings/schedules.
 CREATE TABLE IF NOT EXISTS Bookings (
     booking_id INT AUTO_INCREMENT PRIMARY KEY,
     lab_id INT NOT NULL,
-    user_id INT, -- User (faculty) who booked or is responsible for the lab session
-    section_id INT, -- Section for which the lab is booked
+    user_id INT NULL, -- Faculty who booked it, or admin if system-generated
+    section_id INT NULL, -- Section for which the lab is booked
     start_time DATETIME NOT NULL,
     end_time DATETIME NOT NULL,
-    purpose TEXT,
-    status VARCHAR(50) DEFAULT 'Scheduled', -- e.g., Scheduled, Cancelled, Completed
+    purpose TEXT NULL,
+    status ENUM('Scheduled', 'Cancelled', 'Completed', 'Tentative') DEFAULT 'Scheduled',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (lab_id) REFERENCES Labs(lab_id) ON DELETE CASCADE, -- If a lab is deleted, its bookings are deleted
-    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE SET NULL, -- If user is deleted, booking remains but user_id becomes NULL
-    FOREIGN KEY (section_id) REFERENCES Sections(section_id) ON DELETE SET NULL, -- If section is deleted, booking remains but section_id becomes NULL
-    INDEX (lab_id, start_time, end_time) -- For quick check of lab availability
+    FOREIGN KEY (lab_id) REFERENCES Labs(lab_id) ON DELETE CASCADE, -- If lab is deleted, bookings for it are deleted.
+    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE SET NULL, -- If user is deleted, booking remains but user_id is nulled.
+    FOREIGN KEY (section_id) REFERENCES Sections(section_id) ON DELETE SET NULL, -- If section is deleted, booking remains but section_id is nulled.
+    INDEX idx_booking_lab_time (lab_id, start_time, end_time),
+    INDEX idx_booking_user (user_id),
+    INDEX idx_booking_section (section_id)
 );
 
--- Table for Faculty Lab Change Requests
+-- LabChangeRequests Table: Stores requests from faculty to change lab bookings.
 CREATE TABLE IF NOT EXISTS LabChangeRequests (
     request_id INT AUTO_INCREMENT PRIMARY KEY,
     booking_id INT NOT NULL,
-    user_id INT NOT NULL, -- Faculty who made the request
-    requested_changes TEXT NOT NULL, -- Description of what they want to change (e.g., different time, different lab, notes)
-    reason TEXT, -- Reason for the change
-    status ENUM('Pending', 'Approved', 'Denied', 'Cancelled') DEFAULT 'Pending',
-    admin_remarks TEXT, -- Remarks from admin when processing
-    requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    processed_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
-    processed_by_admin_id INT NULL,
-    FOREIGN KEY (booking_id) REFERENCES Bookings(booking_id) ON DELETE CASCADE, -- If original booking is deleted, request is irrelevant
-    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE, -- If user (faculty) is deleted
-    FOREIGN KEY (processed_by_admin_id) REFERENCES Users(user_id) ON DELETE SET NULL
+    faculty_user_id INT NOT NULL, -- User (faculty) who requested the change
+    requested_change_details TEXT NOT NULL, -- Details of what change is being requested
+    reason TEXT NOT NULL, -- Reason for the change
+    status ENUM('Pending', 'Approved', 'Denied') DEFAULT 'Pending',
+    admin_remarks TEXT NULL, -- Remarks from the admin processing the request
+    processed_by_user_id INT NULL, -- Admin user who processed the request
+    request_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    processed_at DATETIME NULL, -- When the request was processed
+    FOREIGN KEY (booking_id) REFERENCES Bookings(booking_id) ON DELETE CASCADE,
+    FOREIGN KEY (faculty_user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (processed_by_user_id) REFERENCES Users(user_id) ON DELETE SET NULL,
+    INDEX idx_lcr_booking (booking_id),
+    INDEX idx_lcr_faculty (faculty_user_id),
+    INDEX idx_lcr_status (status)
 );
 
+-- PasswordResets Table: Stores tokens for password reset functionality.
+CREATE TABLE IF NOT EXISTS PasswordResets (
+    reset_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    token VARCHAR(255) NOT NULL UNIQUE,
+    expires_at DATETIME NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE, -- If user is deleted, their reset tokens are also deleted.
+    INDEX idx_pr_token (token)
+);
 
--- Example Insert Statements (Optional - for testing)
+-- Optional: ActivityLog Table (Example - can be expanded)
+-- CREATE TABLE IF NOT EXISTS ActivityLog (
+--     log_id INT AUTO_INCREMENT PRIMARY KEY,
+--     user_id INT NULL, -- User who performed the action, if applicable
+--     action_type VARCHAR(100) NOT NULL, -- e.g., "LOGIN", "BOOKING_CREATED", "USER_UPDATED"
+--     details TEXT NULL, -- JSON or text details about the action
+--     ip_address VARCHAR(45) NULL,
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE SET NULL,
+--     INDEX idx_al_user (user_id),
+--     INDEX idx_al_action_time (action_type, created_at)
+-- );
 
--- Users
--- INSERT INTO Users (full_name, email, password_hash, role) VALUES 
--- ('Admin User', 'admin@example.com', '$2a$10$...', 'admin'), -- Replace ... with a valid bcrypt hash
--- ('Faculty One', 'faculty1@example.com', '$2a$10$...', 'faculty'),
--- ('Student One', 'student1@example.com', '$2a$10$...', 'student');
 
--- Courses
--- INSERT INTO Courses (name, department) VALUES 
--- ('Introduction to Programming', 'Computer Science'),
--- ('Data Structures', 'Computer Science'),
--- ('Circuit Theory', 'Electrical Engineering');
+-- Sample Data (Optional, for testing - uncomment and modify as needed)
+/*
+INSERT INTO Users (full_name, email, password_hash, role) VALUES
+('Admin User', 'admin@lablink.com', '$2a$10$yourbcryptgeneratedhash', 'admin'), -- Replace hash with a real one
+('Faculty User', 'faculty@lablink.com', '$2a$10$yourbcryptgeneratedhash', 'faculty'),
+('Student User', 'student@lablink.com', '$2a$10$yourbcryptgeneratedhash', 'student');
 
--- Sections
--- INSERT INTO Sections (course_id, name, semester, year) VALUES
--- (1, 'A', 'Fall', 2023),
--- (1, 'B', 'Fall', 2023),
--- (2, 'A', 'Spring', 2024);
+INSERT INTO Courses (name, department) VALUES
+('Introduction to Programming', 'Computer Science'),
+('Digital Electronics', 'Electrical Engineering');
 
--- Labs
--- INSERT INTO Labs (name, room_number, capacity, type) VALUES
--- ('CS Lab 1', '101', 30, 'Computer Lab'),
--- ('Electronics Lab A', '203', 20, 'Electronics Lab');
+INSERT INTO Sections (course_id, name, semester, year) VALUES
+(1, 'Section A', 'Fall', 2023),
+(2, 'Section B', 'Fall', 2023);
 
--- Bookings (Example - Ensure user_id, section_id, lab_id exist)
--- INSERT INTO Bookings (lab_id, user_id, section_id, start_time, end_time, purpose) VALUES
--- (1, 2, 1, '2023-10-01 09:00:00', '2023-10-01 11:00:00', 'Intro to Python Lab'),
--- (1, 2, 1, '2023-10-03 09:00:00', '2023-10-03 11:00:00', 'Intro to Python Lab');
+INSERT INTO Labs (name, room_number, capacity, type, is_available) VALUES
+('Computer Lab 101', 'CL101', 30, 'Computer Lab', TRUE),
+('Electronics Lab 202', 'EL202', 20, 'Electronics Lab', TRUE);
+*/
 
+-- End of Schema
