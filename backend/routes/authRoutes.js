@@ -58,11 +58,24 @@ router.post('/signup', async (req, res) => {
         res.status(201).json({ message: 'User registered successfully!', userId: result.insertId });
 
     } catch (error) {
-        console.error('Signup error:', error);
+        console.error('Signup error:', error); // CRITICAL: Check backend console for this log!
         if (error.code === 'ER_NO_SUCH_TABLE') {
-             return res.status(500).json({ message: 'Database table missing. Please ensure schema is applied.' });
+             return res.status(500).json({ message: 'Database table missing (e.g., Users table). Please ensure schema is applied.' });
         }
-        res.status(500).json({ message: 'Server error during signup.' });
+        if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+            return res.status(500).json({ message: 'Database connection refused. Please ensure the database server is running and accessible at the host specified in .env.' });
+        }
+        if (error.code === 'ER_ACCESS_DENIED_ERROR') {
+            return res.status(500).json({ message: 'Database access denied. Please check your database user and password in the .env file.' });
+        }
+        if (error.code === 'ER_BAD_DB_ERROR') {
+            return res.status(500).json({ message: `Database '${process.env.DB_NAME || 'lablink_db'}' does not exist. Please create it or check DB_NAME in .env.` });
+        }
+        // Check for other common DB errors during INSERT, e.g., column constraint violations
+        if (error.sqlMessage) { // More specific MySQL errors often have sqlMessage
+             return res.status(500).json({ message: `Database error during signup: ${error.sqlMessage}. This often indicates a schema mismatch or data issue.`});
+        }
+        res.status(500).json({ message: 'Server error during signup. Please check the backend console logs for detailed error information.' });
     }
 });
 
@@ -220,3 +233,5 @@ router.post('/reset-password', async (req, res) => {
 });
 
 module.exports = router;
+
+    
