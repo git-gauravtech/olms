@@ -9,78 +9,162 @@
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-    <div class="auth-container"> 
-        <div class="auth-card" style="max-width: 700px;"> 
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2 style="margin:0;">View Section Lab Schedule</h2>
-                <a href="#" id="logoutLinkStudentBookings" class="button button-small button-outline">Logout</a>
-            </div>
-            
-            <p class="text-muted-foreground">Select a course and section to view its lab schedule.</p>
-            
-            <div class="form-group">
-                <label for="studentCourseSelect">Select Course:</label>
-                <select id="studentCourseSelect" name="studentCourseSelect" class="form-control">
-                    <option value="">Loading courses...</option>
-                </select>
-            </div>
+    <div class="dashboard-layout">
+        <aside class="sidebar" id="sidebar">
+            <!-- Sidebar will be dynamically generated -->
+        </aside>
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-            <div class="form-group">
-                <label for="studentSectionSelect">Select Section:</label>
-                <select id="studentSectionSelect" name="studentSectionSelect" class="form-control" disabled>
-                    <option value="">Select a course first</option>
-                </select>
-            </div>
+        <div class="main-content-wrapper">
+            <header class="dashboard-header">
+                <h1 class="dashboard-page-title"><i data-lucide="calendar-days" class="header-icon"></i> My Lab Schedule</h1>
+                <div class="user-nav">
+                    <span id="userNameDisplay">Student User</span>
+                    <a href="#" id="logoutLinkNav" class="button button-small button-outline">Logout</a>
+                </div>
+            </header>
+            <main class="page-content">
+                <div class="custom-card">
+                    <div class="custom-card-header">
+                        <i data-lucide="filter"></i>
+                        <h2 class="custom-card-title">Select Course and Section</h2>
+                    </div>
+                    <div class="custom-card-content">
+                        <p class="text-muted-foreground mb-4">Select a course and section to view its lab schedule.</p>
+                        
+                        <div class="form-group">
+                            <label for="studentCourseSelect">Select Course:</label>
+                            <select id="studentCourseSelect" name="studentCourseSelect" class="form-control">
+                                <option value="">Loading courses...</option>
+                            </select>
+                        </div>
 
-            <button id="viewSectionScheduleBtn" class="button button-primary" disabled style="width: auto; padding: 10px 20px;">
-                <i data-lucide="calendar-search" style="margin-right: 8px; vertical-align: middle;"></i>View Schedule
-            </button>
+                        <div class="form-group">
+                            <label for="studentSectionSelect">Select Section:</label>
+                            <select id="studentSectionSelect" name="studentSectionSelect" class="form-control" disabled>
+                                <option value="">Select a course first</option>
+                            </select>
+                        </div>
 
-            <div id="studentScheduleMessage" class="form-message mt-4" style="display:none;"></div>
-            <div id="studentScheduleContainer" class="schedule-container mt-4" style="background-color: #fff; border: none; padding:0;">
-                <!-- Schedule will be displayed here -->
-            </div>
-            
+                        <button id="viewSectionScheduleBtn" class="button button-primary" disabled style="width: auto; padding: 10px 20px;">
+                            <i data-lucide="calendar-search" style="margin-right: 8px; vertical-align: middle;"></i>View Schedule
+                        </button>
+
+                        <div id="studentScheduleMessage" class="form-message mt-4" style="display:none;"></div>
+                    </div>
+                </div>
+                
+                <div class="custom-card mt-4">
+                    <div class="custom-card-header">
+                        <i data-lucide="list-checks"></i>
+                        <h2 class="custom-card-title">Scheduled Labs</h2>
+                    </div>
+                    <div class="custom-card-content">
+                         <div id="studentScheduleContainer" class="schedule-container" style="background-color: #fff; border: none; padding:0; margin-top:0;">
+                            <!-- Schedule will be displayed here -->
+                         </div>
+                    </div>
+                </div>
+            </main>
         </div>
     </div>
 
     <script src="../js/constants.js"></script>
     <script src="../js/utils.js"></script> 
     <script src="../js/auth.js"></script>
-    <script src="js/dashboard.js"></script>
+    <script src="js/dashboard.js"></script> <!-- Contains initializeStudentSchedulePage -->
     <script>
+        function generateStudentSidebarNav() {
+            const sidebarNav = document.createElement('ul');
+            sidebarNav.className = 'sidebar-nav';
+            const items = [
+                { href: 'student.html', icon: 'layout-dashboard', text: 'Student Dashboard', id: 'studentDashboardLink' },
+                { href: 'student_my_bookings.html', icon: 'calendar-days', text: 'My Schedule' },
+                { href: 'profile.html', icon: 'user-circle', text: 'My Profile' }
+            ];
+
+            items.forEach(item => {
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.href = item.href;
+                if (item.id) a.id = item.id;
+
+                const iconEl = document.createElement('i');
+                iconEl.setAttribute('data-lucide', item.icon);
+                a.appendChild(iconEl);
+                a.appendChild(document.createTextNode(' ' + item.text));
+                
+                if (window.location.pathname.endsWith('/' + item.href)) {
+                    a.classList.add('active');
+                }
+                li.appendChild(a);
+                sidebarNav.appendChild(li);
+            });
+            return sidebarNav;
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             const userInfo = JSON.parse(localStorage.getItem(window.USER_INFO_KEY));
-            // This page is for students, but any authenticated user can technically view schedules by section.
-            // A strict student role check might be:
-            // if (!userInfo || userInfo.role !== window.USER_ROLES.STUDENT) {
-            //     alert('Access Denied: Students only.');
-            //     window.location.href = '../index.html';
-            //     return;
-            // }
-            // For now, let's allow any authenticated user to use this page,
-            // as the API for section bookings requires authentication anyway.
-            if (!userInfo) {
+            if (!userInfo) { // Any authenticated user can view schedules, but students primarily use this.
                 alert('Authentication required to view schedules.');
                 window.location.href = '../index.html';
                 return;
             }
 
+            const userNameDisplay = document.getElementById('userNameDisplay');
+            if (userNameDisplay && userInfo.fullName) {
+                userNameDisplay.textContent = userInfo.fullName;
+            }
 
-            const logoutLink = document.getElementById('logoutLinkStudentBookings');
-            if (logoutLink) {
-                logoutLink.addEventListener('click', (e) => {
+            const logoutLinkNav = document.getElementById('logoutLinkNav');
+            if (logoutLinkNav) {
+                logoutLinkNav.addEventListener('click', (e) => {
                     e.preventDefault();
                     if (typeof logout === 'function') logout();
                 });
+            }
+            
+            const sidebarElement = document.getElementById('sidebar');
+            if (sidebarElement) {
+                const sidebarHeader = document.createElement('div');
+                sidebarHeader.className = 'sidebar-header';
+                // Student role should always go to student.html as their "home"
+                const homeLinkUrl = (userInfo.role === window.USER_ROLES.STUDENT) ? 'student.html' : '../index.html';
+                const homeLink = document.createElement('a');
+                homeLink.href = homeLinkUrl;
+                homeLink.className = 'sidebar-header-link';
+                homeLink.innerHTML = '<i data-lucide="atom"></i> <span class="sidebar-title">LabLink</span>';
+                sidebarHeader.appendChild(homeLink);
+                sidebarElement.appendChild(sidebarHeader);
+                // Students get student sidebar, other roles might see this page but wouldn't have their full sidebar.
+                // For simplicity, always generate student sidebar here if user is a student.
+                if (userInfo.role === window.USER_ROLES.STUDENT) {
+                    sidebarElement.appendChild(generateStudentSidebarNav());
+                } else {
+                    // Non-students viewing this page won't get a tailored sidebar here.
+                    // They'd typically access schedules via admin/faculty specific views.
+                    // A simple "Back to My Dashboard" or just profile link could be an alternative.
+                    const minimalNav = document.createElement('ul');
+                    minimalNav.className = 'sidebar-nav';
+                    let roleDashboard = '../index.html'; // Fallback
+                    if (userInfo.role === window.USER_ROLES.ADMIN) roleDashboard = 'admin.html';
+                    else if (userInfo.role === window.USER_ROLES.FACULTY) roleDashboard = 'faculty.html';
+                    else if (userInfo.role === window.USER_ROLES.ASSISTANT) roleDashboard = 'assistant.html';
+                    
+                    minimalNav.innerHTML = \`
+                        <li><a href="\${roleDashboard}"><i data-lucide="layout-dashboard"></i> My Dashboard</a></li>
+                        <li><a href="profile.html"><i data-lucide="user-circle"></i> My Profile</a></li>
+                    \`;
+                    sidebarElement.appendChild(minimalNav);
+                }
             }
 
             if (typeof initializeStudentSchedulePage === 'function') {
                 initializeStudentSchedulePage();
             } else {
-                console.error('initializeStudentSchedulePage function not found.');
+                console.error('initializeStudentSchedulePage function not found in dashboard.js.');
                 const studentScheduleContainer = document.getElementById('studentScheduleContainer');
-                if(studentScheduleContainer) studentScheduleContainer.innerHTML = '<p>Error initializing page.</p>';
+                if(studentScheduleContainer) studentScheduleContainer.innerHTML = '<p>Error initializing page schedule functions.</p>';
             }
             
             if (window.lucide) {

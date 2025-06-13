@@ -63,7 +63,6 @@
     <script src="../js/auth.js"></script> 
     <script src="js/profile_management.js"></script>
     <script>
-        // Sidebar generation logic (simplified common part)
         function generateSidebarNav(role) {
             const sidebarNav = document.createElement('ul');
             sidebarNav.className = 'sidebar-nav';
@@ -93,11 +92,16 @@
             } else if (role === window.USER_ROLES.ASSISTANT) {
                  items = [
                     { href: 'assistant.html', icon: 'layout-dashboard', text: 'Assistant Dashboard', id: 'assistantDashboardLink' },
-                     commonProfileLink,
-                    { href: '#', icon: 'calendar-days', text: 'My Assigned Schedule (Coming Soon)', class: 'disabled-link' }
+                     commonProfileLink
+                ];
+            } else if (role === window.USER_ROLES.STUDENT) {
+                items = [
+                    { href: 'student.html', icon: 'layout-dashboard', text: 'Student Dashboard', id: 'studentDashboardLink' },
+                    { href: 'student_my_bookings.html', icon: 'calendar-days', text: 'My Schedule' },
+                    commonProfileLink
                 ];
             }
-            // Student sidebar is not part of this layout directly.
+
 
             items.forEach(item => {
                 const li = document.createElement('li');
@@ -111,7 +115,6 @@
                 a.appendChild(icon);
                 a.appendChild(document.createTextNode(' ' + item.text));
                 
-                // Check if current page matches link href to set 'active'
                 if (window.location.pathname.endsWith('/' + item.href)) {
                     a.classList.add('active');
                 }
@@ -129,13 +132,11 @@
                 return;
             }
 
-            // Populate user name in header
             const userNameDisplay = document.getElementById('userNameDisplay');
             if (userNameDisplay && userInfo.fullName) {
                 userNameDisplay.textContent = userInfo.fullName;
             }
 
-            // Logout link
             const logoutLinkNav = document.getElementById('logoutLinkNav');
             if (logoutLinkNav) {
                 logoutLinkNav.addEventListener('click', (e) => {
@@ -144,7 +145,6 @@
                 });
             }
             
-            // Sidebar setup
             const sidebarElement = document.getElementById('sidebar');
             if (sidebarElement) {
                 const sidebarHeader = document.createElement('div');
@@ -156,7 +156,8 @@
                 if (userInfo.role === window.USER_ROLES.ADMIN) homeLink.href = 'admin.html';
                 else if (userInfo.role === window.USER_ROLES.FACULTY) homeLink.href = 'faculty.html';
                 else if (userInfo.role === window.USER_ROLES.ASSISTANT) homeLink.href = 'assistant.html';
-                else homeLink.href = '#'; // Fallback for unexpected roles
+                else if (userInfo.role === window.USER_ROLES.STUDENT) homeLink.href = 'student.html';
+                else homeLink.href = '#'; 
                 
                 sidebarHeader.appendChild(homeLink);
                 sidebarElement.appendChild(sidebarHeader);
