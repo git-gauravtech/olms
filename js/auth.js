@@ -1,5 +1,4 @@
 
-
 function initializeSignupPage() {
     const signupForm = document.getElementById('signupForm');
     const roleSelect = document.getElementById('role');
@@ -43,42 +42,34 @@ function initializeSignupPage() {
             hideMessage();
 
             const formData = new FormData(signupForm);
-            const data = Object.fromEntries(formData.entries());
             
-            const role = data.role;
-            // Consolidate role-specific fields based on current visibility
-            // This assumes that if a section is not displayed, its inputs are not relevant
-            if (role === 'faculty' || role === 'assistant') {
-                 if (facultyAssistantDetailsDiv && facultyAssistantDetailsDiv.style.display !== 'none') {
-                    // Only include these if the section is visible
-                 } else {
-                    delete data.departmentFA; // Use field name from HTML
-                    delete data.employeeId;
-                 }
-            } else if (role === 'student') {
-                if (studentDetailsDiv && studentDetailsDiv.style.display !== 'none') {
-                    // Only include these if the section is visible
-                } else {
-                    delete data.enrollmentNumber;
-                    delete data.course;
-                    delete data.section;
-                }
+            // Prepare data explicitly, sending null for empty optional fields
+            const signupData = {
+                fullName: formData.get('fullName').trim(),
+                email: formData.get('email').trim(),
+                password: formData.get('password'), // Passwords should not be trimmed by frontend
+                role: formData.get('role'),
+                contactNumber: formData.get('contactNumber').trim() || null,
+            };
+
+            const selectedRole = signupData.role;
+            if (selectedRole === 'faculty' || selectedRole === 'assistant') {
+                signupData.department = formData.get('departmentFA').trim() || null;
+                signupData.employeeId = formData.get('employeeId').trim() || null;
+            } else if (selectedRole === 'student') {
+                signupData.enrollmentNumber = formData.get('enrollmentNumber').trim() || null;
+                signupData.course = formData.get('course').trim() || null;
+                signupData.section = formData.get('section').trim() || null;
             }
             
-            // Remove empty optional fields so backend doesn't try to process them if not provided
-            for (const key in data) {
-                if (data[key] === '' || data[key] === null) {
-                    // Retain core fields even if empty, backend should validate
-                    const coreFields = ['fullName', 'email', 'password', 'role'];
-                    if (!coreFields.includes(key)) {
-                         delete data[key];
-                    }
-                }
+            // Basic client-side validation for required fields
+            if (!signupData.fullName || !signupData.email || !signupData.password || !signupData.role) {
+                showMessage('Full Name, Email, Password, and Role are required.', 'error');
+                return;
             }
-             // Rename departmentFA to department for backend consistency
-            if (data.departmentFA) {
-                data.department = data.departmentFA;
-                delete data.departmentFA;
+            if (signupData.password.length < 6) {
+                 showMessage('Password must be at least 6 characters long.', 'error');
+                 return;
             }
 
 
@@ -88,7 +79,7 @@ function initializeSignupPage() {
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify(data),
+                    body: JSON.stringify(signupData),
                 });
 
                 const result = await response.json();
@@ -112,7 +103,6 @@ function initializeSignupPage() {
 function initializeLoginPage() {
     const loginForm = document.getElementById('loginForm');
     const formMessageDiv = document.getElementById('formMessage');
-    // Check for forgot password link - it's commented out in index.html
     const forgotPasswordLinkExists = document.querySelector('a[href="forgot_password.html"]');
 
 
@@ -153,7 +143,6 @@ function initializeLoginPage() {
                     localStorage.setItem(window.TOKEN_KEY, result.token);
                     localStorage.setItem(window.USER_INFO_KEY, JSON.stringify(result.user));
                     
-                    // Redirect based on role
                     const role = result.user.role;
                     if (role === window.USER_ROLES.ADMIN) {
                         window.location.href = 'dashboard/admin.html';
@@ -162,12 +151,9 @@ function initializeLoginPage() {
                     } else if (role === window.USER_ROLES.ASSISTANT) {
                         window.location.href = 'dashboard/assistant.html';
                     } else if (role === window.USER_ROLES.STUDENT) {
-                        // For now, students go directly to their bookings page
                         window.location.href = 'dashboard/student_my_bookings.html';
                     } else {
-                        // Fallback or error if role is unknown
                         showMessage('Login successful, but role is unrecognized.', 'error');
-                        // window.location.href = 'index.html'; // Or a generic dashboard
                     }
                 } else {
                     showMessage(result.message || 'Login failed. Please check your credentials.', 'error');
@@ -178,7 +164,6 @@ function initializeLoginPage() {
             }
         });
     }
-     // Add forgot password link if it was missing (it's currently commented out in index.html)
     if (loginForm && !forgotPasswordLinkExists) {
         const authSwitchElements = loginForm.parentElement.querySelectorAll('.auth-switch');
         if (authSwitchElements.length > 0) {
@@ -192,15 +177,11 @@ function initializeLoginPage() {
     }
 }
 
-// Logout function
 function logout() {
     localStorage.removeItem(window.TOKEN_KEY);
     localStorage.removeItem(window.USER_INFO_KEY);
-    // Redirect to login page or landing page
-    // Check if current page is already index.html or signup.html to avoid loop
     const nonAuthPages = ['/index.html', '/signup.html', '/landing.html', '/forgot_password.html', '/reset_password.html'];
     if (nonAuthPages.some(page => window.location.pathname.endsWith(page))) {
-         // Already on a non-auth page, no need to redirect further for logout
     } else if (window.location.pathname.includes('/dashboard/')) {
         window.location.href = '../index.html';
     } else {
@@ -240,17 +221,17 @@ function initializeForgotPasswordPage() {
             requestResetBtn.disabled = true;
             requestResetBtn.textContent = 'Processing...';
 
+            let responseOk = false;
             try {
                 const response = await fetch(`${window.API_BASE_URL}/auth/request-password-reset`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email: emailInput.value })
                 });
+                responseOk = response.ok;
                 const result = await response.json();
-                // Backend sends 200 OK for both found and not found emails for security.
-                // The message from backend is generic.
-                showMessage(result.message, response.ok ? 'success' : 'error');
-                if (response.ok) {
+                showMessage(result.message, responseOk ? 'success' : 'error');
+                if (responseOk) {
                     forgotPasswordForm.reset();
                     requestResetBtn.textContent = 'Request Sent';
                 } else {
@@ -262,7 +243,7 @@ function initializeForgotPasswordPage() {
                 showMessage('An error occurred. Please try again.', 'error');
                 requestResetBtn.textContent = 'Request Password Reset';
             } finally {
-                if(!response.ok) requestResetBtn.disabled = false;
+                if(!responseOk) requestResetBtn.disabled = false;
             }
         });
     }
@@ -290,7 +271,6 @@ function initializeResetPasswordPage() {
         }
     }
 
-    // Extract token from URL query parameter
     const urlParams = new URLSearchParams(window.location.search);
     const tokenFromUrl = urlParams.get('token');
     if (tokenInput && tokenFromUrl) {
@@ -338,7 +318,7 @@ function initializeResetPasswordPage() {
 
                 if (response.ok) {
                     showMessage(result.message || 'Password reset successfully! You can now login.', 'success');
-                    resetPasswordForm.reset(); // Clear form
+                    resetPasswordForm.reset(); 
                     if(submitResetBtn) submitResetBtn.textContent = 'Password Reset!';
                     setTimeout(() => {
                         window.location.href = 'index.html';
