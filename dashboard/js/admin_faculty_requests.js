@@ -126,7 +126,13 @@ async function initializeAdminFacultyRequestsPage() {
             if (!response.ok) {
                 throw new Error(result.message || `Failed to ${status.toLowerCase()} request.`);
             }
-            showPageMessage(pageMessage, `Request ${result.request.request_id} has been ${status.toLowerCase()} successfully.`, 'success');
+            
+            let successMessage = `Request ${result.request.request_id} has been ${status.toLowerCase()} successfully.`;
+            if (status === 'Approved') {
+                successMessage += " Please manually update the booking details in the 'Manual Bookings' section if changes to the schedule are required.";
+            }
+            showPageMessage(pageMessage, successMessage, 'success', 0); // Keep message visible longer
+
             closeProcessModal();
             loadAndRenderRequests(); // Refresh the table
         } catch (error) {
@@ -135,12 +141,11 @@ async function initializeAdminFacultyRequestsPage() {
         } finally {
             actionButton.disabled = false;
             actionButton.textContent = originalButtonText;
-            // Re-enable based on if it's still pending or not (though usually it's closed)
             const currentRequest = allFetchedRequests.find(r => r.request_id == requestId);
             if (currentRequest && currentRequest.status === 'Pending') {
                  approveRequestBtn.disabled = false;
                  denyRequestBtn.disabled = false;
-            } else { // Already processed or error
+            } else { 
                  approveRequestBtn.disabled = true;
                  denyRequestBtn.disabled = true;
             }
@@ -227,3 +232,4 @@ async function initializeAdminFacultyRequestsPage() {
 
     loadAndRenderRequests();
 }
+
