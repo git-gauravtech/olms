@@ -5,7 +5,6 @@
 CREATE TABLE IF NOT EXISTS Users (
     user_id INT AUTO_INCREMENT PRIMARY KEY,
     full_name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     role ENUM('admin', 'faculty', 'assistant', 'student') NOT NULL,
     contact_number VARCHAR(20) NULL,
@@ -16,7 +15,8 @@ CREATE TABLE IF NOT EXISTS Users (
     course VARCHAR(100) NULL,             -- For student (e.g., B.Tech, M.Sc.)
     section VARCHAR(50) NULL,             -- For student (e.g., A, B1)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+,    email VARCHAR(255) NOT NULL UNIQUE
     INDEX idx_user_role (role),
     INDEX idx_user_email (email)
 );
