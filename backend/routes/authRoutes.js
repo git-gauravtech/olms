@@ -126,7 +126,22 @@ router.post('/login', async (req, res) => {
 
     } catch (error) {
         console.error('Login error:', error);
-        res.status(500).json({ message: 'Server error during login.' });
+        if (error.code === 'ER_NO_SUCH_TABLE') {
+             return res.status(500).json({ message: 'Database table missing (e.g., Users table). Please ensure schema is applied.' });
+        }
+        if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+            return res.status(500).json({ message: 'Database connection refused. Please ensure the database server is running and accessible at the host specified in .env.' });
+        }
+        if (error.code === 'ER_ACCESS_DENIED_ERROR') {
+            return res.status(500).json({ message: 'Database access denied. Please check your database user and password in the .env file.' });
+        }
+        if (error.code === 'ER_BAD_DB_ERROR') {
+            return res.status(500).json({ message: `Database '${process.env.DB_NAME || 'lablink_db'}' does not exist. Please create it or check DB_NAME in .env.` });
+        }
+        if (error.sqlMessage) {
+             return res.status(500).json({ message: `Database error during login: ${error.sqlMessage}.`});
+        }
+        res.status(500).json({ message: 'Server error during login. Check backend logs.' });
     }
 });
 

@@ -5,6 +5,7 @@ function initializeSignupPage() {
     const facultyAssistantDetailsDiv = document.getElementById('facultyAssistantDetails');
     const studentDetailsDiv = document.getElementById('studentDetails');
     const formMessageDiv = document.getElementById('formMessage');
+    const signupButton = signupForm ? signupForm.querySelector('button[type="submit"]') : null;
 
     function showMessage(message, type) {
         if (formMessageDiv) {
@@ -36,33 +37,26 @@ function initializeSignupPage() {
         if(roleSelect.value) roleSelect.dispatchEvent(new Event('change'));
     }
 
-    if (signupForm) {
+    if (signupForm && signupButton) {
         signupForm.addEventListener('submit', async function(event) {
             event.preventDefault();
             hideMessage();
 
             const formData = new FormData(signupForm);
             
-            // Prepare data explicitly, sending null for empty optional fields
             const signupData = {
                 fullName: formData.get('fullName').trim(),
                 email: formData.get('email').trim(),
-                password: formData.get('password'), // Passwords should not be trimmed by frontend
+                password: formData.get('password'), 
                 role: formData.get('role'),
                 contactNumber: formData.get('contactNumber').trim() || null,
+                department: (formData.get('role') === 'faculty' || formData.get('role') === 'assistant') ? (formData.get('departmentFA').trim() || null) : null,
+                employeeId: (formData.get('role') === 'faculty' || formData.get('role') === 'assistant') ? (formData.get('employeeId').trim() || null) : null,
+                enrollmentNumber: (formData.get('role') === 'student') ? (formData.get('enrollmentNumber').trim() || null) : null,
+                course: (formData.get('role') === 'student') ? (formData.get('course').trim() || null) : null,
+                section: (formData.get('role') === 'student') ? (formData.get('section').trim() || null) : null,
             };
-
-            const selectedRole = signupData.role;
-            if (selectedRole === 'faculty' || selectedRole === 'assistant') {
-                signupData.department = formData.get('departmentFA').trim() || null;
-                signupData.employeeId = formData.get('employeeId').trim() || null;
-            } else if (selectedRole === 'student') {
-                signupData.enrollmentNumber = formData.get('enrollmentNumber').trim() || null;
-                signupData.course = formData.get('course').trim() || null;
-                signupData.section = formData.get('section').trim() || null;
-            }
             
-            // Basic client-side validation for required fields
             if (!signupData.fullName || !signupData.email || !signupData.password || !signupData.role) {
                 showMessage('Full Name, Email, Password, and Role are required.', 'error');
                 return;
@@ -71,6 +65,11 @@ function initializeSignupPage() {
                  showMessage('Password must be at least 6 characters long.', 'error');
                  return;
             }
+            
+            const originalButtonText = signupButton.innerHTML;
+            signupButton.disabled = true;
+            signupButton.innerHTML = '<i data-lucide="loader-2" class="animate-spin" style="margin-right: 0.5em; vertical-align: middle;"></i> Signing up...';
+            if (window.lucide) window.lucide.createIcons();
 
 
             try {
@@ -95,6 +94,10 @@ function initializeSignupPage() {
             } catch (error) {
                 console.error('Signup error:', error);
                 showMessage('An error occurred during signup. Please try again.', 'error');
+            } finally {
+                signupButton.disabled = false;
+                signupButton.innerHTML = originalButtonText;
+                if (window.lucide) window.lucide.createIcons();
             }
         });
     }
@@ -103,6 +106,7 @@ function initializeSignupPage() {
 function initializeLoginPage() {
     const loginForm = document.getElementById('loginForm');
     const formMessageDiv = document.getElementById('formMessage');
+    const loginButton = loginForm ? loginForm.querySelector('button[type="submit"]') : null;
     const forgotPasswordLinkExists = document.querySelector('a[href="forgot_password.html"]');
 
 
@@ -120,13 +124,18 @@ function initializeLoginPage() {
         }
     }
 
-    if (loginForm) {
+    if (loginForm && loginButton) {
         loginForm.addEventListener('submit', async function(event) {
             event.preventDefault();
             hideMessage();
 
             const formData = new FormData(loginForm);
             const data = Object.fromEntries(formData.entries());
+
+            const originalButtonText = loginButton.innerHTML;
+            loginButton.disabled = true;
+            loginButton.innerHTML = '<i data-lucide="loader-2" class="animate-spin" style="margin-right: 0.5em; vertical-align: middle;"></i> Logging in...';
+            if (window.lucide) window.lucide.createIcons();
 
             try {
                 const response = await fetch(`${window.API_BASE_URL}/auth/login`, {
@@ -161,9 +170,14 @@ function initializeLoginPage() {
             } catch (error) {
                 console.error('Login error:', error);
                 showMessage('An error occurred during login. Please try again.', 'error');
+            } finally {
+                loginButton.disabled = false;
+                loginButton.innerHTML = originalButtonText;
+                if (window.lucide) window.lucide.createIcons(); // Re-render icons if text changed
             }
         });
     }
+    // Dynamically add forgot password link if not present
     if (loginForm && !forgotPasswordLinkExists) {
         const authSwitchElements = loginForm.parentElement.querySelectorAll('.auth-switch');
         if (authSwitchElements.length > 0) {
@@ -181,11 +195,20 @@ function logout() {
     localStorage.removeItem(window.TOKEN_KEY);
     localStorage.removeItem(window.USER_INFO_KEY);
     const nonAuthPages = ['/index.html', '/signup.html', '/landing.html', '/forgot_password.html', '/reset_password.html'];
-    if (nonAuthPages.some(page => window.location.pathname.endsWith(page))) {
+    // Check if current page is one of the non-auth pages or root
+    const currentPath = window.location.pathname;
+    const isNonAuthPage = nonAuthPages.some(page => currentPath.endsWith(page)) || currentPath === '/' || currentPath === '/index.htm';
+
+    if (isNonAuthPage) {
+        // Already on a public page, no need to redirect, or if on root, typically means index.html
+        // For safety, if on a root that's not explicitly index.html, could redirect to landing.html
+        if (currentPath === '/' && !currentPath.endsWith('landing.html')) {
+             // window.location.href = 'landing.html'; // Or index.html if that's preferred public root
+        }
     } else if (window.location.pathname.includes('/dashboard/')) {
-        window.location.href = '../index.html';
+        window.location.href = '../index.html'; // From a dashboard page, go to login
     } else {
-        window.location.href = 'index.html';
+        window.location.href = 'index.html'; // Default redirect for other cases
     }
 }
 
@@ -209,7 +232,7 @@ function initializeForgotPasswordPage() {
         }
     }
 
-    if (forgotPasswordForm) {
+    if (forgotPasswordForm && requestResetBtn) {
         forgotPasswordForm.addEventListener('submit', async function(event) {
             event.preventDefault();
             hideMessage();
@@ -218,8 +241,10 @@ function initializeForgotPasswordPage() {
                 return;
             }
             
+            const originalButtonText = requestResetBtn.textContent;
             requestResetBtn.disabled = true;
-            requestResetBtn.textContent = 'Processing...';
+            requestResetBtn.innerHTML = '<i data-lucide="loader-2" class="animate-spin" style="margin-right: 0.5em; vertical-align: middle;"></i> Processing...';
+            if (window.lucide) window.lucide.createIcons();
 
             let responseOk = false;
             try {
@@ -233,17 +258,20 @@ function initializeForgotPasswordPage() {
                 showMessage(result.message, responseOk ? 'success' : 'error');
                 if (responseOk) {
                     forgotPasswordForm.reset();
-                    requestResetBtn.textContent = 'Request Sent';
+                    requestResetBtn.textContent = 'Request Sent'; // Keep disabled as it's sent
                 } else {
-                     requestResetBtn.textContent = 'Request Password Reset';
+                     requestResetBtn.textContent = originalButtonText; // Revert on error
+                     requestResetBtn.disabled = false;
                 }
 
             } catch (error) {
                 console.error('Request password reset error:', error);
                 showMessage('An error occurred. Please try again.', 'error');
-                requestResetBtn.textContent = 'Request Password Reset';
+                requestResetBtn.textContent = originalButtonText;
+                requestResetBtn.disabled = false;
             } finally {
-                if(!responseOk) requestResetBtn.disabled = false;
+                // Ensure icons are re-rendered if button text changed
+                if (window.lucide) window.lucide.createIcons();
             }
         });
     }
@@ -281,7 +309,7 @@ function initializeResetPasswordPage() {
     }
 
 
-    if (resetPasswordForm) {
+    if (resetPasswordForm && submitResetBtn) {
         resetPasswordForm.addEventListener('submit', async function(event) {
             event.preventDefault();
             hideMessage();
@@ -303,10 +331,10 @@ function initializeResetPasswordPage() {
                 return;
             }
 
-            if(submitResetBtn) {
-                submitResetBtn.disabled = true;
-                submitResetBtn.textContent = 'Processing...';
-            }
+            const originalButtonText = submitResetBtn.textContent;
+            submitResetBtn.disabled = true;
+            submitResetBtn.innerHTML = '<i data-lucide="loader-2" class="animate-spin" style="margin-right: 0.5em; vertical-align: middle;"></i> Processing...';
+            if (window.lucide) window.lucide.createIcons();
             
             try {
                 const response = await fetch(`${window.API_BASE_URL}/auth/reset-password`, {
@@ -319,24 +347,22 @@ function initializeResetPasswordPage() {
                 if (response.ok) {
                     showMessage(result.message || 'Password reset successfully! You can now login.', 'success');
                     resetPasswordForm.reset(); 
-                    if(submitResetBtn) submitResetBtn.textContent = 'Password Reset!';
+                    submitResetBtn.textContent = 'Password Reset!'; // Keep disabled
                     setTimeout(() => {
                         window.location.href = 'index.html';
                     }, 3000);
                 } else {
                     showMessage(result.message || 'Failed to reset password. The token might be invalid or expired.', 'error');
-                    if(submitResetBtn) {
-                        submitResetBtn.disabled = false;
-                        submitResetBtn.textContent = 'Reset Password';
-                    }
+                    submitResetBtn.disabled = false;
+                    submitResetBtn.textContent = originalButtonText;
                 }
             } catch (error) {
                 console.error('Reset password error:', error);
                 showMessage('An error occurred. Please try again.', 'error');
-                if(submitResetBtn) {
-                    submitResetBtn.disabled = false;
-                    submitResetBtn.textContent = 'Reset Password';
-                }
+                submitResetBtn.disabled = false;
+                submitResetBtn.textContent = originalButtonText;
+            } finally {
+                 if (window.lucide) window.lucide.createIcons();
             }
         });
     }
