@@ -4,7 +4,7 @@ const pool = require('../config/db');
 const { auth, authorize } = require('../middleware/authMiddleware');
 const { spawn } = require('child_process');
 const path = require('path');
-const { checkOverlappingBookings } = require('../utils/bookingUtils'); // Corrected import path
+const { checkOverlappingBookings } = require('../utils/bookingUtils');
 
 
 const router = express.Router();
@@ -18,16 +18,14 @@ router.post('/run', auth, authorize(['admin']), async (req, res) => {
         // 1. Gather all necessary data from the database
         const [labs] = await pool.query('SELECT lab_id, name, capacity, type, is_available FROM Labs WHERE is_available = true');
         const [courses] = await pool.query('SELECT course_id, name FROM Courses');
-        // Fetch sections with their course name and an assumed labs_per_week and capacity (customize as needed)
         const [sections] = await pool.query(`
             SELECT s.section_id, s.name, s.semester, s.year, s.course_id, c.name as course_name,
-                   COALESCE(s.expected_students, 30) AS capacity, -- Use actual if exists, else default
-                   COALESCE(s.labs_per_week, 1) AS labs_per_week   -- Use actual if exists, else default
+                   COALESCE(s.expected_students, 30) AS capacity, 
+                   COALESCE(s.labs_per_week, 1) AS labs_per_week   
             FROM Sections s
             JOIN Courses c ON s.course_id = c.course_id
             WHERE s.year >= YEAR(CURDATE()) AND s.semester IN ('Fall', 'Spring', 'Summer', 'Winter', 'Semester 1', 'Semester 2', 'Semester 3', 'Semester 4', 'Trimester 1', 'Trimester 2', 'Trimester 3', 'Other') 
-        `); // Example: only schedule for current year's relevant semesters, expanded list
-
+        `); 
         const [faculty_users] = await pool.query('SELECT user_id, full_name FROM Users WHERE role = "faculty"');
 
         const inputDataForScheduler = {
@@ -37,11 +35,9 @@ router.post('/run', auth, authorize(['admin']), async (req, res) => {
             faculty_users 
         };
 
-        // 2. Determine path to C++ executable
         const schedulerExecutableName = process.platform === "win32" ? "scheduler.exe" : "scheduler";
-        const schedulerPath = path.join(__dirname, '..', schedulerExecutableName); // Assumes executable is in backend/
+        const schedulerPath = path.join(__dirname, '..', schedulerExecutableName); 
 
-        // 3. Spawn the C++ scheduler as a child process
         const schedulerProcess = spawn(schedulerPath, [], { stdio: ['pipe', 'pipe', 'pipe'] });
 
         let stdoutData = '';
@@ -56,11 +52,9 @@ router.post('/run', auth, authorize(['admin']), async (req, res) => {
             console.error(`Scheduler STDERR: ${data}`);
         });
 
-        // Send data to C++ process via stdin
         schedulerProcess.stdin.write(JSON.stringify(inputDataForScheduler));
         schedulerProcess.stdin.end();
 
-        // Handle child process exit
         schedulerProcess.on('close', async (code) => {
             if (code !== 0) {
                 console.error(`Scheduler process exited with code ${code}`);
@@ -83,10 +77,10 @@ router.post('/run', auth, authorize(['admin']), async (req, res) => {
                     });
                 }
                 
+                // Handle messages from C++ (e.g., no labs/sections)
                 if (resultFromScheduler.message && resultFromScheduler.proposed_bookings && resultFromScheduler.proposed_bookings.length === 0) {
-                     // Message from C++ indicating no labs/sections, etc.
                     return res.status(200).json({
-                        message: resultFromScheduler.message,
+                        message: resultFromScheduler.message, // Message from C++
                         successfullyScheduledCount: 0,
                         conflictCount: 0,
                         totalProposed: 0,
@@ -94,14 +88,13 @@ router.post('/run', auth, authorize(['admin']), async (req, res) => {
                     });
                 }
 
-
                 const proposedBookings = resultFromScheduler.proposed_bookings || [];
                 let successfullyScheduledCount = 0;
                 let conflictCount = 0;
                 const createdBookingIds = [];
                 let dbErrors = [];
 
-                if (proposedBookings.length === 0 && !resultFromScheduler.message) { // No message and no bookings
+                if (proposedBookings.length === 0 && !resultFromScheduler.message) { 
                     return res.status(200).json({
                         message: 'Scheduling algorithm ran, but no new bookings were proposed.',
                         details: 'This might be due to existing schedules, lack of available slots, or no sections needing labs.',
@@ -116,7 +109,7 @@ router.post('/run', auth, authorize(['admin']), async (req, res) => {
                     
                     if (!lab_id || !start_time || !end_time) {
                         console.warn('Algorithm proposed an invalid booking (missing lab_id, start_time, or end_time), skipping:', booking);
-                        conflictCount++; // Or a new category for invalid proposals
+                        conflictCount++;
                         continue;
                     }
 
@@ -142,7 +135,7 @@ router.post('/run', auth, authorize(['admin']), async (req, res) => {
                     }
                 }
                 
-                let finalMessage = 'Scheduling process completed.';
+                let finalMessage = resultFromScheduler.message || 'Scheduling process completed.'; // Use C++ message if available
                 if (dbErrors.length > 0) {
                     finalMessage += ` Encountered ${dbErrors.length} errors during database insertion.`;
                 }

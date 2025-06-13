@@ -83,31 +83,26 @@ std::tm get_upcoming_monday_date() {
     // tm_wday: 0=Sun, 1=Mon, ..., 6=Sat
     int days_until_monday = (1 - current_tm.tm_wday + 7) % 7;
     if (days_until_monday == 0) { // If today is Monday
-        // Decide if you want to schedule for *this* Monday or *next* Monday.
-        // For simplicity, let's schedule for *next* Monday if today is Monday.
+        // Schedule for *next* Monday if today is Monday.
         days_until_monday = 7;
     }
     
-    // Add days to current date
     current_tm.tm_mday += days_until_monday;
-    // Normalize the date (mktime handles month/year rollovers)
     std::mktime(&current_tm); 
     
     return current_tm;
 }
 
 std::string get_iso_datetime_for_slot(const std::tm& base_monday_tm, int day_offset_from_monday, int hour) {
-    std::tm slot_tm = base_monday_tm; // Copy base Monday date
-    slot_tm.tm_mday += day_offset_from_monday; // Add offset for the specific day of the week
+    std::tm slot_tm = base_monday_tm; 
+    slot_tm.tm_mday += day_offset_from_monday; 
     slot_tm.tm_hour = hour;
     slot_tm.tm_min = 0;
     slot_tm.tm_sec = 0;
 
-    // Normalize the date again after adding day_offset and setting time
     std::mktime(&slot_tm);
 
-    char buffer[20]; // YYYY-MM-DDTHH:MM:SS
-    //strftime is locale-dependent for month/day names if used, but not for numeric formats
+    char buffer[20]; 
     std::strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%S", &slot_tm);
     return std::string(buffer);
 }
@@ -172,6 +167,7 @@ int main() {
 
 
     std::vector<Booking> proposed_bookings;
+    json output_json; // Declare output_json earlier to use for messages
     
     std::vector<TimeSlot> time_slots;
     int slot_start_hours[] = {9, 11, 14}; 
@@ -190,16 +186,14 @@ int main() {
     std::tm base_monday_date_tm = get_upcoming_monday_date();
 
     if (labs.empty()) {
-        json output_json; // Send empty bookings if no labs
-        output_json["proposed_bookings"] = proposed_bookings;
-        output_json["message"] = "No available labs to schedule."; // Add a message
+        output_json["message"] = "No available labs to schedule. Cannot generate timetable.";
+        output_json["proposed_bookings"] = proposed_bookings; // Empty
         std::cout << output_json.dump(4) << std::endl;
         return 0; 
     }
     if (sections.empty()) {
-        json output_json;
-        output_json["proposed_bookings"] = proposed_bookings;
-        output_json["message"] = "No sections require scheduling.";
+        output_json["message"] = "No sections require scheduling. Cannot generate timetable.";
+        output_json["proposed_bookings"] = proposed_bookings; // Empty
         std::cout << output_json.dump(4) << std::endl;
         return 0;
     }
@@ -211,10 +205,7 @@ int main() {
             section_labs_scheduled_count[std::to_string(section.id)] >= labs_to_schedule_for_section) {
             continue; 
         }
-
-        // bool section_scheduled_this_iteration = false; // Not strictly needed with current logic
         int current_scheduled_for_this_section = section_labs_scheduled_count.count(std::to_string(section.id)) ? section_labs_scheduled_count[std::to_string(section.id)] : 0;
-
 
         for (const auto& slot : time_slots) {
             if (current_scheduled_for_this_section >= labs_to_schedule_for_section) break;
@@ -242,15 +233,12 @@ int main() {
                     if (!faculty_available_for_slot) continue; 
                 } else {
                     faculty_available_for_slot = true; 
-                    // faculty_id_to_assign remains -1, backend will handle user_id as NULL or default if -1
                 }
-
 
                 Booking booking;
                 booking.lab_id = lab.id;
                 booking.section_id = section.id;
-                booking.user_id = (faculty_id_to_assign != -1) ? faculty_id_to_assign : 0; // Backend expects user_id or null; 0 can mean 'unassigned' if backend handles it.
-                                                                                         // Or, ensure Node.js handles user_id=0 by converting to null.
+                booking.user_id = (faculty_id_to_assign != -1) ? faculty_id_to_assign : 0;
                 
                 int start_hour = slot_start_hours[slot.slot_index];
                 booking.start_time_str = get_iso_datetime_for_slot(base_monday_date_tm, slot.day_of_week, start_hour);
@@ -262,7 +250,7 @@ int main() {
                 proposed_bookings.push_back(booking);
 
                 lab_slot_booked[lab_slot_key] = true;
-                if (faculty_id_to_assign != -1 && !faculty_list.empty()) { // Only mark faculty booked if one was actually assigned
+                if (faculty_id_to_assign != -1 && !faculty_list.empty()) {
                      faculty_slot_booked[std::to_string(faculty_id_to_assign) + "_" + slot.toString()] = true;
                 }
                 current_scheduled_for_this_section++;
@@ -273,8 +261,10 @@ int main() {
             if (current_scheduled_for_this_section >= labs_to_schedule_for_section) break;
         }
     }
-
-    json output_json;
+    
+    if (proposed_bookings.empty() && !output_json.contains("message")) { // Only add this if no specific message (like no labs/sections) was set
+        output_json["message"] = "Scheduling algorithm ran, but no new bookings could be proposed based on current constraints and availability.";
+    }
     output_json["proposed_bookings"] = proposed_bookings;
     std::cout << output_json.dump(4) << std::endl;
 
